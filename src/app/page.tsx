@@ -20,7 +20,9 @@ export default async function DashboardHome() {
         <div className="bg-gray-100 p-4 rounded text-sm text-left mb-6 overflow-auto">
           <strong>User ID:</strong> {user.id}<br/>
           <strong>E-mail:</strong> {user.email}<br/>
-          <strong>Filial Associada (JWT Claim):</strong> {user.app_metadata?.branch_id || 'Não vinculada'}
+          <strong>Função (Role):</strong> {user.app_metadata?.role || 'OPERATOR'}<br/>
+          <strong>Organização (JWT Claim):</strong> {user.app_metadata?.organization_id || 'Não vinculada'}<br/>
+          <strong>Filiais Associadas (JWT Claim):</strong> {user.app_metadata?.branch_ids ? JSON.stringify(user.app_metadata.branch_ids) : 'Nenhuma'}
         </div>
 
         <form action="/auth/signout" method="POST">

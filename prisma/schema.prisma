@@ -7,33 +7,66 @@ datasource db {
 }
 
 enum Role {
+  OWNER
   ADMIN
   OPERATOR
 }
 
-model Branch {
+model Organization {
   id        String   @id @default(uuid())
   name      String
-  city      String
-  state     String
-  cnpj      String
+  cnpj      String   @unique
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  users     User[]
+
+  branches Branch[]
+  users    User[]
+
+  @@map("organizations")
+}
+
+model Branch {
+  id             String       @id @default(uuid())
+  organizationId String
+  name           String
+  city           String
+  state          String
+  cnpj           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  users          User[]
+  userBranches   UserBranch[]
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@map("branches")
 }
 
 model User {
-  id        String   @id // UUID reference to Supabase auth.users
-  branchId  String?
-  email     String   @unique
-  fullName  String?
-  role      Role     @default(OPERATOR)
-  avatarUrl String?
-  createdAt DateTime @default(now())
+  id             String   @id // UUID reference to Supabase auth.users
+  organizationId String?
+  email          String   @unique
+  fullName       String?
+  role           Role     @default(OPERATOR)
+  avatarUrl      String?
+  createdAt      DateTime @default(now())
 
-  branch Branch? @relation(fields: [branchId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userBranches UserBranch[]
+  branch       Branch?       @relation(fields: [branchId], references: [id])
+  branchId     String?
 
   @@map("users")
+}
+
+model UserBranch {
+  userId   String
+  branchId String
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@map("user_branches")
 }
