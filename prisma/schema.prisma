@@ -26,14 +26,14 @@ model Branch {
 
 model User {
   id        String   @id // UUID reference to Supabase auth.users
-  branchId  String
+  branchId  String?
   email     String   @unique
-  fullName  String
+  fullName  String?
   role      Role     @default(OPERATOR)
   avatarUrl String?
   createdAt DateTime @default(now())
 
-  branch Branch @relation(fields: [branchId], references: [id])
+  branch Branch? @relation(fields: [branchId], references: [id])
 
   @@map("users")
 }
