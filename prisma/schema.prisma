@@ -1,0 +1,39 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  OPERATOR
+}
+
+model Branch {
+  id        String   @id @default(uuid())
+  name      String
+  city      String
+  state     String
+  cnpj      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+
+  @@map("branches")
+}
+
+model User {
+  id        String   @id // UUID reference to Supabase auth.users
+  branchId  String
+  email     String   @unique
+  fullName  String
+  role      Role     @default(OPERATOR)
+  avatarUrl String?
+  createdAt DateTime @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@map("users")
+}
