@@ -1,0 +1,16 @@
+# Ignorar ficheiros locais e de repositório
+.git
+.github
+
+# Dependências
+node_modules
+npm-debug.log
+
+# Ficheiros de build do Next.js
+.next
+out
+
+# Outros
+.env*
+.DS_Store
+README.md

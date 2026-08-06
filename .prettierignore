@@ -1,0 +1,4 @@
+# Ignorar a pasta do GitHub para evitar que as imagens sejam formatadas
+.github/
+.next/
+node_modules/

@@ -1,0 +1,4 @@
+# Ignorar a pasta do GitHub para evitar processamento indevido pelo linter
+.github/
+.next/
+node_modules/
