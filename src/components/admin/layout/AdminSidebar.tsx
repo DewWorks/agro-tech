@@ -13,7 +13,8 @@ import {
   ShieldAlert,
   Settings,
   FolderTree,
-  FileText
+  FileText,
+  Tractor
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -25,6 +26,14 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  {
+    title: 'CRM / Produtores',
+    icon: Tractor,
+    subItems: [
+      { title: 'Listagem Geral', href: '/admin/crm' },
+      { title: 'Novo Produtor', href: '/admin/crm/new' },
+    ]
+  },
   {
     title: 'Filiais',
     icon: Building2,

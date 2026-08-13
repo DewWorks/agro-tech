@@ -38,6 +38,8 @@ model Branch {
   updatedAt      DateTime     @updatedAt
   users          User[]
   userBranches   UserBranch[]
+  producers      Producer[]
+  properties     Property[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -72,4 +74,121 @@ model UserBranch {
 
   @@id([userId, branchId])
   @@map("user_branches")
+}
+
+// ----------------------------------------------------------------------
+// MÓDULO CRM E CADASTRO ÚNICO
+// ----------------------------------------------------------------------
+
+enum ProducerType {
+  PF
+  PJ
+}
+
+enum CivilStatus {
+  SOLTEIRO
+  CASADO
+  SEPARADO
+  DIVORCIADO
+  VIUVO
+  UNIAO_ESTAVEL
+}
+
+enum MarriageRegime {
+  COMUNHAO_PARCIAL
+  COMUNHAO_UNIVERSAL
+  SEPARACAO_TOTAL
+  SEPARACAO_OBRIGATORIA
+  PARTICIPACAO_FINAL
+}
+
+model Producer {
+  id             String       @id @default(uuid())
+  branchId       String
+  type           ProducerType
+  document       String       // CPF ou CNPJ (apenas números)
+  name           String
+  email          String?
+  phone          String?
+  
+  // Dados de Pessoa Física
+  civilStatus    CivilStatus?
+  marriageRegime MarriageRegime?
+  spouseName     String?
+  spouseCpf      String?
+
+  // Qualificação
+  dapCafNumber   String?
+  
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdBy      String?      // ID do User que criou
+  updatedBy      String?      // ID do User que atualizou
+
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  properties     ProducerProperty[]
+
+  // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
+  @@unique([branchId, document])
+  @@map("producers")
+}
+
+model Property {
+  id             String       @id @default(uuid())
+  branchId       String
+  name           String
+  
+  // Documentos Regulares
+  car            String?
+  ccir           String?
+  itr            String?
+  
+  // Áreas (em Hectares)
+  totalArea      Float        @default(0)
+  productiveArea Float        @default(0)
+  pastureArea    Float        @default(0)
+  preserveArea   Float        @default(0)
+
+  // Geolocalização
+  latitude       Float?
+  longitude      Float?
+
+  // Campos Dinâmicos (JSONB no Postgres)
+  improvements   Json?        // Benfeitorias
+  livestock      Json?        // Rebanho
+  
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  createdBy      String?      // ID do User que criou
+  updatedBy      String?      // ID do User que atualizou
+
+  branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producers      ProducerProperty[]
+
+  @@map("properties")
+}
+
+enum OwnershipType {
+  PROPRIETARIO
+  ARRENDATARIO
+  MEEIRO
+  COMODATARIO
+  CONDOMINO
+}
+
+model ProducerProperty {
+  producerId             String
+  propertyId             String
+  ownershipType          OwnershipType
+  explorationPercentage  Float         @default(100.0) // 0 a 100%
+  contractEndDate        DateTime?     // Para arrendatários/meeiros
+  
+  producer               Producer      @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  property               Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  createdAt              DateTime      @default(now())
+
+  @@id([producerId, propertyId])
+  @@map("producer_properties")
 }
