@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { handleServerError } from '@/lib/errorHandler'
 
 export async function createBranch(formData: FormData) {
   try {
@@ -42,11 +43,7 @@ export async function createBranch(formData: FormData) {
     revalidatePath('/admin/branches')
     return { success: true, data: branch }
   } catch (error: any) {
-    console.error('Erro ao criar filial:', error)
-    if (error?.code === 'P2002') {
-      return { error: 'Já existe uma filial com este CNPJ.' }
-    }
-    return { error: 'Ocorreu um erro ao criar a filial. Verifique os dados ou tente novamente.' }
+    return { error: handleServerError(error, 'Branches - createBranch', { P2002: 'Já existe uma filial com este CNPJ.' }) }
   }
 }
 
@@ -86,11 +83,7 @@ export async function updateBranch(id: string, formData: FormData) {
     revalidatePath('/admin/branches')
     return { success: true, data: updated }
   } catch (error: any) {
-    console.error('Erro ao atualizar filial:', error)
-    if (error?.code === 'P2002') {
-      return { error: 'Já existe outra filial com este CNPJ.' }
-    }
-    return { error: 'Ocorreu um erro ao atualizar a filial. Tente novamente.' }
+    return { error: handleServerError(error, 'Branches - updateBranch', { P2002: 'Já existe outra filial com este CNPJ.' }) }
   }
 }
 
@@ -115,8 +108,7 @@ export async function deleteBranch(id: string) {
     revalidatePath('/admin/branches')
     return { success: true }
   } catch (error: any) {
-    console.error('Erro ao deletar filial:', error)
-    return { error: 'Não foi possível apagar a filial. Ela pode ter utilizadores associados.' }
+    return { error: handleServerError(error, 'Branches - deleteBranch') }
   }
 }
 
@@ -139,7 +131,6 @@ export async function toggleBranchStatus(id: string, newStatus: boolean) {
     revalidatePath('/admin/branches')
     return { success: true }
   } catch (error: any) {
-    console.error('Erro ao alternar status da filial:', error)
-    return { error: 'Não foi possível alterar o status da filial no momento.' }
+    return { error: handleServerError(error, 'Branches - toggleBranchStatus') }
   }
 }

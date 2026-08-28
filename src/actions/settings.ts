@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
+import { handleServerError } from '@/lib/errorHandler'
 
 const updateProfileSchema = z.object({
   fullName: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -40,9 +41,8 @@ export async function updateProfile(formData: FormData) {
 
     revalidatePath('/admin/settings/profile')
     return { success: true }
-  } catch (error) {
-    console.error('Erro ao atualizar perfil:', error)
-    return { error: 'Ocorreu um erro ao atualizar o perfil.' }
+  } catch (error: any) {
+    return { error: handleServerError(error, 'Settings - updateProfile') }
   }
 }
 
@@ -87,8 +87,7 @@ export async function updateOrganization(formData: FormData) {
 
     revalidatePath('/admin/settings/organization')
     return { success: true }
-  } catch (error) {
-    console.error('Erro ao atualizar organização:', error)
-    return { error: 'Ocorreu um erro ao atualizar os dados da organização.' }
+  } catch (error: any) {
+    return { error: handleServerError(error, 'Settings - updateOrganization') }
   }
 }

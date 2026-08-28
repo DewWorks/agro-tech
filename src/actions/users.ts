@@ -6,6 +6,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Role } from '@prisma/client'
 import { sendWelcomeEmail } from '@/lib/email'
+import { handleServerError } from '@/lib/errorHandler'
 
 // Tipos para os parâmetros das ações
 interface CreateUserData {
@@ -117,11 +118,7 @@ export async function createUser(data: CreateUserData) {
     revalidatePath('/admin/users')
     return { success: true, tempPassword }
   } catch (error: any) {
-    console.error('Erro ao criar/vincular utilizador:', error)
-    if (error?.code === 'P2002') {
-      return { error: 'Já existe um utilizador com este e-mail na organização.' }
-    }
-    return { error: 'Ocorreu um erro ao criar ou vincular o utilizador. Verifique os dados e tente novamente.' }
+    return { error: handleServerError(error, 'Users - createUser') }
   }
 }
 
@@ -159,8 +156,7 @@ export async function updateUser(id: string, data: UpdateUserData) {
     revalidatePath('/admin/users')
     return { success: true }
   } catch (error: any) {
-    console.error('Erro ao atualizar utilizador:', error)
-    return { error: 'Ocorreu um erro ao atualizar os dados do utilizador. Tente novamente.' }
+    return { error: handleServerError(error, 'Users - updateUser') }
   }
 }
 
@@ -181,7 +177,6 @@ export async function toggleUserStatus(id: string, newStatus: boolean) {
     revalidatePath('/admin/users')
     return { success: true }
   } catch (error: any) {
-    console.error('Erro ao alternar status do utilizador:', error)
-    return { error: 'Não foi possível alterar o status deste utilizador no momento.' }
+    return { error: handleServerError(error, 'Users - toggleUserStatus') }
   }
 }

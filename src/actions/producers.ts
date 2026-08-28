@@ -3,9 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { handleServerError } from '@/lib/errorHandler'
 import { CivilStatus, MarriageRegime, ProducerType } from '@prisma/client'
 import { validateCNPJ, validateCPF } from '@/lib/validations'
-import { handleServerError } from '@/lib/errorHandler'
 
 export async function createProducer(data: any) {
   try {
@@ -69,7 +69,7 @@ export async function createProducer(data: any) {
     return { success: true, data: producer }
   } catch (error: any) {
     return { 
-      error: handleServerError(error, {
+      error: handleServerError(error, 'Producers - createProducer', {
         P2002: 'Este produtor (CPF/CNPJ) já está cadastrado nesta filial.'
       }) 
     }
@@ -156,7 +156,7 @@ export async function updateProducer(id: string, data: any) {
     return { success: true, data: updatedProducer }
   } catch (error: any) {
     return { 
-      error: handleServerError(error, {
+      error: handleServerError(error, 'Producers - updateProducer', {
         P2002: 'Este produtor (CPF/CNPJ) já está cadastrado nesta filial.'
       }) 
     }
@@ -179,7 +179,6 @@ export async function toggleProducerStatus(id: string, newStatus: boolean) {
     revalidatePath('/admin/crm')
     return { success: true }
   } catch (error: any) {
-    console.error('Erro ao alternar status:', error)
-    return { error: 'Não foi possível alterar o status do produtor.' }
+    return { error: handleServerError(error, 'Producers - toggleProducerStatus') }
   }
 }
