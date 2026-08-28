@@ -25,40 +25,62 @@ interface MenuItem {
   subItems?: { title: string; href: string }[]
 }
 
-const menuItems: MenuItem[] = [
-  {
-    title: 'CRM / Produtores',
-    icon: Tractor,
-    subItems: [
-      { title: 'Listagem Geral', href: '/admin/crm' },
-      { title: 'Novo Produtor', href: '/admin/crm/new' },
-    ]
-  },
-  {
-    title: 'Filiais',
-    icon: Building2,
-    subItems: [
-      { title: 'Ver Todas', href: '/admin/branches' },
-      { title: 'Nova Filial', href: '/admin/branches/new' },
-    ]
-  },
-  {
-    title: 'Utilizadores',
-    icon: Users,
-    subItems: [
-      { title: 'Equipa e Acessos', href: '/admin/users' },
-      { title: 'Novo Utilizador', href: '/admin/users/new' },
-    ]
-  },
-  {
-    title: 'Configurações',
-    icon: Settings,
-    subItems: [
-      { title: 'Meu Perfil', href: '/admin/settings/profile' },
-      { title: 'Minha Empresa', href: '/admin/settings/organization' },
+const getMenuItems = (role: string): MenuItem[] => {
+  if (role === 'SUPER_ADMIN') {
+    return [
+      {
+        title: 'SaaS / Clientes',
+        icon: Building2,
+        subItems: [
+          { title: 'Gestão de Organizações', href: '/admin/organizations' },
+          { title: 'Novo Cliente', href: '/admin/organizations/new' },
+        ]
+      },
+      {
+        title: 'Configurações',
+        icon: Settings,
+        subItems: [
+          { title: 'Meu Perfil', href: '/admin/settings/profile' },
+        ]
+      }
     ]
   }
-]
+
+  return [
+    {
+      title: 'CRM / Produtores',
+      icon: Tractor,
+      subItems: [
+        { title: 'Listagem Geral', href: '/admin/crm' },
+        { title: 'Novo Produtor', href: '/admin/crm/new' },
+      ]
+    },
+    {
+      title: 'Filiais',
+      icon: Building2,
+      subItems: [
+        { title: 'Ver Todas', href: '/admin/branches' },
+        { title: 'Nova Filial', href: '/admin/branches/new' },
+      ]
+    },
+    {
+      title: 'Utilizadores',
+      icon: Users,
+      subItems: [
+        { title: 'Equipa e Acessos', href: '/admin/users' },
+        { title: 'Novo Utilizador', href: '/admin/users/new' },
+      ]
+    },
+    {
+      title: 'Configurações',
+      icon: Settings,
+      subItems: [
+        { title: 'Meu Perfil', href: '/admin/settings/profile' },
+        { title: 'Minha Empresa', href: '/admin/settings/organization' },
+      ]
+    }
+  ]
+}
 
 export default function AdminSidebar({ role }: { role: string }) {
   const pathname = usePathname()
@@ -67,6 +89,7 @@ export default function AdminSidebar({ role }: { role: string }) {
     'Filiais': pathname.includes('/admin/branches'),
     'Utilizadores': pathname.includes('/admin/users'),
     'Configurações': pathname.includes('/admin/settings'),
+    'SaaS / Clientes': pathname.includes('/admin/organizations'),
   })
 
   const toggleMenu = (title: string) => {
@@ -76,6 +99,8 @@ export default function AdminSidebar({ role }: { role: string }) {
     }))
   }
 
+  const currentMenuItems = getMenuItems(role)
+
   return (
     <div className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shadow-lg transition-all duration-300">
       
@@ -84,7 +109,7 @@ export default function AdminSidebar({ role }: { role: string }) {
         <h1 className="text-2xl font-bold tracking-wider">AGRO<span className="font-light">TECH</span></h1>
         <div className="mt-1 text-[10px] bg-white/20 px-3 py-1 rounded-full text-white font-bold uppercase tracking-widest flex items-center gap-1">
           <ShieldAlert size={10} />
-          Painel {role}
+          Painel {role === 'SUPER_ADMIN' ? 'GLOBAL' : role}
         </div>
       </div>
 
@@ -110,9 +135,11 @@ export default function AdminSidebar({ role }: { role: string }) {
 
           {/* MENU PRINCIPAL COM SUBMENUS */}
           <div className="space-y-1">
-            <p className="px-4 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Gestão Principal</p>
+            <p className="px-4 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
+              {role === 'SUPER_ADMIN' ? 'Gestão de Clientes' : 'Gestão Principal'}
+            </p>
             
-            {menuItems.map((item) => {
+            {currentMenuItems.map((item) => {
               const isActiveRoute = item.href ? pathname === item.href : item.subItems?.some(sub => pathname === sub.href || pathname.startsWith(sub.href))
               const isExpanded = expandedMenus[item.title]
 
@@ -147,7 +174,7 @@ export default function AdminSidebar({ role }: { role: string }) {
                     </Link>
                   )}
 
-                  {/* SUBITENS (Animados via CSS puramente com max-height se quiséssemos, mas aqui fazemos condicional simples) */}
+                  {/* SUBITENS */}
                   {item.subItems && isExpanded && (
                     <div className="ml-4 pl-4 border-l border-white/20 space-y-1 mt-1 mb-2">
                       {item.subItems.map((sub) => {
