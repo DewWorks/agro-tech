@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
+import { FormAlert } from '@/components/ui/form-alert'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createUser, updateUser } from '@/actions/users'
 import { toast } from 'sonner'
@@ -104,8 +105,8 @@ export function UserForm({ initialData, branches }: UserFormProps) {
       toast.error('Ocorreu um erro.')
       setIsPending(false)
     } else {
-      if (result.tempPassword) {
-        toast.success(`Usuário criado! Senha temporária: ${result.tempPassword}`, { duration: 10000 })
+      if ('tempPassword' in (result || {})) {
+        toast.success(`Usuário criado! Senha temporária: ${(result as any).tempPassword}`, { duration: 10000 })
       } else {
         toast.success('Usuário atualizado com sucesso!')
       }
@@ -115,11 +116,7 @@ export function UserForm({ initialData, branches }: UserFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {error && (
-        <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-100 rounded-md">
-          {error}
-        </div>
-      )}
+      <FormAlert type="error" message={error || ''} />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">

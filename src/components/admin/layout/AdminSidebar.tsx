@@ -50,11 +50,13 @@ const menuItems: MenuItem[] = [
       { title: 'Novo Utilizador', href: '/admin/users/new' },
     ]
   },
-  // Placeholders para futuros módulos
   {
     title: 'Configurações',
     icon: Settings,
-    href: '/admin/settings',
+    subItems: [
+      { title: 'Meu Perfil', href: '/admin/settings/profile' },
+      { title: 'Minha Empresa', href: '/admin/settings/organization' },
+    ]
   }
 ]
 
@@ -64,6 +66,7 @@ export default function AdminSidebar({ role }: { role: string }) {
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     'Filiais': pathname.includes('/admin/branches'),
     'Utilizadores': pathname.includes('/admin/users'),
+    'Configurações': pathname.includes('/admin/settings'),
   })
 
   const toggleMenu = (title: string) => {
@@ -171,17 +174,6 @@ export default function AdminSidebar({ role }: { role: string }) {
             })}
           </div>
         </nav>
-      </div>
-
-      {/* RODAPÉ DO SIDEBAR */}
-      <div className="p-4 border-t border-white/10">
-        <Link 
-          href="/" 
-          className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-white/10 transition-colors text-sm font-medium text-white/70 hover:text-white"
-        >
-          <LayoutDashboard size={20} />
-          Voltar ao App
-        </Link>
       </div>
     </div>
   )

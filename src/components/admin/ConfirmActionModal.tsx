@@ -64,10 +64,12 @@ export function ConfirmActionModal({
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant={triggerVariant} size={triggerSize}>
-          {triggerText}
-        </Button>
+      <AlertDialogTrigger>
+        <div className="inline-block">
+          <Button variant={triggerVariant} size={triggerSize}>
+            {triggerText}
+          </Button>
+        </div>
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

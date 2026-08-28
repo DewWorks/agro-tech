@@ -1,22 +1,31 @@
 'use client'
 
 import { useState } from 'react'
-import { login } from '@/actions/auth'
+import { updatePassword } from '@/actions/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FormAlert } from '@/components/ui/form-alert'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import Link from 'next/link'
 
-export default function LoginPage() {
+export default function UpdatePasswordPage() {
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true)
     setError(null)
-    const result = await login(formData)
+    
+    const password = formData.get('password') as string
+    const confirmPassword = formData.get('confirmPassword') as string
+    
+    if (password !== confirmPassword) {
+      setError('As palavras-passe não coincidem.')
+      setIsPending(false)
+      return
+    }
+
+    const result = await updatePassword(formData)
     
     if (result?.error) {
       setError(result.error)
@@ -27,34 +36,32 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-md shadow-xl border-none">
       <CardHeader className="space-y-2 text-center pb-8">
-        <CardTitle className="text-3xl font-bold text-[#1B4D3E]">AgroTech</CardTitle>
-        <CardDescription>Plataforma Unificada de Crédito Rural</CardDescription>
+        <CardTitle className="text-2xl font-bold text-[#1B4D3E]">Nova Senha</CardTitle>
+        <CardDescription>
+          Introduza a sua nova palavra-passe para aceder à plataforma.
+        </CardDescription>
       </CardHeader>
       <form action={handleSubmit}>
         <CardContent className="space-y-4">
           <FormAlert type="error" message={error || ''} />
           <div className="space-y-2 text-left">
-            <Label htmlFor="email">E-mail Corporativo</Label>
-            <Input 
-              id="email" 
-              name="email" 
-              type="email" 
-              placeholder="seu.nome@lnconsultoria.com" 
-              required 
-            />
-          </div>
-          <div className="space-y-2 text-left">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Senha</Label>
-              <Link href="/forgot-password" className="text-xs font-medium text-[#1B4D3E] hover:underline">
-                Esqueci a minha senha
-              </Link>
-            </div>
+            <Label htmlFor="password">Nova Senha</Label>
             <Input 
               id="password" 
               name="password" 
               type="password" 
               required 
+              minLength={6}
+            />
+          </div>
+          <div className="space-y-2 text-left">
+            <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+            <Input 
+              id="confirmPassword" 
+              name="confirmPassword" 
+              type="password" 
+              required 
+              minLength={6}
             />
           </div>
         </CardContent>
@@ -64,7 +71,7 @@ export default function LoginPage() {
             className="w-full bg-[#1B4D3E] hover:bg-[#13382D]"
             disabled={isPending}
           >
-            {isPending ? 'A autenticar...' : 'Entrar no Sistema'}
+            {isPending ? 'A atualizar...' : 'Atualizar Senha'}
           </Button>
         </CardFooter>
       </form>

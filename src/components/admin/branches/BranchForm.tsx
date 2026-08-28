@@ -27,7 +27,7 @@ const formSchema = z.object({
   cnpj: z.string().min(14, 'O CNPJ deve ter no mínimo 14 caracteres.'),
   city: z.string().min(2, 'A cidade deve ter pelo menos 2 caracteres.'),
   state: z.string().min(2, 'A UF deve ter pelo menos 2 caracteres.'),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 })
 
 interface BranchFormProps {
@@ -80,7 +80,7 @@ export function BranchForm({ initialData }: BranchFormProps) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="name"
             render={({ field }) => (
               <FormItem>
@@ -94,7 +94,7 @@ export function BranchForm({ initialData }: BranchFormProps) {
           />
 
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="cnpj"
             render={({ field }) => (
               <FormItem>
@@ -108,7 +108,7 @@ export function BranchForm({ initialData }: BranchFormProps) {
           />
 
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="city"
             render={({ field }) => (
               <FormItem>
@@ -122,7 +122,7 @@ export function BranchForm({ initialData }: BranchFormProps) {
           />
 
           <FormField
-            control={form.control}
+            control={form.control as any}
             name="state"
             render={({ field }) => (
               <FormItem>
@@ -137,7 +137,7 @@ export function BranchForm({ initialData }: BranchFormProps) {
         </div>
 
         <FormField
-          control={form.control}
+          control={form.control as any}
           name="isActive"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 shadow-sm">

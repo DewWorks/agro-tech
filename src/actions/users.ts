@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { Role } from '@prisma/client'
+import { sendWelcomeEmail } from '@/lib/email'
 
 // Tipos para os parâmetros das ações
 interface CreateUserData {
@@ -22,17 +23,20 @@ interface UpdateUserData {
   branches: { branchId: string; role: Role }[]
 }
 
-// Auxiliar para verificar permissões de quem está executando a ação
 async function verifyAdminAccess() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Não autenticado')
 
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+  const dbUser = await prisma.user.findUnique({ 
+    where: { id: user.id },
+    include: { organization: true }
+  })
+  
   if (!dbUser || (dbUser.role !== 'OWNER' && dbUser.role !== 'ADMIN')) {
     throw new Error('Permissão negada')
   }
-  if (!dbUser.organizationId) {
+  if (!dbUser.organizationId || !dbUser.organization) {
     throw new Error('Usuário sem organização')
   }
 
@@ -43,29 +47,39 @@ export async function createUser(data: CreateUserData) {
   try {
     const adminUser = await verifyAdminAccess()
 
-    // 1. Criar utilizador no Supabase Auth usando o Admin API
-    const tempPassword = Math.random().toString(36).slice(-10) + 'A1!'
-    
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: {
-        role: data.role // Isso pode ser usado pela trigger no futuro
-      }
-    })
+    // 1. Verificar se o utilizador já existe no Prisma
+    let dbUser = await prisma.user.findUnique({ where: { email: data.email } })
+    let targetUserId: string
+    let tempPassword
 
-    if (authError) throw new Error(`Erro Supabase: ${authError.message}`)
-    if (!authData.user) throw new Error('Falha ao criar utilizador no Supabase.')
+    if (dbUser) {
+      // Utilizador já existe, vamos apenas vinculá-lo à organização
+      targetUserId = dbUser.id
+    } else {
+      // 2. Criar novo utilizador no Supabase Auth usando o Admin API
+      tempPassword = Math.random().toString(36).slice(-10) + 'A1!'
+      
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: data.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          role: data.role // Isso pode ser usado pela trigger no futuro
+        }
+      })
 
-    const newUserId = authData.user.id
+      if (authError) throw new Error(`Erro Supabase: ${authError.message}`)
+      if (!authData.user) throw new Error('Falha ao criar utilizador no Supabase.')
 
-    // 2. Aguardar 1 segundo para garantir que a Trigger do Postgres inseriu o User no Prisma
-    await new Promise(resolve => setTimeout(resolve, 1000))
+      targetUserId = authData.user.id
 
-    // 3. Atualizar os dados do User no Prisma (já que a trigger mete como ADMIN e nome null)
+      // 3. Aguardar 1 segundo para garantir que a Trigger do Postgres inseriu o User no Prisma
+      await new Promise(resolve => setTimeout(resolve, 1000))
+    }
+
+    // 4. Atualizar os dados do User no Prisma para vinculá-lo à organização
     await prisma.user.update({
-      where: { id: newUserId },
+      where: { id: targetUserId },
       data: {
         organizationId: adminUser.organizationId,
         fullName: data.fullName,
@@ -74,10 +88,14 @@ export async function createUser(data: CreateUserData) {
       }
     })
 
-    // 4. Inserir as relações com filiais (UserBranch)
+    // 5. Apagar vínculos antigos de filiais e inserir as novas relações
+    await prisma.userBranch.deleteMany({
+      where: { userId: targetUserId }
+    })
+
     if (data.branches && data.branches.length > 0) {
       const userBranchesData = data.branches.map(b => ({
-        userId: newUserId,
+        userId: targetUserId,
         branchId: b.branchId,
         role: b.role
       }))
@@ -87,14 +105,23 @@ export async function createUser(data: CreateUserData) {
       })
     }
 
+    // Enviar o email de boas vindas
+    await sendWelcomeEmail({
+      email: data.email,
+      fullName: data.fullName,
+      organizationName: adminUser.organization.name,
+      role: data.role,
+      tempPassword
+    })
+
     revalidatePath('/admin/users')
     return { success: true, tempPassword }
   } catch (error: any) {
-    console.error('Erro ao criar utilizador:', error)
+    console.error('Erro ao criar/vincular utilizador:', error)
     if (error?.code === 'P2002') {
       return { error: 'Já existe um utilizador com este e-mail na organização.' }
     }
-    return { error: 'Ocorreu um erro ao criar o utilizador. Verifique os dados e tente novamente.' }
+    return { error: 'Ocorreu um erro ao criar ou vincular o utilizador. Verifique os dados e tente novamente.' }
   }
 }
 
