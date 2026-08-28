@@ -107,15 +107,20 @@ export async function createUser(data: CreateUserData) {
     }
 
     // Enviar o email de boas vindas
-    await sendWelcomeEmail({
+    const emailResult = await sendWelcomeEmail({
       email: data.email,
       fullName: data.fullName,
-      organizationName: adminUser.organization.name,
+      organizationName: adminUser.organization!.name,
       role: data.role,
       tempPassword
     })
 
     revalidatePath('/admin/users')
+    
+    if (!emailResult.success) {
+      return { success: true, tempPassword, warning: 'Utilizador criado com sucesso, mas ocorreu uma falha ao enviar o e-mail de convite.' }
+    }
+
     return { success: true, tempPassword }
   } catch (error: any) {
     return { error: handleServerError(error, 'Users - createUser') }
@@ -178,5 +183,42 @@ export async function toggleUserStatus(id: string, newStatus: boolean) {
     return { success: true }
   } catch (error: any) {
     return { error: handleServerError(error, 'Users - toggleUserStatus') }
+  }
+}
+
+export async function resendWelcomeEmailAction(id: string) {
+  try {
+    const adminUser = await verifyAdminAccess()
+    
+    const targetUser = await prisma.user.findUnique({ where: { id } })
+    if (!targetUser) throw new Error('Utilizador não encontrado.')
+    if (targetUser.organizationId !== adminUser.organizationId) {
+      throw new Error('Permissão negada.')
+    }
+
+    // Gerar nova password temporária
+    const tempPassword = Math.random().toString(36).slice(-10) + 'A1!'
+    
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      password: tempPassword
+    })
+
+    if (authError) throw new Error(`Erro Supabase: ${authError.message}`)
+
+    const emailResult = await sendWelcomeEmail({
+      email: targetUser.email,
+      fullName: targetUser.fullName || '',
+      organizationName: adminUser.organization!.name,
+      role: targetUser.role,
+      tempPassword
+    })
+
+    if (!emailResult.success) {
+      return { warning: 'A nova password foi gerada, mas houve uma falha ao enviar o e-mail.' }
+    }
+
+    return { success: true }
+  } catch (error: any) {
+    return { error: handleServerError(error, 'Users - resendWelcomeEmail') }
   }
 }

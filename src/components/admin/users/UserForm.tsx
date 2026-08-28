@@ -37,6 +37,8 @@ export function UserForm({ initialData, branches }: UserFormProps) {
   const router = useRouter()
   const [isPending, setIsPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   // Estado do formulário
   const [email, setEmail] = useState(initialData?.email || '')
@@ -104,14 +106,42 @@ export function UserForm({ initialData, branches }: UserFormProps) {
       setError(result.error)
       toast.error('Ocorreu um erro.')
       setIsPending(false)
+    } else if ((result as any)?.warning) {
+      setWarning((result as any).warning)
+      setIsPending(false)
     } else {
       if ('tempPassword' in (result || {})) {
-        toast.success(`Usuário criado! Senha temporária: ${(result as any).tempPassword}`, { duration: 10000 })
+        setSuccess(`Utilizador criado com sucesso! Foi gerada e enviada a senha temporária: ${(result as any).tempPassword}`)
       } else {
-        toast.success('Usuário atualizado com sucesso!')
+        setSuccess('Dados do utilizador atualizados com sucesso!')
       }
-      router.push('/admin/users')
+      setIsPending(false)
     }
+  }
+
+  if (success || warning) {
+    return (
+      <div className="space-y-6">
+        {success && <FormAlert type="success" message={success} />}
+        {warning && <FormAlert type="warning" message={warning} />}
+        
+        <div className="flex gap-4 mt-6">
+          <Button onClick={() => router.push('/admin/users')} className="bg-[#1B4D3E] hover:bg-[#13382D]">
+            Voltar para Listagem
+          </Button>
+          {(warning || success) && !initialData && (
+            <Button variant="outline" onClick={() => {
+              setSuccess(null)
+              setWarning(null)
+              setEmail('')
+              setFullName('')
+            }}>
+              Criar Outro Utilizador
+            </Button>
+          )}
+        </div>
+      </div>
+    )
   }
 
   return (

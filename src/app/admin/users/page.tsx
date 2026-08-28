@@ -12,8 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Users as UsersIcon, Plus, Pencil } from 'lucide-react'
-import { toggleUserStatus } from '@/actions/users'
+import { Users as UsersIcon, Plus, Pencil, Mail } from 'lucide-react'
+import { toggleUserStatus, resendWelcomeEmailAction } from '@/actions/users'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 
 export default async function UsersPage() {
@@ -129,6 +129,27 @@ export default async function UsersPage() {
                         actionVariant={u.isActive ? 'destructive' : 'default'}
                       />
                     )}
+                    <ConfirmActionModal
+                      title="Reenviar E-mail de Acesso?"
+                      description={`Deseja gerar uma nova password temporária e reenviar o e-mail de acesso para ${u.fullName}?`}
+                      triggerText=""
+                      triggerVariant="outline"
+                      triggerSize="icon"
+                      triggerIcon={<Mail className="h-4 w-4 text-orange-600" />}
+                      action={async () => {
+                        'use server'
+                        const res = await resendWelcomeEmailAction(u.id)
+                        if (res?.warning) {
+                           throw new Error(res.warning)
+                        }
+                        if (res?.error) {
+                           throw new Error(res.error)
+                        }
+                        return res
+                      }}
+                      successMessage={`E-mail enviado com sucesso para ${u.email}!`}
+                      actionLabel="Reenviar"
+                    />
                     <Link href={`/admin/users/${u.id}/edit`}>
                       <Button variant="outline" size="icon">
                         <Pencil className="h-4 w-4 text-blue-600" />

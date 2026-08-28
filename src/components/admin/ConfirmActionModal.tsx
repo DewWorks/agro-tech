@@ -20,6 +20,7 @@ interface ConfirmActionModalProps {
   title: string
   description: string
   triggerText: string
+  triggerIcon?: React.ReactNode
   triggerVariant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
   triggerSize?: 'default' | 'sm' | 'lg' | 'icon'
   action: () => Promise<{ success?: boolean; error?: string }>
@@ -32,6 +33,7 @@ export function ConfirmActionModal({
   title,
   description,
   triggerText,
+  triggerIcon,
   triggerVariant = 'outline',
   triggerSize = 'sm',
   action,
@@ -67,7 +69,7 @@ export function ConfirmActionModal({
       <AlertDialogTrigger>
         <div className="inline-block">
           <Button variant={triggerVariant} size={triggerSize}>
-            {triggerText}
+            {triggerIcon ? triggerIcon : triggerText}
           </Button>
         </div>
       </AlertDialogTrigger>
