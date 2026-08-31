@@ -218,3 +218,31 @@ export async function resendWelcomeEmailAction(id: string) {
     return { error: handleServerError(error, 'Users - resendWelcomeEmail') }
   }
 }
+
+export async function resetUserPasswordAction(id: string) {
+  try {
+    const adminUser = await getUserContext()
+    if (!adminUser || adminUser.realRole !== 'SUPER_ADMIN') {
+      throw new Error('Acesso negado: Apenas Super Administradores podem gerar novas senhas de forma arbitrária.')
+    }
+    
+    const targetUser = await prisma.user.findUnique({ where: { id } })
+    if (!targetUser) throw new Error('Utilizador não encontrado.')
+    if (targetUser.role === 'SUPER_ADMIN') {
+      throw new Error('Não é permitido alterar a password de outro Super Admin por este método.')
+    }
+
+    // Gerar nova password temporária
+    const tempPassword = Math.random().toString(36).slice(-10) + 'A1!'
+    
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(id, {
+      password: tempPassword
+    })
+
+    if (authError) throw new Error(`Erro Supabase: ${authError.message}`)
+
+    return { success: true, tempPassword }
+  } catch (error: any) {
+    return { error: handleServerError(error, 'Users - resetUserPassword') }
+  }
+}

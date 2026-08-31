@@ -17,8 +17,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Users as UsersIcon, Plus, Pencil, Mail, UserX, UserCheck } from 'lucide-react'
-import { toggleUserStatus, resendWelcomeEmailAction } from '@/actions/users'
+import { Users as UsersIcon, Plus, Pencil, Mail, Key } from 'lucide-react'
+import { toggleUserStatus, resendWelcomeEmailAction, resetUserPasswordAction } from '@/actions/users'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 
 const roleLabels: Record<string, string> = {
@@ -158,6 +158,23 @@ export default async function UsersPage() {
                       successMessage={`E-mail enviado com sucesso para ${u.email}!`}
                       actionLabel="Reenviar"
                     />
+                    {dbUser.realRole === 'SUPER_ADMIN' && (
+                      <ConfirmActionModal
+                        title="Gerar Nova Senha?"
+                        description={`Deseja gerar uma nova password para ${u.fullName}? A senha antiga deixará de funcionar imediatamente. A nova senha será exibida no ecrã para que a possa copiar.`}
+                        triggerText=""
+                        triggerVariant="ghost"
+                        triggerSize="icon"
+                        tooltip="Gerar Nova Senha"
+                        triggerIcon={<Key className="h-4 w-4 text-emerald-600" />}
+                        action={async () => {
+                          'use server'
+                          return await resetUserPasswordAction(u.id)
+                        }}
+                        successMessage={`Senha gerada com sucesso!`}
+                        actionLabel="Gerar"
+                      />
+                    )}
                     <Tooltip>
                       <TooltipTrigger render={<Link href={`/admin/users/${u.id}/edit`} />}>
                         <Button variant="ghost" size="icon">
