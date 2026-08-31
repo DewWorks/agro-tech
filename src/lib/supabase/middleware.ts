@@ -65,7 +65,7 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(new URL('/login', request.url))
     }
 
-    if (role !== 'ADMIN' && role !== 'OWNER') {
+    if (role !== 'ADMIN' && role !== 'OWNER' && role !== 'SUPER_ADMIN') {
       return NextResponse.redirect(new URL('/', request.url))
     }
   }
