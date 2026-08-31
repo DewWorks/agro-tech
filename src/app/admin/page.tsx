@@ -1,22 +1,20 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, Users } from "lucide-react"
-import Link from "next/link"
-import { createClient } from '@/lib/supabase/server'
+import { Tractor, Users as UsersIcon, Building2, MapPin, ExternalLink } from 'lucide-react'
+import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { redirect } from 'next/navigation'
+import Link from "next/link"
+import Greeting from '@/components/admin/layout/Greeting'
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  let role = 'OPERATOR'
-  let totalOrgs = 0
+  const dbUser = await getUserContext()
 
-  if (user) {
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (dbUser) {
-      role = dbUser.role
-    }
+  if (!dbUser) {
+    redirect('/login')
   }
+
+  const role = dbUser.role
+  let totalOrgs = 0
 
   if (role === 'SUPER_ADMIN') {
     totalOrgs = await prisma.organization.count()
@@ -24,9 +22,9 @@ export default async function AdminDashboardPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E]">Painel Global SaaS</h1>
-          <p className="text-muted-foreground">
-            Bem-vindo ao centro de controlo de assinantes AgroTech.
+          <Greeting name={dbUser.fullName?.split(' ')[0] || 'Admin'} />
+          <p className="text-muted-foreground mt-1">
+            Bem-vindo ao Painel Global SaaS da AgroTech.
           </p>
         </div>
 
@@ -53,8 +51,8 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E]">Visão Geral</h1>
-        <p className="text-muted-foreground">
+        <Greeting name={dbUser.fullName?.split(' ')[0] || 'Utilizador'} />
+        <p className="text-muted-foreground mt-1">
           Bem-vindo ao Painel de Administração da AgroTech.
         </p>
       </div>
@@ -78,8 +76,10 @@ export default async function AdminDashboardPage() {
         <Link href="/admin/users" className="block transition-transform hover:scale-105">
           <Card className="hover:border-[#1B4D3E] transition-colors cursor-pointer h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Usuários e Permissões</CardTitle>
-              <Users className="h-4 w-4 text-[#1B4D3E]" />
+              <CardTitle className="text-sm font-medium">
+                Utilizadores Ativos
+              </CardTitle>
+              <UsersIcon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">Módulo</div>

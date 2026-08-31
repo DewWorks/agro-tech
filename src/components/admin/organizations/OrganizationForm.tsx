@@ -36,7 +36,11 @@ export function OrganizationForm() {
       setWarning((result as any).warning)
       setIsPending(false)
     } else {
-      setSuccess('Organização e utilizador criados com sucesso! O utilizador receberá um e-mail com a password temporária.')
+      if ('tempPassword' in (result || {})) {
+        setSuccess(`Organização criada com sucesso! Senha temporária do Owner: ${(result as any).tempPassword}`)
+      } else {
+        setSuccess('Organização e utilizador criados com sucesso! O utilizador receberá um e-mail com a password temporária.')
+      }
       setIsPending(false)
     }
   }

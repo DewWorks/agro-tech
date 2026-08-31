@@ -1,18 +1,16 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
+import { getUserContext } from '@/lib/auth'
 
 export async function createBranch(formData: FormData) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autenticado')
+    const dbUser = await getUserContext()
+    if (!dbUser) throw new Error('Não autenticado')
 
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (!dbUser || (dbUser.role !== 'OWNER' && dbUser.role !== 'ADMIN')) {
+    if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
       throw new Error('Permissão negada')
     }
     if (!dbUser.organizationId) {
@@ -49,12 +47,10 @@ export async function createBranch(formData: FormData) {
 
 export async function updateBranch(id: string, formData: FormData) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autenticado')
+    const dbUser = await getUserContext()
+    if (!dbUser) throw new Error('Não autenticado')
 
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (!dbUser || (dbUser.role !== 'OWNER' && dbUser.role !== 'ADMIN')) {
+    if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
       throw new Error('Permissão negada')
     }
 
@@ -89,12 +85,10 @@ export async function updateBranch(id: string, formData: FormData) {
 
 export async function deleteBranch(id: string) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autenticado')
+    const dbUser = await getUserContext()
+    if (!dbUser) throw new Error('Não autenticado')
 
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (!dbUser || (dbUser.role !== 'OWNER' && dbUser.role !== 'ADMIN')) {
+    if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
       throw new Error('Permissão negada')
     }
 
@@ -103,7 +97,10 @@ export async function deleteBranch(id: string) {
       throw new Error('Filial não encontrada ou sem permissão.')
     }
 
-    await prisma.branch.delete({ where: { id } })
+    await prisma.branch.update({
+      where: { id },
+      data: { deletedAt: new Date(), isActive: false }
+    })
 
     revalidatePath('/admin/branches')
     return { success: true }
@@ -114,12 +111,10 @@ export async function deleteBranch(id: string) {
 
 export async function toggleBranchStatus(id: string, newStatus: boolean) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autenticado')
+    const dbUser = await getUserContext()
+    if (!dbUser) throw new Error('Não autenticado')
 
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    if (!dbUser || (dbUser.role !== 'OWNER' && dbUser.role !== 'ADMIN')) {
+    if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
       throw new Error('Permissão negada')
     }
 

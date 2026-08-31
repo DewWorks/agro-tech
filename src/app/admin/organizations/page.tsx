@@ -1,8 +1,15 @@
-import { getOrganizations } from '@/actions/organizations'
+import { getOrganizations, toggleOrganizationStatus } from '@/actions/organizations'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus, Building2 } from 'lucide-react'
+import { Plus, Building2, ExternalLink, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { startImpersonating } from '@/actions/impersonate'
+import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 import {
   Table,
   TableBody,
@@ -51,7 +58,7 @@ export default async function OrganizationsPage() {
               <TableHead>Filiais</TableHead>
               <TableHead>Utilizadores</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Criado em</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -64,6 +71,7 @@ export default async function OrganizationsPage() {
             ) : (
               organizations.map((org) => {
                 const owner = org.users[0]
+                const impersonate = startImpersonating.bind(null, org.id)
                 return (
                   <TableRow key={org.id}>
                     <TableCell className="font-medium text-[#1B4D3E]">
@@ -95,8 +103,45 @@ export default async function OrganizationsPage() {
                         {org.isActive ? 'Ativa' : 'Inativa'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right text-sm text-muted-foreground">
-                      {new Date(org.createdAt).toLocaleDateString('pt-BR')}
+                    <TableCell className="text-right flex items-center justify-end gap-1">
+                      <ConfirmActionModal
+                        title={org.isActive ? "Desativar Organização?" : "Ativar Organização?"}
+                        description={org.isActive 
+                          ? `Tem a certeza que deseja desativar a organização ${org.name}? Todos os utilizadores, filiais e produtores associados perderão o acesso.` 
+                          : `Deseja reativar a organização ${org.name}?`
+                        }
+                        triggerText=""
+                        useSwitch={true}
+                        isActive={org.isActive}
+                        tooltip={org.isActive ? "Desativar" : "Ativar"}
+                        action={async () => {
+                          'use server'
+                          return await toggleOrganizationStatus(org.id, !org.isActive)
+                        }}
+                        successMessage={`Organização ${org.isActive ? 'desativada' : 'ativada'} com sucesso!`}
+                        actionLabel="Confirmar"
+                        actionVariant={org.isActive ? 'destructive' : 'default'}
+                      />
+                      <Tooltip>
+                        <TooltipTrigger render={<Link href={`/admin/organizations/${org.id}/edit`} />}>
+                          <Button size="icon" variant="ghost">
+                            <Pencil className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Editar</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger render={<form action={impersonate} />}>
+                          <Button type="submit" size="icon" variant="ghost">
+                            <ExternalLink className="h-4 w-4 text-[#1B4D3E]" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          <p>Aceder Painel</p>
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
                   </TableRow>
                 )

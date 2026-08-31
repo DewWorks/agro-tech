@@ -1,20 +1,18 @@
 import { UserForm } from '@/components/admin/users/UserForm'
 import { Users as UsersIcon } from 'lucide-react'
+import { ArrowLeft, Edit } from 'lucide-react'
+import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
   
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
 
-  if (!user) {
+  if (!dbUser) {
     redirect('/login')
   }
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
   if (!dbUser || !dbUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }

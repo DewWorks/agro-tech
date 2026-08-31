@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -12,19 +12,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Users as UsersIcon, Plus, Pencil, Mail } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Users as UsersIcon, Plus, Pencil, Mail, UserX, UserCheck } from 'lucide-react'
 import { toggleUserStatus, resendWelcomeEmailAction } from '@/actions/users'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 
-export default async function UsersPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+const roleLabels: Record<string, string> = {
+  OWNER: 'Administrador (Prop.)',
+  ADMIN: 'Gerente',
+  OPERATOR: 'Usuário',
+}
 
-  if (!user) {
+export default async function UsersPage() {
+  const dbUser = await getUserContext()
+
+  if (!dbUser) {
     redirect('/login')
   }
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
   if (!dbUser || !dbUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }
@@ -87,7 +95,7 @@ export default async function UsersPage() {
                   <TableCell>{u.email}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="bg-slate-50">
-                      {u.role}
+                      {roleLabels[u.role] || u.role}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -97,7 +105,7 @@ export default async function UsersPage() {
                       <div className="flex flex-col gap-1">
                         {u.userBranches.map(ub => (
                           <span key={ub.branchId} className="text-xs">
-                            • {ub.branch.name} <Badge variant="secondary" className="text-[10px] h-4 ml-1">{ub.role}</Badge>
+                            • {ub.branch.name} <Badge variant="secondary" className="text-[10px] h-4 ml-1">{roleLabels[ub.role] || ub.role}</Badge>
                           </span>
                         ))}
                       </div>
@@ -110,7 +118,7 @@ export default async function UsersPage() {
                       {u.isActive ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-right space-x-1">
                     {dbUser.id !== u.id && (
                       <ConfirmActionModal
                         title={u.isActive ? "Desativar Utilizador?" : "Ativar Utilizador?"}
@@ -118,8 +126,10 @@ export default async function UsersPage() {
                           ? `Tem a certeza que deseja desativar o utilizador ${u.fullName}? Ele perderá imediatamente o acesso ao sistema.` 
                           : `Deseja reativar o acesso de ${u.fullName}?`
                         }
-                        triggerText={u.isActive ? 'Desativar' : 'Ativar'}
-                        triggerVariant="outline"
+                        triggerText=""
+                        useSwitch={true}
+                        isActive={u.isActive}
+                        tooltip={u.isActive ? "Desativar" : "Ativar"}
                         action={async () => {
                           'use server'
                           return await toggleUserStatus(u.id, !u.isActive)
@@ -133,28 +143,31 @@ export default async function UsersPage() {
                       title="Reenviar E-mail de Acesso?"
                       description={`Deseja gerar uma nova password temporária e reenviar o e-mail de acesso para ${u.fullName}?`}
                       triggerText=""
-                      triggerVariant="outline"
+                      triggerVariant="ghost"
                       triggerSize="icon"
+                      tooltip="Reenviar E-mail"
                       triggerIcon={<Mail className="h-4 w-4 text-orange-600" />}
                       action={async () => {
                         'use server'
                         const res = await resendWelcomeEmailAction(u.id)
-                        if (res?.warning) {
-                           throw new Error(res.warning)
-                        }
                         if (res?.error) {
-                           throw new Error(res.error)
+                           return { error: res.error }
                         }
                         return res
                       }}
                       successMessage={`E-mail enviado com sucesso para ${u.email}!`}
                       actionLabel="Reenviar"
                     />
-                    <Link href={`/admin/users/${u.id}/edit`}>
-                      <Button variant="outline" size="icon">
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Button>
-                    </Link>
+                    <Tooltip>
+                      <TooltipTrigger render={<Link href={`/admin/users/${u.id}/edit`} />}>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Editar</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))

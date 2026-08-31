@@ -1,20 +1,18 @@
 'use server'
+// Force recompile to expose toggleOrganizationStatus
 
 import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
+import { getUserContext } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWelcomeEmail } from '@/lib/email'
 
 export async function getOrganizations() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
+  if (!dbUser) throw new Error('Não autorizado')
 
-  if (!user) throw new Error('Não autorizado')
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-  if (dbUser?.role !== 'SUPER_ADMIN') {
+  if (dbUser.realRole !== 'SUPER_ADMIN') {
     throw new Error('Acesso negado: Apenas Super Admins podem listar organizações.')
   }
 
@@ -25,7 +23,12 @@ export async function getOrganizations() {
         where: { role: 'OWNER' }
       },
       _count: {
-        select: { branches: true, users: true }
+        select: { 
+          branches: {
+            where: { deletedAt: null }
+          }, 
+          users: true 
+        }
       }
     }
   })
@@ -35,13 +38,10 @@ export async function getOrganizations() {
 
 export async function createOrganization(formData: FormData) {
   try {
-    const supabase = await createClient()
-    const { data: { user: currentUser } } = await supabase.auth.getUser()
-    
-    if (!currentUser) throw new Error('Não autorizado')
+    const dbUser = await getUserContext()
+    if (!dbUser) throw new Error('Não autorizado')
 
-    const dbUser = await prisma.user.findUnique({ where: { id: currentUser.id } })
-    if (dbUser?.role !== 'SUPER_ADMIN') {
+    if (dbUser.realRole !== 'SUPER_ADMIN') {
       throw new Error('Acesso negado: Apenas Super Admins podem criar organizações.')
     }
 
@@ -126,9 +126,27 @@ export async function createOrganization(formData: FormData) {
     }
 
     revalidatePath('/admin/organizations')
-    return { success: true }
+    return { success: true, tempPassword: temporaryPassword }
   } catch (error: any) {
     return { error: handleServerError(error, 'Organizations - createOrganization') }
   }
 }
 
+export async function toggleOrganizationStatus(organizationId: string, isActive: boolean) {
+  try {
+    const dbUser = await getUserContext()
+    if (!dbUser || dbUser.realRole !== 'SUPER_ADMIN') {
+      return { error: 'Acesso negado' }
+    }
+
+    await prisma.organization.update({
+      where: { id: organizationId },
+      data: { isActive }
+    })
+
+    revalidatePath('/admin/organizations')
+    return { success: true }
+  } catch (error: any) {
+    return { error: handleServerError(error, 'Organizations - toggleOrganizationStatus') }
+  }
+}

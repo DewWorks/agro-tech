@@ -1,7 +1,19 @@
 import { BranchForm } from '@/components/admin/branches/BranchForm'
 import { Building2 } from 'lucide-react'
+import { getUserContext } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 
-export default function NewBranchPage() {
+export default async function NewBranchPage() {
+  const dbUser = await getUserContext()
+
+  if (!dbUser) {
+    redirect('/login')
+  }
+
+  if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
+    redirect('/admin')
+  }
+
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
       <div>

@@ -189,7 +189,7 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
 
   return (
     <div className="space-y-8">
-      {branches.length === 0 && (
+      {branches.length === 0 ? (
         <div className="p-4 bg-red-50 text-red-800 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <AlertTriangle size={24} />
@@ -204,7 +204,22 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
             </Button>
           </Link>
         </div>
-      )}
+      ) : branches.every(b => !b.isActive) && !initialData?.id ? (
+        <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle size={24} />
+            <div>
+              <h3 className="font-bold">Filiais Inativas</h3>
+              <p className="text-sm">As suas filiais estão inativas. Para adicionar um novo produtor, ative uma filial primeiro.</p>
+            </div>
+          </div>
+          <Link href="/admin/branches">
+            <Button variant="outline" className="bg-white hover:bg-yellow-50 text-yellow-700 border-yellow-200">
+              Gerir Filiais
+            </Button>
+          </Link>
+        </div>
+      ) : null}
 
       <div className="flex space-x-2 border-b overflow-x-auto">
         {tabs.map((tab) => (
@@ -243,16 +258,24 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
                   <SelectTrigger className={`w-full flex-1 ${errors.branchId ? 'border-red-500' : ''}`}>
                     <SelectValue placeholder={branches.length === 0 ? "Nenhuma filial disponível" : "Selecione a filial"}>
                       {formData.branchId && branches.find(b => b.id === formData.branchId) 
-                        ? `${branches.find(b => b.id === formData.branchId)?.name} (${formatCNPJ(branches.find(b => b.id === formData.branchId)?.cnpj || '')})`
+                        ? `${branches.find(b => b.id === formData.branchId)?.name} - CNPJ: ${formatCNPJ(branches.find(b => b.id === formData.branchId)?.cnpj || '')}`
                         : undefined}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {branches.map(b => (
-                      <SelectItem key={b.id} value={b.id}>
-                        {b.name} ({formatCNPJ(b.cnpj || '')})
-                      </SelectItem>
-                    ))}
+                    {branches.map((branch) => {
+                      const isDisabled = !branch.isActive && branch.id !== initialData?.branchId
+                      const label = branch.isActive ? branch.name : `${branch.name} (Inativa)`
+                      return (
+                        <SelectItem 
+                          key={branch.id} 
+                          value={branch.id}
+                          disabled={isDisabled}
+                        >
+                          {label}
+                        </SelectItem>
+                      )
+                    })}
                   </SelectContent>
                 </Select>
                 {branches.length > 0 && (

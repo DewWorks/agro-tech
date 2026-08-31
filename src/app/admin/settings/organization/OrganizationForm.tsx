@@ -17,7 +17,15 @@ const organizationSchema = z.object({
 
 type OrganizationFormValues = z.infer<typeof organizationSchema>
 
-export default function OrganizationForm({ organization, isOwner }: { organization: any, isOwner: boolean }) {
+export default function OrganizationForm({ 
+  organization, 
+  isOwner, 
+  isSuperAdmin = false 
+}: { 
+  organization: any; 
+  isOwner: boolean; 
+  isSuperAdmin?: boolean; 
+}) {
   const [isPending, setIsPending] = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm<OrganizationFormValues>({
@@ -34,8 +42,11 @@ export default function OrganizationForm({ organization, isOwner }: { organizati
     setIsPending(true)
     
     const formData = new FormData()
+    formData.append('orgId', organization.id)
     formData.append('name', data.name)
-    formData.append('cnpj', data.cnpj)
+    if (isSuperAdmin) {
+      formData.append('cnpj', data.cnpj)
+    }
 
     const result = await updateOrganization(formData)
     
@@ -70,8 +81,8 @@ export default function OrganizationForm({ organization, isOwner }: { organizati
           id="cnpj" 
           {...register('cnpj')} 
           placeholder="00.000.000/0000-00" 
-          disabled={!isOwner}
-          className={!isOwner ? 'bg-gray-100 text-gray-500' : ''}
+          disabled={!isSuperAdmin}
+          className={!isSuperAdmin ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}
         />
         {errors.cnpj && (
           <p className="text-xs text-red-500">{errors.cnpj.message}</p>

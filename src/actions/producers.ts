@@ -1,19 +1,15 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
+import { getUserContext } from '@/lib/auth'
 import { CivilStatus, MarriageRegime, ProducerType } from '@prisma/client'
 import { validateCNPJ, validateCPF } from '@/lib/validations'
 
 export async function createProducer(data: any) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autenticado')
-
-    const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
+    const dbUser = await getUserContext()
     if (!dbUser || !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
     }
@@ -78,16 +74,8 @@ export async function createProducer(data: any) {
 
 export async function updateProducer(id: string, data: any) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const dbUser = await getUserContext()
     
-    if (!user) throw new Error('Utilizador não autenticado')
-
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      include: { userBranches: true }
-    })
-
     if (!dbUser) throw new Error('Utilizador não encontrado')
 
     // Validar se o produtor pertence a organização do user
@@ -147,7 +135,7 @@ export async function updateProducer(id: string, data: any) {
         spouseName: type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL') ? spouseName : null,
         spouseCpf: type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL') ? cleanSpouseCpf : null,
         dapCafNumber: dapCafNumber || null,
-        updatedBy: user.id
+        updatedBy: dbUser.id
       }
     })
 
@@ -167,9 +155,8 @@ export async function updateProducer(id: string, data: any) {
 
 export async function toggleProducerStatus(id: string, newStatus: boolean) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('Não autenticado')
+    const dbUser = await getUserContext()
+    if (!dbUser) throw new Error('Não autenticado')
 
     await prisma.producer.update({
       where: { id },

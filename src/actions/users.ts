@@ -24,17 +24,13 @@ interface UpdateUserData {
   branches: { branchId: string; role: Role }[]
 }
 
-async function verifyAdminAccess() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) throw new Error('Não autenticado')
+import { getUserContext } from '@/lib/auth'
 
-  const dbUser = await prisma.user.findUnique({ 
-    where: { id: user.id },
-    include: { organization: true }
-  })
+async function verifyAdminAccess() {
+  const dbUser = await getUserContext()
+  if (!dbUser) throw new Error('Não autenticado')
   
-  if (!dbUser || (dbUser.role !== 'OWNER' && dbUser.role !== 'ADMIN')) {
+  if (dbUser.role !== 'OWNER' && dbUser.role !== 'ADMIN') {
     throw new Error('Permissão negada')
   }
   if (!dbUser.organizationId || !dbUser.organization) {
@@ -214,10 +210,10 @@ export async function resendWelcomeEmailAction(id: string) {
     })
 
     if (!emailResult.success) {
-      return { warning: 'A nova password foi gerada, mas houve uma falha ao enviar o e-mail.' }
+      return { success: true, warning: 'A nova password foi gerada, mas houve uma falha ao enviar o e-mail.', tempPassword }
     }
 
-    return { success: true }
+    return { success: true, tempPassword }
   } catch (error: any) {
     return { error: handleServerError(error, 'Users - resendWelcomeEmail') }
   }

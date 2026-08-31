@@ -9,10 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export default function AdminHeader({ user }: { user: User }) {
-  const role = user.app_metadata?.role || 'ADMIN'
-  const email = user.email
-
+export default function AdminHeader({ email, role }: { email: string, role: string }) {
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
       <div className="flex items-center">

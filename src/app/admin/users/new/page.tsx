@@ -1,18 +1,16 @@
 import { UserForm } from '@/components/admin/users/UserForm'
 import { Users as UsersIcon } from 'lucide-react'
-import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { ArrowLeft, UserPlus } from 'lucide-react'
+import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import prisma from '@/lib/prisma'
 
 export default async function NewUserPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
 
-  if (!user) {
+  if (!dbUser) {
     redirect('/login')
   }
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
   if (!dbUser || !dbUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }

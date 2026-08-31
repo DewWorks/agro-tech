@@ -25,7 +25,7 @@ interface MenuItem {
   subItems?: { title: string; href: string }[]
 }
 
-const getMenuItems = (role: string): MenuItem[] => {
+const getMenuItems = (role: string, modules: string[] = []): MenuItem[] => {
   if (role === 'SUPER_ADMIN') {
     return [
       {
@@ -46,15 +46,20 @@ const getMenuItems = (role: string): MenuItem[] => {
     ]
   }
 
-  return [
-    {
+  const items: MenuItem[] = []
+
+  if (modules.includes('CRM')) {
+    items.push({
       title: 'CRM / Produtores',
       icon: Tractor,
       subItems: [
         { title: 'Listagem Geral', href: '/admin/crm' },
         { title: 'Novo Produtor', href: '/admin/crm/new' },
       ]
-    },
+    })
+  }
+
+  items.push(
     {
       title: 'Filiais',
       icon: Building2,
@@ -79,10 +84,12 @@ const getMenuItems = (role: string): MenuItem[] => {
         { title: 'Minha Empresa', href: '/admin/settings/organization' },
       ]
     }
-  ]
+  )
+
+  return items
 }
 
-export default function AdminSidebar({ role }: { role: string }) {
+export default function AdminSidebar({ role, modules = [] }: { role: string, modules?: string[] }) {
   const pathname = usePathname()
   // Estado para controlar quais os menus estão expandidos
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
@@ -99,7 +106,7 @@ export default function AdminSidebar({ role }: { role: string }) {
     }))
   }
 
-  const currentMenuItems = getMenuItems(role)
+  const currentMenuItems = getMenuItems(role, modules)
 
   return (
     <div className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shadow-lg transition-all duration-300">

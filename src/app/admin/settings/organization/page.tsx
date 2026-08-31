@@ -1,21 +1,18 @@
-import { createClient } from '@/lib/supabase/server'
+import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import OrganizationForm from './OrganizationForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle } from 'lucide-react'
+import { redirect } from 'next/navigation'
 
 export default async function OrganizationPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
 
-  if (!user) return null
+  if (!dbUser) {
+    redirect('/login')
+  }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: { organization: true }
-  })
-
-  if (!dbUser || !dbUser.organization) return null
+  if (!dbUser.organization) return null
 
   const isOwner = dbUser.role === 'OWNER'
 
@@ -41,7 +38,11 @@ export default async function OrganizationPage() {
             </div>
           )}
           
-          <OrganizationForm organization={dbUser.organization} isOwner={isOwner} />
+          <OrganizationForm 
+            organization={dbUser.organization} 
+            isOwner={isOwner} 
+            isSuperAdmin={dbUser.realRole === 'SUPER_ADMIN'} 
+          />
         </CardContent>
       </Card>
     </div>

@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -12,19 +12,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Users as UsersIcon, Plus, Pencil, Tractor } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Users as UsersIcon, Plus, Pencil, Tractor, Ban, CheckCircle2 } from 'lucide-react'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { toggleProducerStatus } from '@/actions/producers'
 
 export default async function CRMPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
 
-  if (!user) {
+  if (!dbUser) {
     redirect('/login')
   }
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
   if (!dbUser || !dbUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }
@@ -122,15 +124,17 @@ export default async function CRMPage() {
                       {p.isActive ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-right space-x-1">
                     <ConfirmActionModal
                       title={p.isActive ? "Desativar Produtor?" : "Ativar Produtor?"}
                       description={p.isActive 
                         ? `Tem a certeza que deseja desativar o cadastro de ${p.name}? Projetos atrelados podem ser bloqueados.` 
                         : `Deseja reativar o cadastro de ${p.name}?`
                       }
-                      triggerText={p.isActive ? 'Desativar' : 'Ativar'}
-                      triggerVariant="outline"
+                      triggerText=""
+                      useSwitch={true}
+                      isActive={p.isActive}
+                      tooltip={p.isActive ? "Desativar" : "Ativar"}
                       action={async () => {
                         'use server'
                         return await toggleProducerStatus(p.id, !p.isActive)
@@ -139,11 +143,16 @@ export default async function CRMPage() {
                       actionLabel="Confirmar"
                       actionVariant={p.isActive ? 'destructive' : 'default'}
                     />
-                    <Link href={`/admin/crm/${p.id}/edit`}>
-                      <Button variant="outline" size="icon">
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Button>
-                    </Link>
+                    <Tooltip>
+                      <TooltipTrigger render={<Link href={`/admin/crm/${p.id}/edit`} />}>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Editar</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               ))

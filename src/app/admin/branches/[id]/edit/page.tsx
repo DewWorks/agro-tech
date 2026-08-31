@@ -1,13 +1,27 @@
 import { BranchForm } from '@/components/admin/branches/BranchForm'
 import { Building2 } from 'lucide-react'
+import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 
 export default async function EditBranchPage({ params }: { params: Promise<{ id: string }> }) {
+  const dbUser = await getUserContext()
+
+  if (!dbUser) {
+    redirect('/login')
+  }
+
+  if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
+    redirect('/admin')
+  }
+
   const resolvedParams = await params
   
   const branch = await prisma.branch.findUnique({
-    where: { id: resolvedParams.id }
+    where: { 
+      id: resolvedParams.id,
+      deletedAt: null 
+    }
   })
 
   if (!branch) {

@@ -20,6 +20,7 @@ model Organization {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  modules   String[] @default(["CRM"]) // Módulos ativos para esta organização
 
   branches Branch[]
   users    User[]
@@ -37,6 +38,7 @@ model Branch {
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
   users          User[]
   userBranches   UserBranch[]
   producers      Producer[]

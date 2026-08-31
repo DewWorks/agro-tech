@@ -1,25 +1,15 @@
 import { Tractor } from 'lucide-react'
 import ProducerMultiStepForm from '@/components/crm/ProducerMultiStepForm'
 import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
 export default async function NewProducerPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
 
-  if (!user) {
+  if (!dbUser) {
     redirect('/login')
   }
-
-  const dbUser = await prisma.user.findUnique({ 
-    where: { id: user.id },
-    include: {
-      userBranches: {
-        include: { branch: true }
-      }
-    }
-  })
   
   if (!dbUser || !dbUser.organizationId) {
     return <div>Organização não encontrada.</div>
@@ -30,12 +20,16 @@ export default async function NewProducerPage() {
   if (dbUser.role === 'OWNER' || dbUser.role === 'ADMIN') {
     // Owners e Admins vêm todas as filiais da organização
     userBranches = await prisma.branch.findMany({
-      where: { organizationId: dbUser.organizationId, isActive: true },
+      where: { organizationId: dbUser.organizationId },
       orderBy: { name: 'asc' }
     })
   } else {
     // Operators só vêem as filiais às quais foram associados
-    userBranches = dbUser.userBranches.map(ub => ub.branch).filter(b => b.isActive)
+    const userBranchesData = await prisma.userBranch.findMany({
+      where: { userId: dbUser.id },
+      include: { branch: true }
+    })
+    userBranches = userBranchesData.map(ub => ub.branch)
   }
 
   return (

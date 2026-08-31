@@ -207,14 +207,41 @@ export function UserForm({ initialData, branches }: UserFormProps) {
                 <SelectValue placeholder="Selecione um cargo global" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="OWNER">OWNER (Acesso Total)</SelectItem>
-                <SelectItem value="ADMIN">ADMINISTRADOR</SelectItem>
-                <SelectItem value="OPERATOR">OPERADOR</SelectItem>
+                <SelectItem value="OWNER">Administrador (Proprietário)</SelectItem>
+                <SelectItem value="ADMIN">Gerente</SelectItem>
+                <SelectItem value="OPERATOR">Usuário</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-xs text-muted-foreground">
-              OWNERs têm acesso automático a todas as filiais.
-            </p>
+            <div className="text-xs text-muted-foreground mt-2 p-3 bg-slate-50 dark:bg-slate-900 border rounded-md">
+              <strong className="block mb-2 text-slate-700 dark:text-slate-300">Permissões deste cargo no sistema:</strong>
+              
+              {globalRole === 'OWNER' && (
+                <ul className="list-disc pl-4 space-y-1">
+                  <li><strong>Acesso Global:</strong> Acesso automático e irrestrito a todas as filiais da empresa.</li>
+                  <li><strong>Telas Administrativas:</strong> Acesso total ao menu de Configurações, Gestão de Organização, Filiais e Utilizadores.</li>
+                  <li><strong>Operações:</strong> Pode criar, editar e excluir permanentemente qualquer tipo de registo (Filiais, Utilizadores, etc).</li>
+                  <li><strong>Telas Operacionais:</strong> Acesso total a CRM, Dashboard e todos os relatórios do sistema.</li>
+                </ul>
+              )}
+              
+              {globalRole === 'ADMIN' && (
+                <ul className="list-disc pl-4 space-y-1">
+                  <li><strong>Acesso Local:</strong> Acesso restrito apenas às filiais às quais for explicitamente atribuído.</li>
+                  <li><strong>Telas Administrativas:</strong> Acesso à Gestão de Utilizadores (apenas para gerir acessos nas suas filiais). Sem acesso a Configurações Globais ou Filiais.</li>
+                  <li><strong>Operações:</strong> Pode gerir dados operacionais, mas não pode apagar filiais ou configurações da organização.</li>
+                  <li><strong>Telas Operacionais:</strong> Acesso ao CRM, Dashboard e Relatórios referentes apenas às suas filiais.</li>
+                </ul>
+              )}
+              
+              {globalRole === 'OPERATOR' && (
+                <ul className="list-disc pl-4 space-y-1">
+                  <li><strong>Acesso Local:</strong> Acesso restrito apenas às filiais às quais for explicitamente atribuído.</li>
+                  <li><strong>Telas Administrativas:</strong> Nenhum acesso. O menu de Gestão e Configurações não estará visível.</li>
+                  <li><strong>Operações:</strong> Pode realizar o trabalho diário (ex: criar e atualizar contactos/negócios), mas sem permissão de exclusão (apagar dados).</li>
+                  <li><strong>Telas Operacionais:</strong> Acesso restrito às telas de operação diária (CRM e afins) das suas filiais.</li>
+                </ul>
+              )}
+            </div>
           </div>
 
           {globalRole !== 'OWNER' && (
@@ -249,8 +276,8 @@ export function UserForm({ initialData, branches }: UserFormProps) {
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="ADMIN">Gestor</SelectItem>
-                                <SelectItem value="OPERATOR">Operador</SelectItem>
+                                <SelectItem value="ADMIN">Gerente</SelectItem>
+                                <SelectItem value="OPERATOR">Usuário</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>

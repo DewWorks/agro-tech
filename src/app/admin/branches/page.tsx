@@ -1,5 +1,5 @@
 import prisma from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
+import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -12,25 +12,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Building2, Plus, Pencil } from 'lucide-react'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { Building2, Plus, Pencil, Ban, CheckCircle2 } from 'lucide-react'
 import { toggleBranchStatus } from '@/actions/branches'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
+import { DeleteBranchModal } from '@/components/admin/branches/DeleteBranchModal'
 
 export default async function BranchesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
 
-  if (!user) {
+  if (!dbUser) {
     redirect('/login')
   }
-
-  const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
   if (!dbUser || !dbUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }
 
+  // Apenas OWNER e SUPER_ADMIN podem gerir filiais
+  if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
+    redirect('/admin')
+  }
+
   const branches = await prisma.branch.findMany({
-    where: { organizationId: dbUser.organizationId },
+    where: { 
+      organizationId: dbUser.organizationId,
+      deletedAt: null // Não mostrar apagadas
+    },
+    include: {
+      _count: {
+        select: {
+          users: true,
+          producers: true,
+          properties: true
+        }
+      }
+    },
     orderBy: { createdAt: 'desc' }
   })
 
@@ -82,15 +102,17 @@ export default async function BranchesPage() {
                       {branch.isActive ? 'Ativa' : 'Inativa'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right space-x-2">
+                  <TableCell className="text-right space-x-1">
                     <ConfirmActionModal
                       title={branch.isActive ? "Desativar Filial?" : "Ativar Filial?"}
                       description={branch.isActive 
-                        ? `Tem a certeza que deseja desativar a filial ${branch.name}? Ela deixará de estar disponível para novas operações.` 
+                        ? `Tem a certeza que deseja desativar a filial ${branch.name}?` 
                         : `Deseja reativar a filial ${branch.name}?`
                       }
-                      triggerText={branch.isActive ? 'Desativar' : 'Ativar'}
-                      triggerVariant="outline"
+                      triggerText=""
+                      useSwitch={true}
+                      isActive={branch.isActive}
+                      tooltip={branch.isActive ? "Desativar" : "Ativar"}
                       action={async () => {
                         'use server'
                         return await toggleBranchStatus(branch.id, !branch.isActive)
@@ -99,11 +121,25 @@ export default async function BranchesPage() {
                       actionLabel="Confirmar"
                       actionVariant={branch.isActive ? 'destructive' : 'default'}
                     />
-                    <Link href={`/admin/branches/${branch.id}/edit`}>
-                      <Button variant="outline" size="icon">
-                        <Pencil className="h-4 w-4 text-blue-600" />
-                      </Button>
-                    </Link>
+                    <Tooltip>
+                      <TooltipTrigger render={<Link href={`/admin/branches/${branch.id}/edit`} />}>
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        <p>Editar</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <DeleteBranchModal 
+                      branchId={branch.id} 
+                      branchName={branch.name}
+                      counts={{
+                        users: branch._count?.users || 0,
+                        producers: branch._count?.producers || 0,
+                        properties: branch._count?.properties || 0,
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))

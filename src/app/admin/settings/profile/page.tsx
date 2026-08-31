@@ -1,25 +1,20 @@
-import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import ProfileForm from './ProfileForm'
+import { getUserContext } from '@/lib/auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function ProfilePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const dbUser = await getUserContext()
 
-  if (!user) return null
+  if (!dbUser) {
+    redirect('/login')
+  }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: {
-      branch: true,
-      userBranches: {
-        include: { branch: true }
-      }
-    }
+  const userBranchesData = await prisma.userBranch.findMany({
+    where: { userId: dbUser.id },
+    include: { branch: true }
   })
-
-  if (!dbUser) return null
 
   return (
     <div className="grid gap-6">
@@ -31,7 +26,7 @@ export default async function ProfilePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ProfileForm user={dbUser} email={user.email || ''} />
+          <ProfileForm user={dbUser} email={dbUser.email || ''} />
         </CardContent>
       </Card>
       
@@ -51,8 +46,8 @@ export default async function ProfilePage() {
             <div className="bg-gray-50 p-4 rounded-md">
               <span className="text-xs font-semibold text-gray-500 uppercase">Filiais Vinculadas</span>
               <ul className="mt-1 font-medium space-y-1">
-                {dbUser.userBranches.length > 0 ? (
-                  dbUser.userBranches.map(ub => (
+                {userBranchesData.length > 0 ? (
+                  userBranchesData.map(ub => (
                     <li key={ub.branchId} className="flex justify-between items-center">
                       <span>{ub.branch.name}</span>
                       <span className="text-xs bg-[#1B4D3E]/10 text-[#1B4D3E] px-2 py-0.5 rounded-full">{ub.role}</span>
