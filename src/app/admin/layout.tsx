@@ -3,6 +3,8 @@ import AdminSidebar from '@/components/admin/layout/AdminSidebar'
 import AdminHeader from '@/components/admin/layout/AdminHeader'
 import { getUserContext } from '@/lib/auth'
 import { stopImpersonating } from '@/actions/impersonate'
+import prisma from '@/lib/prisma'
+import ModuleWarningBanner from '@/components/admin/layout/ModuleWarningBanner'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const userContext = await getUserContext()
@@ -12,10 +14,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   const role = userContext.role
+  const globalModules = await prisma.systemModule.findMany()
 
   return (
     <div className="flex h-screen bg-[#F8FAFC]">
-      <AdminSidebar role={role} modules={userContext.organization?.modules || []} />
+      <AdminSidebar 
+        role={role} 
+        realRole={userContext.realRole} 
+        modules={userContext.organization?.modules || []} 
+        globalModules={globalModules.map(m => ({ code: m.code, isActive: m.isActive }))} 
+      />
       <div className="flex-1 flex flex-col overflow-hidden">
         {userContext.isSuperAdminImpersonating && (
           <div className="bg-yellow-400 text-yellow-900 px-6 py-2 text-sm font-medium flex items-center justify-between shadow-sm z-50">
@@ -32,6 +40,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </form>
           </div>
         )}
+        <ModuleWarningBanner 
+          realRole={userContext.realRole}
+          clientModules={userContext.organization?.modules || []}
+          globalModules={globalModules.map(m => ({ code: m.code, isActive: m.isActive }))}
+        />
         <AdminHeader email={userContext.email} role={role} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC] p-8">
           {children}
