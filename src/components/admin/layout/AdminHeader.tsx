@@ -13,7 +13,6 @@ export default function AdminHeader({ email, role }: { email: string, role: stri
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
       <div className="flex items-center">
-        <h2 className="text-lg font-semibold text-gray-800">Definições do Sistema</h2>
       </div>
       <div className="flex items-center gap-4">
         <button className="text-gray-500 hover:text-[#1B4D3E] transition-colors relative">

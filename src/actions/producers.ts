@@ -25,6 +25,27 @@ export async function createProducer(data: any) {
       spouseName,
       spouseCpf,
       dapCafNumber,
+      rg,
+      rgIssuer,
+      profession,
+      nationality,
+      representativeCpf,
+      
+      propertyName,
+      propertyCity,
+      propertyState,
+      pastureArea,
+      totalHeadCount,
+      
+      registrationNumber,
+      registryOffice,
+      car,
+      possessionYears,
+      explorationActivity,
+      brandDescription,
+      brandRegistrationAdapec,
+      brandLocation,
+      
       branchId,
     } = data
 
@@ -56,10 +77,48 @@ export async function createProducer(data: any) {
         spouseName,
         spouseCpf: spouseCpf ? spouseCpf.replace(/[^\d]+/g, '') : null,
         dapCafNumber,
+        rg,
+        rgIssuer,
+        profession,
+        nationality,
+        representativeCpf: type === 'PJ' && representativeCpf ? representativeCpf.replace(/[^\d]+/g, '') : null,
         branchId, // Deve vir do form (filial onde o produtor está sendo criado)
         createdBy: dbUser.id,
       }
     })
+
+    // Se houver dados de propriedade preenchidos, cria a propriedade
+    if (propertyName || propertyCity || propertyState || pastureArea || totalHeadCount || registrationNumber || car || explorationActivity) {
+      await prisma.property.create({
+        data: {
+          branchId,
+          name: propertyName || 'Propriedade Principal',
+          propertyName: propertyName || null,
+          city: propertyCity || null,
+          state: propertyState || null,
+          pastureArea: pastureArea ? Number(pastureArea) : 0,
+          registrationNumber: registrationNumber || null,
+          registryOffice: registryOffice || null,
+          car: car || null,
+          explorationActivity: explorationActivity || null,
+          livestock: (totalHeadCount || brandDescription || brandRegistrationAdapec || brandLocation) ? {
+            totalHeadCount: totalHeadCount ? Number(totalHeadCount) : 0,
+            brandDescription: brandDescription || null,
+            brandRegistrationAdapec: brandRegistrationAdapec || null,
+            brandLocation: brandLocation || null,
+          } : {},
+          possessionData: possessionYears ? {
+            possessionYears: Number(possessionYears)
+          } : {},
+          producers: {
+            create: {
+              producerId: producer.id,
+              ownershipType: 'PROPRIETARIO'
+            }
+          }
+        }
+      })
+    }
 
     revalidatePath('/admin/crm')
     return { success: true, data: producer }
@@ -99,7 +158,27 @@ export async function updateProducer(id: string, data: any) {
       marriageRegime,
       spouseName,
       spouseCpf,
-      dapCafNumber
+      dapCafNumber,
+      rg,
+      rgIssuer,
+      profession,
+      nationality,
+      representativeCpf,
+      
+      propertyName,
+      propertyCity,
+      propertyState,
+      pastureArea,
+      totalHeadCount,
+      
+      registrationNumber,
+      registryOffice,
+      car,
+      possessionYears,
+      explorationActivity,
+      brandDescription,
+      brandRegistrationAdapec,
+      brandLocation,
     } = data
 
     const cleanDoc = document?.replace(/[^\d]/g, '') || ''
@@ -135,9 +214,80 @@ export async function updateProducer(id: string, data: any) {
         spouseName: type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL') ? spouseName : null,
         spouseCpf: type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL') ? cleanSpouseCpf : null,
         dapCafNumber: dapCafNumber || null,
+        rg: rg || null,
+        rgIssuer: rgIssuer || null,
+        profession: profession || null,
+        nationality: nationality || null,
+        representativeCpf: type === 'PJ' && representativeCpf ? representativeCpf.replace(/[^\d]+/g, '') : null,
         updatedBy: dbUser.id
       }
     })
+
+    if (propertyName || propertyCity || propertyState || pastureArea || totalHeadCount || registrationNumber || car || explorationActivity) {
+      // Tentar pegar a primeira propriedade
+      const existingProp = await prisma.producerProperty.findFirst({
+        where: { producerId: id },
+        include: { property: true }
+      })
+
+      if (existingProp) {
+        await prisma.property.update({
+          where: { id: existingProp.propertyId },
+          data: {
+            name: propertyName || existingProp.property.name,
+            propertyName: propertyName || null,
+            city: propertyCity || null,
+            state: propertyState || null,
+            pastureArea: pastureArea ? Number(pastureArea) : 0,
+            registrationNumber: registrationNumber || null,
+            registryOffice: registryOffice || null,
+            car: car || null,
+            explorationActivity: explorationActivity || null,
+            livestock: {
+              ...(existingProp.property.livestock as any || {}),
+              totalHeadCount: totalHeadCount ? Number(totalHeadCount) : 0,
+              brandDescription: brandDescription || null,
+              brandRegistrationAdapec: brandRegistrationAdapec || null,
+              brandLocation: brandLocation || null,
+            },
+            possessionData: {
+              ...(existingProp.property.possessionData as any || {}),
+              possessionYears: possessionYears ? Number(possessionYears) : null,
+            }
+          }
+        })
+      } else {
+        await prisma.property.create({
+          data: {
+            branchId,
+            name: propertyName || 'Propriedade Principal',
+            propertyName: propertyName || null,
+            city: propertyCity || null,
+            state: propertyState || null,
+            pastureArea: pastureArea ? Number(pastureArea) : 0,
+            registrationNumber: registrationNumber || null,
+            registryOffice: registryOffice || null,
+            car: car || null,
+            explorationActivity: explorationActivity || null,
+            livestock: {
+              totalHeadCount: totalHeadCount ? Number(totalHeadCount) : 0,
+              brandDescription: brandDescription || null,
+              brandRegistrationAdapec: brandRegistrationAdapec || null,
+              brandLocation: brandLocation || null,
+            },
+            possessionData: {
+              possessionYears: possessionYears ? Number(possessionYears) : null,
+            },
+            producers: {
+              create: {
+                producerId: id,
+                ownershipType: 'PROPRIETARIO'
+              }
+            }
+          }
+        })
+      }
+    }
 
     revalidatePath('/admin/crm')
     revalidatePath(`/admin/crm/${id}/edit`)

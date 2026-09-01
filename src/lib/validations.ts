@@ -53,3 +53,21 @@ function calculateCNPJMod11(digits: number[], weights: number[]): number {
   const remainder = sum % 11
   return remainder < 2 ? 0 : 11 - remainder
 }
+
+/**
+ * Formata um CPF no padrão XXX.XXX.XXX-XX
+ */
+export function formatCPF(cpf: string): string {
+  const clean = cpf.replace(/[^\d]/g, '')
+  if (clean.length !== 11) return cpf
+  return clean.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
+}
+
+/**
+ * Formata um CNPJ no padrão XX.XXX.XXX/XXXX-XX
+ */
+export function formatCNPJ(cnpj: string): string {
+  const clean = cnpj.replace(/[^\d]/g, '')
+  if (clean.length !== 14) return cnpj
+  return clean.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
+}
