@@ -81,7 +81,7 @@ export default function DataTableToolbar({
       {filterOptions && filterOptions.length > 0 && (
         <Select 
           value={filterValue} 
-          onValueChange={setFilterValue}
+          onValueChange={(val) => setFilterValue(val || 'TODOS')}
         >
           <SelectTrigger className="h-9 w-[180px] text-sm">
             <Filter className="h-3.5 w-3.5 mr-1 text-gray-400" />

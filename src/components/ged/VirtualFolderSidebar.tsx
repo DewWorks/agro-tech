@@ -66,11 +66,11 @@ export default function VirtualFolderSidebar({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'todos')}>
           <SelectTrigger className="h-8 text-xs bg-gray-50/50">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent position="popper" side="bottom">
+          <SelectContent>
             <SelectItem value="todos" className="text-xs">
               <div className="flex items-center gap-2">
                 <ListFilter className="h-3.5 w-3.5 text-gray-500" />

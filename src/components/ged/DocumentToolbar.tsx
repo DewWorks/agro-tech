@@ -51,12 +51,12 @@ export default function DocumentToolbar({
         </div>
 
         {/* Status Filter */}
-        <Select value={statusFilter} onValueChange={(val) => onStatusFilterChange(val || '')}>
+        <Select value={statusFilter} onValueChange={(val) => onStatusFilterChange(val ?? 'TODOS')}>
           <SelectTrigger className="h-9 w-[180px] text-sm">
             <Filter className="h-3.5 w-3.5 mr-1 text-gray-400" />
             <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent position="popper" side="bottom">
+          <SelectContent>
             <SelectItem value="TODOS">Todos os Status</SelectItem>
             <SelectItem value="VALIDO">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-[#16A34A]/10 text-[#16A34A]">
@@ -86,11 +86,11 @@ export default function DocumentToolbar({
         </Select>
 
         {/* Type Filter */}
-        <Select value={typeFilter} onValueChange={(val) => onTypeFilterChange(val || '')}>
+        <Select value={typeFilter} onValueChange={(val) => onTypeFilterChange(val ?? 'TODOS')}>
           <SelectTrigger className="h-9 w-[220px] text-sm">
             <SelectValue placeholder="Categoria" />
           </SelectTrigger>
-          <SelectContent position="popper" side="bottom" className="max-h-[300px]">
+          <SelectContent className="max-h-[300px]">
             <SelectItem value="TODOS">Todas as Categorias</SelectItem>
             {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
               <SelectItem key={key} value={key}>{label}</SelectItem>

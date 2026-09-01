@@ -49,6 +49,19 @@ export default async function AdminDashboardPage() {
     )
   }
 
+  if (!dbUser.organizationId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <Greeting name={dbUser.fullName?.split(' ')[0] || 'Utilizador'} />
+          <p className="text-muted-foreground mt-1">
+            Você não pertence a nenhuma organização.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   // Buscar dados reais para o Dashboard Operacional
   const [producersCount, propertiesCount, branchesCount, usersCount, documents] = await Promise.all([
     prisma.producer.count({ where: { branch: { organizationId: dbUser.organizationId }, isActive: true } }),

@@ -18,7 +18,9 @@ export default async function GedSemaphorePage() {
       }
     },
     include: {
-      producer: { select: { name: true } }
+      producer: { 
+        select: { id: true, name: true } 
+      }
     },
     orderBy: { expirationDate: 'asc' }
   })
