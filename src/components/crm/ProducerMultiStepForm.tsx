@@ -13,9 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import { createProducer, updateProducer } from '@/actions/producers'
 import { toast } from 'sonner'
 import { Loader2, User, Users, FileText, CheckCircle2, AlertTriangle, Plus } from 'lucide-react'
+import ProducerDocumentsSection from '../ged/ProducerDocumentsSection'
 
 function validateCPF(cpf: string) {
   cpf = cpf.replace(/[^\d]+/g, '')
@@ -165,9 +167,13 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!validateStep(activeTab)) {
-      toast.error('Corrija os campos obrigatórios antes de salvar.')
-      return
+    
+    for (const tab of tabs) {
+      if (!validateStep(tab.id)) {
+        setActiveTab(tab.id)
+        toast.error('Corrija os campos obrigatórios antes de salvar.')
+        return
+      }
     }
 
     setLoading(true)
@@ -227,9 +233,19 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
             key={tab.id}
             type="button"
             onClick={() => {
+              if (tab.id === activeTab) return
               const currentIndex = tabs.findIndex(t => t.id === activeTab)
               const targetIndex = tabs.findIndex(t => t.id === tab.id)
-              if (targetIndex < currentIndex) setActiveTab(tab.id)
+              
+              if (targetIndex < currentIndex) {
+                setActiveTab(tab.id)
+              } else {
+                if (validateStep(activeTab)) {
+                  setActiveTab(tab.id)
+                } else {
+                  toast.error('Corrija os campos obrigatórios antes de mudar de aba.')
+                }
+              }
             }}
             className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
               activeTab === tab.id 
@@ -264,15 +280,26 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
                   </SelectTrigger>
                   <SelectContent>
                     {branches.map((branch) => {
-                      const isDisabled = !branch.isActive && branch.id !== initialData?.branchId
-                      const label = branch.isActive ? branch.name : `${branch.name} (Inativa)`
+                      // Se for inativa, não renderiza no dropdown em hipótese alguma (pedido explícito)
+                      if (!branch.isActive) return null
+
                       return (
                         <SelectItem 
                           key={branch.id} 
                           value={branch.id}
-                          disabled={isDisabled}
                         >
-                          {label}
+                          <div className="flex items-center gap-3">
+                            <span>{branch.name}</span>
+                            {branch.isActive ? (
+                              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 pointer-events-none">
+                                Ativa
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 pointer-events-none">
+                                Inativa
+                              </Badge>
+                            )}
+                          </div>
                         </SelectItem>
                       )
                     })}
@@ -444,13 +471,22 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
                 placeholder="Código DAP ou CAF"
               />
             </div>
-            <div className="col-span-1 md:col-span-2 p-8 border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground bg-slate-50">
-              <FileText className="h-8 w-8 mb-2 opacity-50" />
-              <p className="font-medium">Gestão Eletrônica de Documentos (Em Breve)</p>
-              <p className="text-xs text-center mt-1 max-w-md">
-                O upload de arquivos (RG, CNH, Certidões) para a nuvem será libertado na Fase de GED do MVP.
-              </p>
-            </div>
+            {initialData?.id ? (
+              <div className="col-span-1 md:col-span-2">
+                <ProducerDocumentsSection
+                  producerId={initialData.id}
+                  branchId={formData.branchId}
+                />
+              </div>
+            ) : (
+              <div className="col-span-1 md:col-span-2 p-8 border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground bg-slate-50">
+                <FileText className="h-8 w-8 mb-2 opacity-50" />
+                <p className="font-medium">Gestão Eletrônica de Documentos</p>
+                <p className="text-xs text-center mt-1 max-w-md">
+                  Salve o produtor primeiro para habilitar o upload de documentos (RG, CNH, Certidões) para a nuvem.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
@@ -463,7 +499,7 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
             Cancelar
           </Button>
 
-          <div className="space-x-2">
+          <div className="flex items-center gap-2">
             {activeTab !== 'DADOS' && (
               <Button 
                 type="button" 

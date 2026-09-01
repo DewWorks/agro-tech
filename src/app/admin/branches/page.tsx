@@ -21,8 +21,13 @@ import { Building2, Plus, Pencil, Ban, CheckCircle2 } from 'lucide-react'
 import { toggleBranchStatus } from '@/actions/branches'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { DeleteBranchModal } from '@/components/admin/branches/DeleteBranchModal'
+import DataTableToolbar from '@/components/admin/DataTableToolbar'
 
-export default async function BranchesPage() {
+export default async function BranchesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await props.searchParams || {}
+  const q = searchParams.q || ''
+  const status = searchParams.status || 'TODOS'
+
   const dbUser = await getUserContext()
 
   if (!dbUser) {
@@ -37,11 +42,28 @@ export default async function BranchesPage() {
     redirect('/admin')
   }
 
+  // Configuração do filtro
+  const whereClause: any = {
+    organizationId: dbUser.organizationId,
+    deletedAt: null // Não mostrar apagadas
+  }
+
+  if (q) {
+    whereClause.OR = [
+      { name: { contains: q, mode: 'insensitive' } },
+      { cnpj: { contains: q } },
+      { city: { contains: q, mode: 'insensitive' } }
+    ]
+  }
+
+  if (status === 'ATIVO') {
+    whereClause.isActive = true
+  } else if (status === 'INATIVO') {
+    whereClause.isActive = false
+  }
+
   const branches = await prisma.branch.findMany({
-    where: { 
-      organizationId: dbUser.organizationId,
-      deletedAt: null // Não mostrar apagadas
-    },
+    where: whereClause,
     include: {
       _count: {
         select: {
@@ -72,6 +94,14 @@ export default async function BranchesPage() {
           </Button>
         </Link>
       </div>
+
+      <DataTableToolbar 
+        searchPlaceholder="Buscar por Nome, CNPJ ou Cidade..."
+        filterOptions={[
+          { label: <Badge className="bg-green-600 hover:bg-green-700 font-normal py-0">Ativas</Badge>, value: 'ATIVO' },
+          { label: <Badge variant="secondary" className="font-normal py-0">Inativas</Badge>, value: 'INATIVO' }
+        ]}
+      />
 
       <div className="rounded-md border bg-white">
         <Table>

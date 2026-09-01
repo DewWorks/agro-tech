@@ -20,6 +20,7 @@ import {
 import { Users as UsersIcon, Plus, Pencil, Mail, Key } from 'lucide-react'
 import { toggleUserStatus, resendWelcomeEmailAction, resetUserPasswordAction } from '@/actions/users'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
+import DataTableToolbar from '@/components/admin/DataTableToolbar'
 
 const roleLabels: Record<string, string> = {
   OWNER: 'Administrador (Prop.)',
@@ -27,7 +28,11 @@ const roleLabels: Record<string, string> = {
   OPERATOR: 'Usuário',
 }
 
-export default async function UsersPage() {
+export default async function UsersPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await props.searchParams || {}
+  const q = searchParams.q || ''
+  const status = searchParams.status || 'TODOS'
+
   const dbUser = await getUserContext()
 
   if (!dbUser) {
@@ -37,9 +42,27 @@ export default async function UsersPage() {
     return <div>Organização não encontrada.</div>
   }
 
+  // Configuração do filtro
+  const whereClause: any = {
+    organizationId: dbUser.organizationId
+  }
+
+  if (q) {
+    whereClause.OR = [
+      { fullName: { contains: q, mode: 'insensitive' } },
+      { email: { contains: q, mode: 'insensitive' } }
+    ]
+  }
+
+  if (status === 'ATIVO') {
+    whereClause.isActive = true
+  } else if (status === 'INATIVO') {
+    whereClause.isActive = false
+  }
+
   // Fetch all users for this organization, including their branch relationships
   const users = await prisma.user.findMany({
-    where: { organizationId: dbUser.organizationId },
+    where: whereClause,
     include: {
       userBranches: {
         include: {
@@ -68,6 +91,14 @@ export default async function UsersPage() {
           </Button>
         </Link>
       </div>
+
+      <DataTableToolbar 
+        searchPlaceholder="Buscar por Nome ou E-mail..."
+        filterOptions={[
+          { label: <Badge className="bg-green-600 hover:bg-green-700 font-normal py-0">Ativos</Badge>, value: 'ATIVO' },
+          { label: <Badge variant="secondary" className="font-normal py-0">Inativos</Badge>, value: 'INATIVO' }
+        ]}
+      />
 
       <div className="rounded-md border bg-white">
         <Table>

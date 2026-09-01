@@ -43,6 +43,8 @@ model Branch {
   userBranches   UserBranch[]
   producers      Producer[]
   properties     Property[]
+  documents      Document[]
+  documentAlerts DocumentAlert[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -131,6 +133,8 @@ model Producer {
 
   branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   properties     ProducerProperty[]
+  documents      Document[]
+  documentAlerts DocumentAlert[]
 
   // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
   @@unique([branchId, document])
@@ -168,6 +172,7 @@ model Property {
 
   branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   producers      ProducerProperty[]
+  documents      Document[]
 
   @@map("properties")
 }
@@ -194,4 +199,101 @@ model ProducerProperty {
 
   @@id([producerId, propertyId])
   @@map("producer_properties")
+}
+
+// ----------------------------------------------------------------------
+// MÓDULO GED - GESTÃO ELETRÔNICA DE DOCUMENTOS
+// ----------------------------------------------------------------------
+
+enum DocumentType {
+  MATRICULA
+  CAR
+  CCIR
+  ITR
+  RG_CPF
+  CERTIDAO_CASAMENTO
+  CONTRATO_ARRENDAMENTO
+  OUTORGA_AGUA
+  CND_IBAMA
+  CND_FEDERAL
+  DAP_CAF
+  LAUDO_TECNICO
+  OUTROS
+}
+
+enum ComplianceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum DocumentAlertLevel {
+  EXPIRING_60
+  EXPIRING_30
+  EXPIRING_7
+  EXPIRED
+}
+
+model Document {
+  id               String           @id @default(uuid())
+  branchId         String
+  producerId       String
+  propertyId       String?
+  documentType     DocumentType
+  fileName         String
+  fileSize         Int
+  mimeType         String
+  storagePath      String           @unique
+  issueDate        DateTime?
+  expirationDate   DateTime?
+  cropYear         String?
+  complianceStatus ComplianceStatus @default(PENDING)
+  rejectionReason  String?
+  metadataPayload  Json?
+
+  // Herança & Versionamento
+  isInherited      Boolean          @default(false)
+  inheritedFromId  String?
+  isSuperseded     Boolean          @default(false)
+  isArchived       Boolean          @default(false)
+
+  createdBy        String?
+  updatedBy        String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // Relações
+  branch           Branch           @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer         Producer         @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  property         Property?        @relation(fields: [propertyId], references: [id])
+  inheritedFrom    Document?        @relation("DocumentInheritance", fields: [inheritedFromId], references: [id])
+  inheritedDocs    Document[]       @relation("DocumentInheritance")
+  alerts           DocumentAlert[]
+
+  @@index([branchId, producerId])
+  @@index([branchId, documentType])
+  @@index([expirationDate])
+  @@map("documents")
+}
+
+model DocumentAlert {
+  id               String             @id @default(uuid())
+  branchId         String
+  documentId       String
+  producerId       String
+  alertLevel       DocumentAlertLevel
+  daysToExpiration Int
+  isResolved       Boolean            @default(false)
+  resolvedAt       DateTime?
+  createdAt        DateTime           @default(now())
+
+  // Relações
+  branch           Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  document         Document           @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  producer         Producer           @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, isResolved])
+  @@index([producerId])
+  @@map("document_alerts")
 }
