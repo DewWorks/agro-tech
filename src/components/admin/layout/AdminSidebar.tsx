@@ -59,6 +59,17 @@ const getMenuItems = (role: string, modules: string[] = []): MenuItem[] => {
     })
   }
 
+  if (modules.includes('GED')) {
+    items.push({
+      title: 'Documentos (GED Inteligente)',
+      icon: FolderTree,
+      subItems: [
+        { title: 'Explorador de Arquivos', href: '/admin/ged/explorer' },
+        { title: 'Validades & Semáforo', href: '/admin/ged/semaphore' },
+      ]
+    })
+  }
+
   items.push(
     {
       title: 'Filiais',
@@ -97,6 +108,7 @@ export default function AdminSidebar({ role, modules = [] }: { role: string, mod
     'Utilizadores': pathname.includes('/admin/users'),
     'Configurações': pathname.includes('/admin/settings'),
     'SaaS / Clientes': pathname.includes('/admin/organizations'),
+    'Documentos (GED Inteligente)': pathname.includes('/admin/ged'),
   })
 
   const toggleMenu = (title: string) => {

@@ -10,7 +10,8 @@ import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { toggleOrganizationModule } from '@/actions/modules'
 
 const AVAILABLE_MODULES = [
-  { code: 'CRM', name: 'CRM & Cadastro Único', description: 'Gestão de produtores rurais, propriedades e filiais.' }
+  { code: 'CRM', name: 'CRM & Cadastro Único', description: 'Gestão de produtores rurais, propriedades e filiais.' },
+  { code: 'GED', name: 'Documentos (GED Inteligente)', description: 'Gestão eletrônica de documentos, validades e repositório.' }
 ]
 
 export default async function EditOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
