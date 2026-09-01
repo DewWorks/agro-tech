@@ -45,6 +45,8 @@ model Branch {
   properties     Property[]
   documents      Document[]
   documentAlerts DocumentAlert[]
+  documentTemplates DocumentTemplate[]
+  generatedForms GeneratedForm[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -85,6 +87,12 @@ model UserBranch {
 // MÓDULO CRM E CADASTRO ÚNICO
 // ----------------------------------------------------------------------
 
+enum Qualification {
+  PRONAF_CAF
+  PRONAMP
+  DEMAIS
+}
+
 enum ProducerType {
   PF
   PJ
@@ -122,8 +130,16 @@ model Producer {
   spouseName     String?
   spouseCpf      String?
 
+  // Representante Legal (Para PJ)
+  representativeCpf String?
+
   // Qualificação
   dapCafNumber   String?
+  qualification  Qualification?
+  profession     String?
+  nationality    String?
+  rg             String?
+  rgIssuer       String?
   
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
@@ -139,12 +155,19 @@ model Producer {
   // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
   @@unique([branchId, document])
   @@map("producers")
+  
+  generatedForms GeneratedForm[]
 }
 
 model Property {
   id             String       @id @default(uuid())
   branchId       String
-  name           String
+  name               String
+  propertyName       String?
+  registrationNumber String?
+  registryOffice     String?
+  city               String?
+  state              String?
   
   // Documentos Regulares
   car            String?
@@ -157,6 +180,8 @@ model Property {
   pastureArea    Float        @default(0)
   preserveArea   Float        @default(0)
 
+  explorationActivity String?
+
   // Geolocalização
   latitude       Float?
   longitude      Float?
@@ -164,6 +189,7 @@ model Property {
   // Campos Dinâmicos (JSONB no Postgres)
   improvements   Json?        // Benfeitorias
   livestock      Json?        // Rebanho
+  possessionData Json?        // Dados de Posse
   
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -175,6 +201,8 @@ model Property {
   documents      Document[]
 
   @@map("properties")
+  
+  generatedForms GeneratedForm[]
 }
 
 enum OwnershipType {
@@ -312,4 +340,44 @@ model SystemModule {
   updatedAt   DateTime @updatedAt
 
   @@map("system_modules")
+}
+
+// ----------------------------------------------------------------------
+// MÓDULO AUTOMAÇÃO LEGAL E DOSSIÊ
+// ----------------------------------------------------------------------
+
+model DocumentTemplate {
+  id          String   @id @default(uuid())
+  branchId    String?  @map("branch_id")
+  code        String   @unique
+  title       String
+  description String
+  contentHtml String   @db.Text
+  schemaJson  Json
+  version     Int      @default(1)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  branch      Branch?  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("document_templates")
+}
+
+model GeneratedForm {
+  id                String   @id @default(uuid())
+  branchId          String   @map("branch_id")
+  producerId        String   @map("producer_id")
+  propertyId        String?  @map("property_id")
+  templateCode      String   @map("template_code")
+  templateVersion   Int      @map("template_version")
+  payloadSnapshot   Json     @map("payload_snapshot")
+  storagePdfPath    String?  @map("storage_pdf_path")
+  sha256Hash        String?  @map("sha256_hash")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  branch            Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer          Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  property          Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+
+  @@map("generated_forms")
 }

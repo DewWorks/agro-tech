@@ -19,7 +19,13 @@ export default async function EditProducerPage({ params }: { params: Promise<{ i
 
   const producer = await prisma.producer.findUnique({
     where: { id },
-    include: { branch: true }
+    include: { 
+      branch: true,
+      properties: {
+        include: { property: true },
+        take: 1
+      }
+    }
   })
 
   if (!producer || producer.branch.organizationId !== dbUser.organizationId) {

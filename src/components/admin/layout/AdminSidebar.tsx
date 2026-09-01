@@ -106,6 +106,7 @@ const getMenuItems = (
       subItems: [
         { title: 'Explorador de Arquivos', href: '/admin/ged/explorer' },
         { title: 'Validades & Semáforo', href: '/admin/ged/semaphore' },
+        { title: 'Declarações Legais', href: '/admin/documents/declarations' },
       ]
     })
   }
