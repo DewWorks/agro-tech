@@ -17,12 +17,17 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Building2, Plus, Pencil, Ban, CheckCircle2 } from 'lucide-react'
+import { Building2, Plus, Pencil, Ban, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { toggleBranchStatus } from '@/actions/branches'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { DeleteBranchModal } from '@/components/admin/branches/DeleteBranchModal'
+import DataTableToolbar from '@/components/admin/DataTableToolbar'
 
-export default async function BranchesPage() {
+export default async function BranchesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await props.searchParams || {}
+  const q = searchParams.q || ''
+  const status = searchParams.status || 'TODOS'
+
   const dbUser = await getUserContext()
 
   if (!dbUser) {
@@ -37,11 +42,28 @@ export default async function BranchesPage() {
     redirect('/admin')
   }
 
+  // Configuração do filtro
+  const whereClause: any = {
+    organizationId: dbUser.organizationId,
+    deletedAt: null // Não mostrar apagadas
+  }
+
+  if (q) {
+    whereClause.OR = [
+      { name: { contains: q, mode: 'insensitive' } },
+      { cnpj: { contains: q } },
+      { city: { contains: q, mode: 'insensitive' } }
+    ]
+  }
+
+  if (status === 'ATIVO') {
+    whereClause.isActive = true
+  } else if (status === 'INATIVO') {
+    whereClause.isActive = false
+  }
+
   const branches = await prisma.branch.findMany({
-    where: { 
-      organizationId: dbUser.organizationId,
-      deletedAt: null // Não mostrar apagadas
-    },
+    where: whereClause,
     include: {
       _count: {
         select: {
@@ -72,6 +94,24 @@ export default async function BranchesPage() {
           </Button>
         </Link>
       </div>
+
+      <DataTableToolbar 
+        searchPlaceholder="Buscar por Nome, CNPJ ou Cidade..."
+        filterOptions={[
+          { label: (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Ativas
+            </div>
+          ), value: 'ATIVO' },
+          { label: (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Inativas
+            </div>
+          ), value: 'INATIVO' }
+        ]}
+      />
 
       <div className="rounded-md border bg-white">
         <Table>

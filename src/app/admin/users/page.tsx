@@ -17,9 +17,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Users as UsersIcon, Plus, Pencil, Mail, Key } from 'lucide-react'
+import { Users as UsersIcon, Plus, Pencil, Mail, Key, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { toggleUserStatus, resendWelcomeEmailAction, resetUserPasswordAction } from '@/actions/users'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
+import DataTableToolbar from '@/components/admin/DataTableToolbar'
 
 const roleLabels: Record<string, string> = {
   OWNER: 'Administrador (Prop.)',
@@ -27,7 +28,11 @@ const roleLabels: Record<string, string> = {
   OPERATOR: 'Usuário',
 }
 
-export default async function UsersPage() {
+export default async function UsersPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
+  const searchParams = await props.searchParams || {}
+  const q = searchParams.q || ''
+  const status = searchParams.status || 'TODOS'
+
   const dbUser = await getUserContext()
 
   if (!dbUser) {
@@ -37,9 +42,27 @@ export default async function UsersPage() {
     return <div>Organização não encontrada.</div>
   }
 
+  // Configuração do filtro
+  const whereClause: any = {
+    organizationId: dbUser.organizationId
+  }
+
+  if (q) {
+    whereClause.OR = [
+      { fullName: { contains: q, mode: 'insensitive' } },
+      { email: { contains: q, mode: 'insensitive' } }
+    ]
+  }
+
+  if (status === 'ATIVO') {
+    whereClause.isActive = true
+  } else if (status === 'INATIVO') {
+    whereClause.isActive = false
+  }
+
   // Fetch all users for this organization, including their branch relationships
   const users = await prisma.user.findMany({
-    where: { organizationId: dbUser.organizationId },
+    where: whereClause,
     include: {
       userBranches: {
         include: {
@@ -68,6 +91,24 @@ export default async function UsersPage() {
           </Button>
         </Link>
       </div>
+
+      <DataTableToolbar 
+        searchPlaceholder="Buscar por Nome ou E-mail..."
+        filterOptions={[
+          { label: (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Ativos
+            </div>
+          ), value: 'ATIVO' },
+          { label: (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Inativos
+            </div>
+          ), value: 'INATIVO' }
+        ]}
+      />
 
       <div className="rounded-md border bg-white">
         <Table>

@@ -9,9 +9,7 @@ import { ChevronLeft } from 'lucide-react'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { toggleOrganizationModule } from '@/actions/modules'
 
-const AVAILABLE_MODULES = [
-  { code: 'CRM', name: 'CRM & Cadastro Único', description: 'Gestão de produtores rurais, propriedades e filiais.' }
-]
+import { CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react'
 
 export default async function EditOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
@@ -23,6 +21,10 @@ export default async function EditOrganizationPage({ params }: { params: Promise
 
   const organization = await prisma.organization.findUnique({
     where: { id: resolvedParams.id },
+  })
+
+  const globalModules = await prisma.systemModule.findMany({
+    orderBy: { name: 'asc' }
   })
 
   if (!organization) {
@@ -73,36 +75,50 @@ export default async function EditOrganizationPage({ params }: { params: Promise
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {AVAILABLE_MODULES.map(mod => {
-                const isActive = (organization.modules || []).includes(mod.code)
+              {globalModules.length === 0 && (
+                <p className="text-sm text-muted-foreground py-4 text-center">Nenhum módulo global cadastrado.</p>
+              )}
+              {globalModules.map(mod => {
+                const isOrgActive = (organization.modules || []).includes(mod.code)
                 return (
-                  <div key={mod.code} className="flex items-center justify-between p-4 rounded-lg border border-gray-100 bg-gray-50/50">
+                  <div key={mod.code} className={`flex items-center justify-between p-4 rounded-lg border ${!mod.isActive ? 'bg-red-50/30 border-red-100' : 'bg-gray-50/50 border-gray-100'}`}>
                     <div>
-                      <strong className="text-sm font-semibold text-gray-800">{mod.name}</strong>
+                      <strong className={`text-sm font-semibold ${!mod.isActive ? 'text-red-800' : 'text-gray-800'}`}>
+                        {mod.name} {!mod.isActive && '(Desativado Globalmente)'}
+                      </strong>
                       <p className="text-xs text-muted-foreground mt-0.5">{mod.description}</p>
                     </div>
                     <div className="flex items-center gap-4">
-                      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-                        {isActive ? 'Ativado' : 'Desativado'}
-                      </span>
-                      <ConfirmActionModal
-                        title={isActive ? `Desativar ${mod.name}?` : `Ativar ${mod.name}?`}
-                        description={isActive 
-                          ? `Isto removerá o acesso da organização aos recursos de ${mod.name}.`
-                          : `Isto ativará o acesso da organização aos recursos de ${mod.name}.`
-                        }
-                        triggerText=""
-                        useSwitch={true}
-                        isActive={isActive}
-                        tooltip={isActive ? "Desativar Módulo" : "Ativar Módulo"}
-                        action={async () => {
-                          'use server'
-                          return await toggleOrganizationModule(organization.id, mod.code, !isActive)
-                        }}
-                        successMessage={`Módulo ${isActive ? 'desativado' : 'ativado'} com sucesso!`}
-                        actionLabel="Confirmar"
-                        actionVariant={isActive ? 'destructive' : 'default'}
-                      />
+                      {!mod.isActive ? (
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-red-100 text-red-700 uppercase">
+                          <AlertTriangle className="h-3 w-3" />
+                          Desativado Global
+                        </div>
+                      ) : (
+                        <>
+                          <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${isOrgActive ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+                            {isOrgActive ? 'Ativado' : 'Desativado'}
+                          </span>
+                          <ConfirmActionModal
+                            title={isOrgActive ? `Desativar ${mod.name}?` : `Ativar ${mod.name}?`}
+                            description={isOrgActive 
+                              ? `Isto removerá o acesso da organização aos recursos de ${mod.name}.`
+                              : `Isto ativará o acesso da organização aos recursos de ${mod.name}.`
+                            }
+                            triggerText=""
+                            useSwitch={true}
+                            isActive={isOrgActive}
+                            tooltip={isOrgActive ? "Desativar Módulo" : "Ativar Módulo"}
+                            action={async () => {
+                              'use server'
+                              return await toggleOrganizationModule(organization.id, mod.code, !isOrgActive)
+                            }}
+                            successMessage={`Módulo ${isOrgActive ? 'desativado' : 'ativado'} com sucesso!`}
+                            actionLabel="Confirmar"
+                            actionVariant={isOrgActive ? 'destructive' : 'default'}
+                          />
+                        </>
+                      )}
                     </div>
                   </div>
                 )

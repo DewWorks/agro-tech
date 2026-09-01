@@ -14,7 +14,8 @@ import {
   Settings,
   FolderTree,
   FileText,
-  Tractor
+  Tractor,
+  Settings2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -22,10 +23,16 @@ interface MenuItem {
   title: string
   icon: any
   href?: string
+  badge?: string
   subItems?: { title: string; href: string }[]
 }
 
-const getMenuItems = (role: string, modules: string[] = []): MenuItem[] => {
+const getMenuItems = (
+  role: string, 
+  modules: string[] = [], 
+  realRole: string = role,
+  globalModules: { code: string, isActive: boolean }[] = []
+): MenuItem[] => {
   if (role === 'SUPER_ADMIN') {
     return [
       {
@@ -34,6 +41,13 @@ const getMenuItems = (role: string, modules: string[] = []): MenuItem[] => {
         subItems: [
           { title: 'Gestão de Organizações', href: '/admin/organizations' },
           { title: 'Novo Cliente', href: '/admin/organizations/new' },
+        ]
+      },
+      {
+        title: 'Sistema Global',
+        icon: Settings2,
+        subItems: [
+          { title: 'Gestão de Módulos', href: '/admin/modules' }
         ]
       },
       {
@@ -48,13 +62,50 @@ const getMenuItems = (role: string, modules: string[] = []): MenuItem[] => {
 
   const items: MenuItem[] = []
 
-  if (modules.includes('CRM')) {
+  const checkModule = (code: string) => {
+    // Se globalModules estiver vazio (por falha ou não passado), assume true provisoriamente
+    const isGloballyActive = globalModules.length === 0 ? true : (globalModules.find(m => m.code === code)?.isActive ?? true)
+    const isClientActive = modules.includes(code)
+    
+    if (realRole !== 'SUPER_ADMIN') {
+      if (isGloballyActive && isClientActive) {
+        return { show: true, badge: undefined }
+      }
+      return { show: false, badge: undefined }
+    }
+
+    if (!isGloballyActive) {
+      return { show: true, badge: 'OFF Global' }
+    }
+    if (!isClientActive) {
+      return { show: true, badge: 'OFF Cliente' }
+    }
+    
+    return { show: true, badge: undefined }
+  }
+
+  const crmStatus = checkModule('CRM')
+  if (crmStatus.show) {
     items.push({
       title: 'CRM / Produtores',
       icon: Tractor,
+      badge: crmStatus.badge,
       subItems: [
         { title: 'Listagem Geral', href: '/admin/crm' },
         { title: 'Novo Produtor', href: '/admin/crm/new' },
+      ]
+    })
+  }
+
+  const gedStatus = checkModule('GED')
+  if (gedStatus.show) {
+    items.push({
+      title: 'Documentos (GED Inteligente)',
+      icon: FolderTree,
+      badge: gedStatus.badge,
+      subItems: [
+        { title: 'Explorador de Arquivos', href: '/admin/ged/explorer' },
+        { title: 'Validades & Semáforo', href: '/admin/ged/semaphore' },
       ]
     })
   }
@@ -89,14 +140,26 @@ const getMenuItems = (role: string, modules: string[] = []): MenuItem[] => {
   return items
 }
 
-export default function AdminSidebar({ role, modules = [] }: { role: string, modules?: string[] }) {
+export default function AdminSidebar({ 
+  role, 
+  modules = [],
+  realRole,
+  globalModules = []
+}: { 
+  role: string, 
+  modules?: string[],
+  realRole?: string,
+  globalModules?: { code: string, isActive: boolean }[]
+}) {
   const pathname = usePathname()
+  const actualRealRole = realRole || role
   // Estado para controlar quais os menus estão expandidos
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     'Filiais': pathname.includes('/admin/branches'),
     'Utilizadores': pathname.includes('/admin/users'),
     'Configurações': pathname.includes('/admin/settings'),
     'SaaS / Clientes': pathname.includes('/admin/organizations'),
+    'Documentos (GED Inteligente)': pathname.includes('/admin/ged'),
   })
 
   const toggleMenu = (title: string) => {
@@ -106,7 +169,7 @@ export default function AdminSidebar({ role, modules = [] }: { role: string, mod
     }))
   }
 
-  const currentMenuItems = getMenuItems(role, modules)
+  const currentMenuItems = getMenuItems(role, modules, actualRealRole, globalModules)
 
   return (
     <div className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shadow-lg transition-all duration-300">
@@ -164,6 +227,11 @@ export default function AdminSidebar({ role, modules = [] }: { role: string, mod
                       <div className="flex items-center gap-3">
                         <item.icon size={20} className={isActiveRoute ? "text-green-400" : ""} />
                         {item.title}
+                        {item.badge && (
+                          <span className="ml-1 text-[9px] uppercase font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">
+                            {item.badge}
+                          </span>
+                        )}
                       </div>
                       {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                     </button>
@@ -178,6 +246,11 @@ export default function AdminSidebar({ role, modules = [] }: { role: string, mod
                     >
                       <item.icon size={20} className={isActiveRoute ? "text-green-400" : ""} />
                       {item.title}
+                      {item.badge && (
+                        <span className="ml-1 text-[9px] uppercase font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   )}
 
