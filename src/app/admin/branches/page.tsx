@@ -17,7 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { Building2, Plus, Pencil, Ban, CheckCircle2 } from 'lucide-react'
+import { Building2, Plus, Pencil, Ban, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { toggleBranchStatus } from '@/actions/branches'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { DeleteBranchModal } from '@/components/admin/branches/DeleteBranchModal'
@@ -98,8 +98,18 @@ export default async function BranchesPage(props: { searchParams: Promise<{ [key
       <DataTableToolbar 
         searchPlaceholder="Buscar por Nome, CNPJ ou Cidade..."
         filterOptions={[
-          { label: <Badge className="bg-green-600 hover:bg-green-700 font-normal py-0">Ativas</Badge>, value: 'ATIVO' },
-          { label: <Badge variant="secondary" className="font-normal py-0">Inativas</Badge>, value: 'INATIVO' }
+          { label: (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Ativas
+            </div>
+          ), value: 'ATIVO' },
+          { label: (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              Inativas
+            </div>
+          ), value: 'INATIVO' }
         ]}
       />
 

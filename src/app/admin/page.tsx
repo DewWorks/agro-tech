@@ -1,13 +1,25 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tractor, Users as UsersIcon, Building2, FolderTree, FileText, Plus, ShieldAlert, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
+import { Tractor, Users as UsersIcon, Building2, FolderTree, FileText, Plus, ShieldAlert, CheckCircle2, AlertTriangle, ArrowRight, Settings2, HardDrive, Pencil, ExternalLink } from 'lucide-react'
+import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
+import { startImpersonating } from '@/actions/impersonate'
+import { toggleOrganizationStatus } from '@/actions/organizations'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
 import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Link from "next/link"
 import Greeting from '@/components/admin/layout/Greeting'
 import { calculateDocumentStatus } from '@/lib/ged/semaphore'
+import DataTableToolbar from "@/components/admin/DataTableToolbar"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>
+}) {
+  const resolvedParams = await searchParams
   const dbUser = await getUserContext()
 
   if (!dbUser) {
@@ -15,35 +27,234 @@ export default async function AdminDashboardPage() {
   }
 
   const role = dbUser.role
-  let totalOrgs = 0
 
   if (role === 'SUPER_ADMIN') {
-    totalOrgs = await prisma.organization.count()
+    const q = resolvedParams.q || ''
     
+    // Fetch data for cards
+    const [totalOrgs, docAggregate] = await Promise.all([
+      prisma.organization.count(),
+      prisma.document.aggregate({ _count: { id: true }, _sum: { fileSize: true } })
+    ])
+    
+    // Format storage size
+    const totalDocs = docAggregate._count.id
+    const totalBytes = docAggregate._sum.fileSize || 0
+    let storageValue = "0.00"
+    let storageUnit = "MB"
+    if (totalBytes > 0) {
+      if (totalBytes < 1024 * 1024) {
+        storageValue = (totalBytes / 1024).toFixed(2)
+        storageUnit = "KB"
+      } else if (totalBytes < 1024 * 1024 * 1024) {
+        storageValue = (totalBytes / (1024 * 1024)).toFixed(2)
+        storageUnit = "MB"
+      } else {
+        storageValue = (totalBytes / (1024 * 1024 * 1024)).toFixed(2)
+        storageUnit = "GB"
+      }
+    }
+
+        // Fetch organizations for table
+    const organizations = await prisma.organization.findMany({
+      where: {
+        name: { contains: q, mode: 'insensitive' },
+        ...(resolvedParams.status && resolvedParams.status !== 'TODOS' 
+            ? { isActive: resolvedParams.status === 'ACTIVE' } 
+            : {})
+      },
+      orderBy: { createdAt: 'desc' }
+    })
+
     return (
       <div className="space-y-6">
         <div>
           <Greeting name={dbUser.fullName?.split(' ')[0] || 'Admin'} />
           <p className="text-muted-foreground mt-1">
-            Bem-vindo ao Painel Global SaaS da AgroTech.
+            Painel Global SaaS da AgroTech
           </p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Link href="/admin/organizations" className="block transition-transform hover:scale-105">
-            <Card className="hover:border-[#1B4D3E] transition-colors cursor-pointer h-full">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Organizações Clientes</CardTitle>
-                <Building2 className="h-4 w-4 text-[#1B4D3E]" />
+        {/* Cards de Resumo e Gestão */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <Link href="/admin/organizations" className="block transition-transform hover:-translate-y-1">
+            <Card className="h-full border hover:border-[#1B4D3E] shadow-sm">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
+                  <Building2 className="h-4 w-4" />
+                  Organizações Clientes
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalOrgs}</div>
+                <div className="text-3xl font-bold">{totalOrgs}</div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Empresas cadastradas no sistema
+                  Empresas ativas na plataforma
                 </p>
               </CardContent>
             </Card>
           </Link>
+
+          <Card className="h-full border hover:border-[#1B4D3E] shadow-sm transition-colors">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
+                <HardDrive className="h-4 w-4" />
+                Volume de Documentos (GED)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-6">
+                <div>
+                  <div className="text-3xl font-bold">{totalDocs}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Ficheiros</p>
+                </div>
+                <div>
+                  <div className="text-3xl font-bold text-amber-600">{storageValue} <span className="text-base font-normal">{storageUnit}</span></div>
+                  <p className="text-xs text-muted-foreground mt-1">Storage Utilizado</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Link href="/admin/modules" className="block transition-transform hover:-translate-y-1 h-full">
+            <Card className="h-full hover:shadow-md transition-all cursor-pointer bg-slate-50 border-slate-200">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium flex items-center text-[#1B4D3E]">
+                  <Settings2 className="mr-2 h-4 w-4" />
+                  Gestão de Módulos Globais
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm font-medium text-[#1B4D3E]">Feature Flags</div>
+                <p className="text-xs text-muted-foreground mt-1">Controlar ativação/desativação de módulos para todo o ecossistema SaaS.</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Listagem de Organizações */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-tight text-[#1B4D3E]">Organizações na Plataforma</h2>
+          </div>
+          
+          <DataTableToolbar 
+            searchPlaceholder="Buscar organização por nome..."
+            filterOptions={[
+              { label: (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Ativa
+                </div>
+              ), value: 'ACTIVE' },
+              { label: (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700">
+                  <AlertTriangle className="h-3 w-3" />
+                  Inativa
+                </div>
+              ), value: 'INACTIVE' }
+            ]}
+          />
+
+          <div className="rounded-md border bg-white shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50/50">
+                  <TableHead>Organização</TableHead>
+                  <TableHead>Documento</TableHead>
+                  <TableHead>Módulos Ativos</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {organizations.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                      Nenhuma organização encontrada.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  organizations.map((org) => {
+                    const impersonate = startImpersonating.bind(null, org.id)
+                    return (
+                      <TableRow key={org.id}>
+                        <TableCell className="font-medium text-[#1B4D3E]">{org.name}</TableCell>
+                        <TableCell className="text-muted-foreground">{org.cnpj || '-'}</TableCell>
+                        <TableCell>
+                          <div className="flex gap-1.5 flex-wrap">
+                            {org.modules.map(mod => {
+                              let modColor = "bg-gray-100 text-gray-700"
+                              if (mod === 'CRM') modColor = "bg-blue-50 text-blue-700 border border-blue-200"
+                              if (mod === 'GED') modColor = "bg-amber-50 text-amber-700 border border-amber-200"
+                              
+                              return (
+                                <span key={mod} className={`px-2 py-0.5 rounded text-[10px] font-semibold tracking-wider ${modColor}`}>
+                                  {mod}
+                                </span>
+                              )
+                            })}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {org.isActive ? (
+                            <span className="bg-green-50 border border-green-200 text-green-700 px-2.5 py-0.5 rounded-full text-[11px] font-medium flex items-center w-fit gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Ativa
+                            </span>
+                          ) : (
+                            <span className="bg-red-50 border border-red-200 text-red-700 px-2.5 py-0.5 rounded-full text-[11px] font-medium flex items-center w-fit gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              Inativa
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right flex items-center justify-end gap-1">
+                          <ConfirmActionModal
+                            title={org.isActive ? "Desativar Organização?" : "Ativar Organização?"}
+                            description={org.isActive 
+                              ? `Tem a certeza que deseja desativar a organização ${org.name}? Todos os utilizadores, filiais e produtores associados perderão o acesso.` 
+                              : `Deseja reativar a organização ${org.name}?`
+                            }
+                            triggerText=""
+                            useSwitch={true}
+                            isActive={org.isActive}
+                            tooltip={org.isActive ? "Desativar" : "Ativar"}
+                            action={async () => {
+                              'use server'
+                              return await toggleOrganizationStatus(org.id, !org.isActive)
+                            }}
+                            successMessage={`Organização ${org.isActive ? 'desativada' : 'ativada'} com sucesso!`}
+                            actionLabel="Confirmar"
+                            actionVariant={org.isActive ? 'destructive' : 'default'}
+                          />
+                          <Tooltip>
+                            <TooltipTrigger render={<Link href={`/admin/organizations/${org.id}/edit`} />}>
+                              <Button size="icon" variant="ghost">
+                                <Pencil className="h-4 w-4 text-blue-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Editar</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger render={<form action={impersonate} />}>
+                              <Button type="submit" size="icon" variant="ghost">
+                                <ExternalLink className="h-4 w-4 text-[#1B4D3E]" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top">
+                              <p>Aceder Painel</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
     )

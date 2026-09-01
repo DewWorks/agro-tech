@@ -72,21 +72,21 @@ export default function VirtualFolderSidebar({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos" className="text-xs">
-              <div className="flex items-center gap-2">
-                <ListFilter className="h-3.5 w-3.5 text-gray-500" />
-                <span>Todos</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700 w-fit">
+                <ListFilter className="h-3.5 w-3.5" />
+                Todos
               </div>
             </SelectItem>
             <SelectItem value="ativos" className="text-xs">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded font-medium">Ativos</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700 w-fit">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Ativos
               </div>
             </SelectItem>
             <SelectItem value="inativos" className="text-xs">
-              <div className="flex items-center gap-2">
-                <XCircle className="h-3.5 w-3.5 text-red-600" />
-                <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-medium">Inativos</span>
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700 w-fit">
+                <XCircle className="h-3.5 w-3.5" />
+                Inativos
               </div>
             </SelectItem>
           </SelectContent>

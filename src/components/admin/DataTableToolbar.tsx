@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Filter } from 'lucide-react'
+import { Search, Filter, ListFilter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -88,7 +88,12 @@ export default function DataTableToolbar({
             <SelectValue placeholder="Filtrar..." />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="TODOS">Todos</SelectItem>
+            <SelectItem value="TODOS">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                <ListFilter className="h-3.5 w-3.5" />
+                Todos
+              </div>
+            </SelectItem>
             {filterOptions.map(opt => (
               <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
             ))}

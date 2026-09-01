@@ -14,7 +14,8 @@ import {
   Settings,
   FolderTree,
   FileText,
-  Tractor
+  Tractor,
+  Settings2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -34,6 +35,13 @@ const getMenuItems = (role: string, modules: string[] = []): MenuItem[] => {
         subItems: [
           { title: 'Gestão de Organizações', href: '/admin/organizations' },
           { title: 'Novo Cliente', href: '/admin/organizations/new' },
+        ]
+      },
+      {
+        title: 'Sistema Global',
+        icon: Settings2,
+        subItems: [
+          { title: 'Gestão de Módulos', href: '/admin/modules' }
         ]
       },
       {

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Filter, Plus, Download, CheckCircle2, AlertTriangle, XCircle, MinusCircle } from 'lucide-react'
+import { Search, Filter, Plus, Download, CheckCircle2, AlertTriangle, XCircle, MinusCircle, ListFilter } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -57,22 +57,27 @@ export default function DocumentToolbar({
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="TODOS">Todos os Status</SelectItem>
+            <SelectItem value="TODOS">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
+                <ListFilter className="h-3.5 w-3.5" />
+                Todos os Status
+              </div>
+            </SelectItem>
             <SelectItem value="VALIDO">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-[#16A34A]/10 text-[#16A34A]">
-                <CheckCircle2 size={12} />
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700">
+                <CheckCircle2 className="h-3.5 w-3.5" />
                 Válidos
               </div>
             </SelectItem>
             <SelectItem value="ALERTA">
               <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-[#EAB308]/10 text-[#EAB308]">
-                <AlertTriangle size={12} />
+                <AlertTriangle className="h-3.5 w-3.5" />
                 Em Alerta
               </div>
             </SelectItem>
             <SelectItem value="VENCIDO">
-              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-[#DC2626]/10 text-[#DC2626]">
-                <XCircle size={12} />
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700">
+                <XCircle className="h-3.5 w-3.5" />
                 Vencidos
               </div>
             </SelectItem>
