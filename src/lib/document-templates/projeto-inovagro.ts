@@ -29,7 +29,11 @@ export interface InovAgroDocumentData {
     name: string
   }
   options?: {
+    responsibleName?: string
     projectDate?: string
+    equipmentName?: string
+    equipmentSpec?: string
+    equipmentCapacity?: string
     systemPowerKw?: number
     cnaeCode?: string
     totalInvestment?: number
@@ -38,6 +42,8 @@ export interface InovAgroDocumentData {
     termYears?: number
     graceMonths?: number
     interestRate?: number
+    estimatedMonthlySavings?: number
+    estimatedMonthlyGenerationKwh?: number
     agronomistName?: string
     creaNumber?: string
     artNumber?: string
@@ -49,30 +55,34 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
   const prop = data.property
   const opt = data.options || {}
   
-  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgName = data.organization?.name || 'Organização'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
-  const orgOwnerName = data.organization?.ownerName || opt.agronomistName || 'João Victor Póvoa França'
+  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || opt.agronomistName || 'Responsável Técnico'
 
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const projectDate = opt.projectDate || new Date().toLocaleDateString('pt-BR')
-  const powerKw = opt.systemPowerKw || 45
-  const costPerKw = 4300 // R$ 4.300 / kW (tabela oficial BB para 30 a 60 kW)
   
-  const totalInv = opt.totalInvestment || (powerKw * costPerKw)
-  const financed = opt.financedAmount || (totalInv * 0.9)
-  const ownRes = opt.ownResources || (totalInv - financed)
+  const equipName = opt.equipmentName || 'Não informado'
+  const equipSpec = opt.equipmentSpec || 'Não informado'
+  const powerKw = opt.systemPowerKw || 0
+  const powerStr = powerKw > 0 ? `${powerKw} kWp` : (opt.equipmentCapacity || 'Pendente')
   
-  const term = opt.termYears || 10
-  const grace = opt.graceMonths || 24
-  const rate = opt.interestRate || 12.5
+  const totalInv = opt.totalInvestment && opt.totalInvestment > 0 ? opt.totalInvestment : 0
+  const financed = totalInv > 0 ? (opt.financedAmount !== undefined ? opt.financedAmount : totalInv * 0.9) : 0
+  const ownRes = totalInv > 0 ? (opt.ownResources !== undefined ? opt.ownResources : totalInv - financed) : 0
   
-  const monthlyGenerationKwh = Math.round(powerKw * 135) // ~135 kWh/kWp no Centro-Oeste/Norte
-  const monthlySavings = Math.round(monthlyGenerationKwh * 0.95) // R$ 0,95 por kWh
+  const term = opt.termYears || 0
+  const grace = opt.graceMonths || 0
+  const rate = opt.interestRate || 0
+  
+  const monthlyGenerationKwh = opt.estimatedMonthlyGenerationKwh || (powerKw > 0 ? Math.round(powerKw * 135) : 0)
+  const monthlySavings = opt.estimatedMonthlySavings || (powerKw > 0 ? Math.round(monthlyGenerationKwh * 0.95) : 0)
   const annualSavings = monthlySavings * 12
+  const paybackStr = totalInv > 0 && annualSavings > 0 ? (totalInv / annualSavings).toFixed(1) + ' anos' : 'Pendente'
 
   const agroName = orgOwnerName
-  const crea = opt.creaNumber || 'CREA/TO 12345-D'
-  const art = opt.artNumber || 'ART 2026/0987654'
+  const crea = opt.creaNumber || 'Pendente'
+  const art = opt.artNumber || 'Pendente'
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
@@ -84,13 +94,13 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
           PROJETO TÉCNICO – PROGRAMA INOVAGRO
         </h1>
         <p style="font-size: 10px; color: #6b7280; margin: 2px 0 0 0;">
-          Inovação Tecnológica, Automação e Geração de Energia Renovável • Banco do Brasil / BNDES
+          Inovação Tecnológica na Agropecuária • Banco do Brasil / BNDES
         </p>
       </div>
-      <div style="text-align: right; font-size: 10px;">
-        <span style="background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 4px; font-weight: bold;">
+      <div style="text-align: right; font-size: 10px; color: #374151;">
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 3px 8px; border-radius: 4px; font-weight: 600; color: #15803d;">
           Data: ${projectDate}
-        </span>
+        </div>
       </div>
     </div>
 
@@ -102,7 +112,7 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
       <div style="padding: 6px 10px; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px;">
         <div><strong>Proponente:</strong> ${p.name || '-'}</div>
         <div><strong>CPF / CNPJ:</strong> ${docFormatted || '-'}</div>
-        <div><strong>CNAE BNDES:</strong> ${opt.cnaeCode || '01.11-3/01'}</div>
+        <div><strong>CNAE BNDES:</strong> ${opt.cnaeCode || 'Não informado'}</div>
         <div style="grid-column: span 2;"><strong>Município / UF:</strong> ${p.city || ''} - ${p.state || ''}</div>
         <div><strong>Telefone:</strong> ${p.phone || '-'}</div>
       </div>
@@ -135,24 +145,20 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
           </tr>
         </thead>
         <tbody>
+          ${totalInv > 0 ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px; font-weight: bold;">Gerador Fotovoltaico On-Grid</td>
-            <td style="padding: 4px 8px;">Módulos Monocristalinos Tier-1 + Inversor Trifásico</td>
-            <td style="padding: 4px 8px; text-align: right;">${powerKw} kWp</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.78).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 6px 8px; font-weight: bold;">${equipName}</td>
+            <td style="padding: 6px 8px;">${equipSpec}</td>
+            <td style="padding: 6px 8px; text-align: right;">${powerStr}</td>
+            <td style="padding: 6px 8px; text-align: right;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px; font-weight: bold;">Estruturas e Cabeamento</td>
-            <td style="padding: 4px 8px;">Estrutura em Alumínio Anodizado Solo/Telhado + Cabos Solares</td>
-            <td style="padding: 4px 8px; text-align: right;">1 Conjunto</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.12).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+          ` : `
+          <tr>
+            <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
+              ⚠️ Aguardando preenchimento dos equipamentos e valores de investimento no formulário lateral.
+            </td>
           </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px; font-weight: bold;">Projeto, ART e Instalação</td>
-            <td style="padding: 4px 8px;">Homologação na Concessionária + Montagem e Comissionamento</td>
-            <td style="padding: 4px 8px; text-align: right;">Serviço Completo</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.10).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
-          </tr>
+          `}
           <tr style="background: #f3f4f6; font-weight: bold;">
             <td colspan="3" style="padding: 5px 8px;">VALOR TOTAL DO INVESTIMENTO</td>
             <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-size: 11px;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
@@ -163,8 +169,8 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
       <div style="padding: 6px 10px; background: #fafafa; border-top: 1px solid #e5e7eb; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 10px;">
         <div><strong>Recursos Financiados:</strong> R$ ${financed.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</div>
         <div><strong>Recursos Próprios:</strong> R$ ${ownRes.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</div>
-        <div><strong>Prazo Total:</strong> ${term} anos</div>
-        <div><strong>Carência:</strong> ${grace} meses (Juros: ${rate}% a.a.)</div>
+        <div><strong>Prazo Total:</strong> ${totalInv > 0 ? term + ' anos' : '-'}</div>
+        <div><strong>Carência:</strong> ${totalInv > 0 ? grace + ' meses (Juros: ' + rate + '% a.a.)' : '-'}</div>
       </div>
     </div>
 
@@ -175,20 +181,26 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
       </div>
       <div style="padding: 8px 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center;">
         <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
-          <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Geração Estimada</div>
-          <div style="font-size: 12px; font-weight: bold; color: #1B4D3E;">${monthlyGenerationKwh.toLocaleString('pt-BR')} kWh / mês</div>
+          <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Geração / Ganho Estimado</div>
+          <div style="font-size: 12px; font-weight: bold; color: #1B4D3E;">
+            ${monthlyGenerationKwh > 0 ? monthlyGenerationKwh.toLocaleString('pt-BR') + ' kWh / mês' : (powerKw > 0 ? powerStr : 'Sob dimensionamento')}
+          </div>
         </div>
         <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
           <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Economia Mensal</div>
-          <div style="font-size: 12px; font-weight: bold; color: #065f46;">R$ ${monthlySavings.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</div>
+          <div style="font-size: 12px; font-weight: bold; color: #047857;">
+            ${monthlySavings > 0 ? 'R$ ' + monthlySavings.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : 'R$ 0,00'}
+          </div>
         </div>
         <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
           <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Economia Anual Projetada</div>
-          <div style="font-size: 12px; font-weight: bold; color: #065f46;">R$ ${annualSavings.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</div>
+          <div style="font-size: 12px; font-weight: bold; color: #047857;">
+            ${annualSavings > 0 ? 'R$ ' + annualSavings.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : 'R$ 0,00'}
+          </div>
         </div>
       </div>
       <div style="padding: 6px 10px; font-size: 9.5px; color: #4b5563; text-align: justify; border-top: 1px solid #e5e7eb;">
-        A implantação da usina solar fotovoltaica reduzirá em mais de 90% os custos com energia elétrica nas atividades de irrigação, ordenha mecânica, resfriamento de leite e bombeamento hídrico da fazenda, garantindo retorno do investimento (Payback) em aproximadamente 3,5 anos e liberando fluxo de caixa para expansão produtiva.
+        A implantação da usina solar fotovoltaica reduzirá em mais de 90% os custos com energia elétrica nas atividades de irrigação, ordenha mecânica, resfriamento de leite e bombeamento hídrico da fazenda, garantindo retorno do investimento (Payback) em aproximadamente ${paybackStr} e liberando fluxo de caixa para expansão produtiva.
       </div>
     </div>
 

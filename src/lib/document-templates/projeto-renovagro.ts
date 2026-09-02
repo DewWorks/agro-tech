@@ -20,6 +20,7 @@ export interface RenovAgroDocumentData {
     totalAreaHa?: number
     openAreaHa?: number
     pastureAreaHa?: number
+    explorationActivity?: string
     accessRoute?: string
   }
   organization: {
@@ -31,9 +32,11 @@ export interface RenovAgroDocumentData {
     name: string
   }
   options?: {
+    responsibleName?: string
     projectDate?: string
     subline?: string
     areaToRecoverHa?: number
+    costPerHa?: number
     totalInvestment?: number
     financedAmount?: number
     ownResources?: number
@@ -51,27 +54,27 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
   const prop = data.property
   const opt = data.options || {}
   
-  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgName = data.organization?.name || 'Organização'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
-  const orgOwnerName = data.organization?.ownerName || opt.agronomistName || 'João Victor Póvoa França'
+  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || opt.agronomistName || 'Responsável Técnico'
 
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const projectDate = opt.projectDate || new Date().toLocaleDateString('pt-BR')
-  const subline = opt.subline || 'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)'
+  const subline = opt.subline || ''
   
-  const areaRecover = opt.areaToRecoverHa || Math.min(100, Math.round((prop.pastureAreaHa || prop.totalAreaHa || 100) * 0.4))
-  const costPerHa = 3500 // R$ 3.500 / ha para recuperação completa (calagem, gesso, adubo, sementes, grade)
-  const totalInv = opt.totalInvestment || (areaRecover * costPerHa)
-  const financed = opt.financedAmount || (totalInv * 0.9)
-  const ownRes = opt.ownResources || (totalInv - financed)
+  const areaRecover = opt.areaToRecoverHa && opt.areaToRecoverHa > 0 ? opt.areaToRecoverHa : 0
+  const costPerHa = opt.costPerHa || (areaRecover > 0 && opt.totalInvestment ? opt.totalInvestment / areaRecover : 0)
+  const totalInv = opt.totalInvestment && opt.totalInvestment > 0 ? opt.totalInvestment : (areaRecover > 0 && costPerHa > 0 ? areaRecover * costPerHa : 0)
+  const financed = totalInv > 0 ? (opt.financedAmount !== undefined ? opt.financedAmount : totalInv * 0.9) : 0
+  const ownRes = totalInv > 0 ? (opt.ownResources !== undefined ? opt.ownResources : totalInv - financed) : 0
   
-  const term = opt.termYears || 8
-  const grace = opt.graceMonths || 24
-  const rate = opt.interestRate || 10.5
+  const term = opt.termYears || 0
+  const grace = opt.graceMonths || 0
+  const rate = opt.interestRate || 0
   
   const agroName = orgOwnerName
-  const crea = opt.creaNumber || 'CREA/TO 12345-D'
-  const art = opt.artNumber || 'ART 2026/0987654'
+  const crea = opt.creaNumber || 'Pendente'
+  const art = opt.artNumber || 'Pendente'
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
@@ -127,12 +130,12 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
             <td style="padding: 5px 8px;">${prop.registrationNumber || 'Pendente'} (${prop.registryOffice || 'CRI'})</td>
             <td style="padding: 5px 8px;">${prop.car || 'Pendente'}</td>
             <td style="padding: 5px 8px; text-align: right;">${(prop.totalAreaHa || 0).toFixed(2)} ha</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-weight: bold;">${areaRecover.toFixed(2)} ha</td>
+            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-weight: bold;">${areaRecover > 0 ? areaRecover.toFixed(2) + ' ha' : 'Pendente'}</td>
           </tr>
         </tbody>
       </table>
       <div style="padding: 4px 8px; background: #fafafa; border-top: 1px solid #e5e7eb; font-size: 9px; color: #4b5563;">
-        <strong>Roteiro de Acesso:</strong> ${prop.accessRoute || 'Partindo da sede do município sede pela rodovia vicinal principal até a entrada da fazenda.'}
+        <strong>Roteiro de Acesso:</strong> ${prop.accessRoute || 'Não informado'}
       </div>
     </div>
 
@@ -142,15 +145,15 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
         03 - Enquadramento e Finalidade do Financiamento
       </div>
       <div style="padding: 6px 10px;">
-        <div style="margin-bottom: 4px;"><strong>Atividade Principal:</strong> Pecuária de Corte (Cria / Recria / Engorda) e Bovinocultura Sustentável.</div>
-        <div><strong>Linha de Enquadramento:</strong> <span style="background: #ecfdf5; color: #065f46; font-weight: bold; padding: 2px 6px; border-radius: 3px;">${subline}</span></div>
+        <div style="margin-bottom: 4px;"><strong>Atividade Principal:</strong> ${prop.explorationActivity || 'Não informada'}</div>
+        <div><strong>Linha de Enquadramento:</strong> ${subline ? `<span style="background: #ecfdf5; color: #065f46; font-weight: bold; padding: 2px 6px; border-radius: 3px;">${subline}</span>` : '<span style="color: #b45309; font-style: italic;">⚠️ Aguardando preenchimento da sublinha</span>'}</div>
       </div>
     </div>
 
     <!-- 04. PLANO DE INVESTIMENTO E CRONOGRAMA FÍSICO-FINANCEIRO -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        04 - Plano de Investimento & Composição de Custos (${areaRecover.toFixed(2)} ha)
+        04 - Plano de Investimento & Composição de Custos ${areaRecover > 0 ? `(${areaRecover.toFixed(2)} ha)` : ''}
       </div>
       <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
         <thead>
@@ -162,50 +165,47 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
           </tr>
         </thead>
         <tbody>
+          ${totalInv > 0 && areaRecover > 0 ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Calagem (Calcário Dolomítico + Aplicação)</td>
-            <td style="padding: 4px 8px;">2,5 t/ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 220,00 / t</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaRecover * 550).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px;">Calagem e Preparo do Solo</td>
+            <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Gessagem Agrícola e Fosfatagem Corretiva</td>
-            <td style="padding: 4px 8px;">1,0 t/ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 800,00 / ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaRecover * 800).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px;">Adubação Corretiva e de Manutenção</td>
+            <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Adubação de Formação NPK + Micronutrientes</td>
-            <td style="padding: 4px 8px;">300 kg/ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 1.100,00 / ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaRecover * 1100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px;">Sementes, Inoculantes e Plantio</td>
+            <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Sementes Fiscalizadas de Forrageiras (Braquiária / Panicum)</td>
-            <td style="padding: 4px 8px;">10 kg/ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 350,00 / ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaRecover * 350).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+          ` : `
+          <tr>
+            <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
+              ⚠️ Aguardando preenchimento da área a recuperar e orçamento no formulário lateral.
+            </td>
           </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Operações Mecanizadas (Subsolagem, Gradagem e Semeadura)</td>
-            <td style="padding: 4px 8px;">Horas/máq</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 700,00 / ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaRecover * 700).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
-          </tr>
+          `}
           <tr style="background: #f3f4f6; font-weight: bold;">
-            <td colspan="3" style="padding: 5px 8px;">VALOR TOTAL DO PROJETO</td>
+            <td colspan="3" style="padding: 5px 8px;">VALOR TOTAL DO INVESTIMENTO PROPOSTO</td>
             <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-size: 11px;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
         </tbody>
       </table>
-      
+
       <div style="padding: 6px 10px; background: #fafafa; border-top: 1px solid #e5e7eb; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-size: 10px;">
         <div><strong>Recursos Financiados:</strong> R$ ${financed.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</div>
         <div><strong>Recursos Próprios:</strong> R$ ${ownRes.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</div>
-        <div><strong>Prazo Total:</strong> ${term} anos</div>
-        <div><strong>Carência:</strong> ${grace} meses (Juros: ${rate}% a.a.)</div>
+        <div><strong>Prazo Total:</strong> ${totalInv > 0 ? term + ' anos' : '-'}</div>
+        <div><strong>Carência:</strong> ${totalInv > 0 ? grace + ' meses (Juros: ' + rate + '% a.a.)' : '-'}</div>
       </div>
     </div>
+
 
     <!-- 05. JUSTIFICATIVA AGRONÔMICA E AMBIENTAL -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 16px; overflow: hidden;">

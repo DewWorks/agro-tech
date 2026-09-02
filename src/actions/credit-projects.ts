@@ -92,7 +92,7 @@ export async function resolveCreditProjectDocument(
   }) : null
 
   const orgOwner = org?.users[0] || (user.role === 'OWNER' ? user : null)
-  const ownerName = orgOwner?.fullName || user.fullName || 'João Victor Póvoa França'
+  const ownerName = orgOwner?.fullName || user.fullName || ''
 
   const branch = user.branchId ? await prisma.branch.findUnique({
     where: { id: user.branchId }
@@ -105,62 +105,138 @@ export async function resolveCreditProjectDocument(
   const livestock = (property.livestock as any) || {}
   const possessionData = (property.possessionData as any) || {}
 
-  const baseData = {
-    producer: {
-      name: producer.name,
-      document: producer.document,
-      type: producer.type as 'PF' | 'PJ',
-      spouseName: producer.spouseName || undefined,
-      spouseCpf: producer.spouseCpf || undefined,
-      phone: producer.phone || undefined,
-      civilStatus: producer.civilStatus || undefined,
-      profession: producer.profession || undefined,
-      street: undefined,
-      city: property.city || undefined,
-      state: property.state || undefined,
+  // Buscar documentos reais do GED vinculados ao produtor/imóvel
+  const attachedDocs = await prisma.document.findMany({
+    where: {
+      producerId: producer.id,
+      OR: [
+        { propertyId: null },
+        { propertyId: property.id }
+      ]
     },
-    property: {
-      name: property.propertyName || property.name || 'Fazenda',
-      registrationNumber: property.registrationNumber || undefined,
-      registryOffice: property.registryOffice || undefined,
-      car: property.car || undefined,
-      city: property.city || undefined,
-      state: property.state || undefined,
-      totalAreaHa: property.totalArea ? Number(property.totalArea) : undefined,
-      openAreaHa: property.productiveArea ? Number(property.productiveArea) : undefined,
-      pastureAreaHa: property.pastureArea ? Number(property.pastureArea) : undefined,
-      agricultureAreaHa: property.productiveArea && property.pastureArea ? Math.max(0, Number(property.productiveArea) - Number(property.pastureArea)) : undefined,
-      preservationAreaHa: property.preserveArea ? Number(property.preserveArea) : undefined,
-      accessRoute: possessionData.accessRoute || undefined,
-      livestockData: {
-        totalCattle: livestock.totalCattle ? Number(livestock.totalCattle) : 0,
-        brandRegistrationAdapec: livestock.brandRegistrationAdapec || undefined,
-        brandDescription: livestock.brandDescription || undefined,
-        brandLocation: livestock.brandLocation || undefined,
-      }
-    },
-    organization: {
-      name: org?.name || 'LN - CONSULTORIA E PROJETOS RURAIS',
-      cnpj: org?.cnpj || undefined,
-      ownerName: ownerName,
-      phone: undefined,
-    },
-    branch: branch ? {
-      name: branch.name
-    } : undefined,
-    options: {
-      ...options,
-      responsibleName: options.responsibleName && options.responsibleName !== 'Eng. Agrônomo Consultor' && options.responsibleName !== 'Responsável Técnico'
-        ? options.responsibleName
-        : ownerName,
-      estimatedLandValuePerHa: options.estimatedLandValuePerHa !== undefined ? Number(options.estimatedLandValuePerHa) : 12000,
-      improvementsValue: options.improvementsValue !== undefined ? Number(options.improvementsValue) : 0,
-      machineryValue: options.machineryValue !== undefined ? Number(options.machineryValue) : 0,
-      annualRevenue: options.annualRevenue !== undefined ? Number(options.annualRevenue) : 0,
-      annualExpenses: options.annualExpenses !== undefined ? Number(options.annualExpenses) : 0,
-      existingDebts: options.existingDebts !== undefined ? Number(options.existingDebts) : 0,
+    select: {
+      documentType: true,
+      complianceStatus: true
     }
-  }
+  })
+
+    // Resolve template-specific financial values
+    let totalInv = 0
+    let finAmount: number | undefined = undefined
+    let ownRes: number | undefined = undefined
+    let term: number | undefined = undefined
+    let grace: number | undefined = undefined
+    let rate: number | undefined = undefined
+
+    if (templateCode === 'PROJETO_INOVAGRO') {
+      totalInv = Number(options.inovagroTotalInvestment || options.totalInvestment || 0)
+      finAmount = options.inovagroFinanced !== undefined && Number(options.inovagroFinanced) > 0 ? Number(options.inovagroFinanced) : (options.financedAmount !== undefined ? Number(options.financedAmount) : undefined)
+      ownRes = options.inovagroOwnResources !== undefined && Number(options.inovagroOwnResources) > 0 ? Number(options.inovagroOwnResources) : (options.ownResources !== undefined ? Number(options.ownResources) : undefined)
+      term = options.inovagroTermYears !== undefined ? Number(options.inovagroTermYears) : (options.termYears !== undefined ? Number(options.termYears) : undefined)
+      grace = options.inovagroGraceMonths !== undefined ? Number(options.inovagroGraceMonths) : (options.graceMonths !== undefined ? Number(options.graceMonths) : undefined)
+      rate = options.inovagroInterestRate !== undefined ? Number(options.inovagroInterestRate) : (options.interestRate !== undefined ? Number(options.interestRate) : undefined)
+    } else if (templateCode === 'PROJETO_RENOVAGRO') {
+      totalInv = Number(options.renovagroTotalInvestment || options.totalInvestment || 0)
+      finAmount = options.renovagroFinanced !== undefined && Number(options.renovagroFinanced) > 0 ? Number(options.renovagroFinanced) : (options.financedAmount !== undefined ? Number(options.financedAmount) : undefined)
+      ownRes = options.renovagroOwnResources !== undefined && Number(options.renovagroOwnResources) > 0 ? Number(options.renovagroOwnResources) : (options.ownResources !== undefined ? Number(options.ownResources) : undefined)
+      term = options.renovagroTermYears !== undefined ? Number(options.renovagroTermYears) : (options.termYears !== undefined ? Number(options.termYears) : undefined)
+      grace = options.renovagroGraceMonths !== undefined ? Number(options.renovagroGraceMonths) : (options.graceMonths !== undefined ? Number(options.graceMonths) : undefined)
+      rate = options.renovagroInterestRate !== undefined ? Number(options.renovagroInterestRate) : (options.interestRate !== undefined ? Number(options.interestRate) : undefined)
+    } else if (templateCode === 'PROJETO_CUSTEIO_SAFRA') {
+      rate = options.custeioInterestRate !== undefined ? Number(options.custeioInterestRate) : (options.interestRate !== undefined ? Number(options.interestRate) : undefined)
+    }
+
+    const baseData = {
+      producer: {
+        name: producer.name,
+        document: producer.document,
+        type: producer.type as 'PF' | 'PJ',
+        spouseName: producer.spouseName || undefined,
+        spouseCpf: producer.spouseCpf || undefined,
+        phone: producer.phone || undefined,
+        civilStatus: producer.civilStatus || undefined,
+        profession: producer.profession || undefined,
+        street: undefined,
+        city: property.city || undefined,
+        state: property.state || undefined,
+      },
+      property: {
+        name: property.propertyName || property.name || 'Imóvel Beneficiado',
+        registrationNumber: property.registrationNumber || undefined,
+        registryOffice: property.registryOffice || undefined,
+        car: property.car || undefined,
+        ccir: property.ccir || undefined,
+        itr: property.itr || undefined,
+        city: property.city || undefined,
+        state: property.state || undefined,
+        totalAreaHa: property.totalArea ? Number(property.totalArea) : undefined,
+        openAreaHa: property.productiveArea ? Number(property.productiveArea) : undefined,
+        pastureAreaHa: property.pastureArea ? Number(property.pastureArea) : undefined,
+        agricultureAreaHa: property.productiveArea && property.pastureArea ? Math.max(0, Number(property.productiveArea) - Number(property.pastureArea)) : undefined,
+        preservationAreaHa: property.preserveArea ? Number(property.preserveArea) : undefined,
+        explorationActivity: property.explorationActivity || undefined,
+        accessRoute: possessionData.accessRoute || undefined,
+        livestockData: {
+          totalCattle: livestock.totalCattle ? Number(livestock.totalCattle) : 0,
+          brandRegistrationAdapec: livestock.brandRegistrationAdapec || undefined,
+          brandDescription: livestock.brandDescription || undefined,
+          brandLocation: livestock.brandLocation || undefined,
+        }
+      },
+      attachedDocs: attachedDocs.map(d => ({
+        documentType: d.documentType,
+        status: d.complianceStatus
+      })),
+      organization: {
+        name: org?.name || 'Organização',
+        cnpj: org?.cnpj || undefined,
+        ownerName: ownerName,
+        phone: undefined,
+      },
+      branch: branch ? {
+        name: branch.name
+      } : undefined,
+      options: {
+        ...options,
+        responsibleName: options.responsibleName
+          ? options.responsibleName
+          : ownerName,
+        estimatedLandValuePerHa: options.estimatedLandValuePerHa !== undefined ? Number(options.estimatedLandValuePerHa) : 0,
+        improvementsValue: options.improvementsValue !== undefined ? Number(options.improvementsValue) : 0,
+        machineryValue: options.machineryValue !== undefined ? Number(options.machineryValue) : 0,
+        annualRevenue: options.annualRevenue !== undefined ? Number(options.annualRevenue) : 0,
+        annualExpenses: options.annualExpenses !== undefined ? Number(options.annualExpenses) : 0,
+        existingDebts: options.existingDebts !== undefined ? Number(options.existingDebts) : 0,
+
+        // InovAgro
+        equipmentName: options.equipmentName || options.inovagroEquipment,
+        equipmentSpec: options.equipmentSpec || options.inovagroSpec,
+        equipmentCapacity: options.equipmentCapacity || options.inovagroCapacity,
+        systemPowerKw: options.systemPowerKw !== undefined ? Number(options.systemPowerKw) : (options.inovagroPower !== undefined ? Number(options.inovagroPower) : 0),
+        cnaeCode: options.cnaeCode || options.inovagroCnae,
+        estimatedMonthlySavings: options.estimatedMonthlySavings !== undefined ? Number(options.estimatedMonthlySavings) : (options.inovagroMonthlySavings !== undefined ? Number(options.inovagroMonthlySavings) : 0),
+
+        // RenovAgro
+        subline: options.subline || options.renovagroSubline,
+        areaToRecoverHa: options.areaToRecoverHa !== undefined ? Number(options.areaToRecoverHa) : (options.renovagroAreaHa !== undefined ? Number(options.renovagroAreaHa) : 0),
+        costPerHa: options.costPerHa !== undefined ? Number(options.costPerHa) : (options.renovagroCostPerHa !== undefined ? Number(options.renovagroCostPerHa) : (options.custeioCostPerHa !== undefined ? Number(options.custeioCostPerHa) : 0)),
+
+        // Custeio Safra
+        safraYear: options.safraYear || options.custeioSafraYear,
+        cropName: options.cropName || options.custeioCropName,
+        cropAreaHa: options.cropAreaHa !== undefined ? Number(options.cropAreaHa) : (options.custeioAreaHa !== undefined ? Number(options.custeioAreaHa) : 0),
+        expectedYieldScHa: options.expectedYieldScHa !== undefined ? Number(options.expectedYieldScHa) : (options.custeioExpectedYield !== undefined ? Number(options.custeioExpectedYield) : 0),
+        pricePerSc: options.pricePerSc !== undefined ? Number(options.pricePerSc) : (options.custeioPricePerUnit !== undefined ? Number(options.custeioPricePerUnit) : 0),
+
+        // Template-specific resolved financial values
+        totalInvestment: totalInv,
+        financedAmount: finAmount,
+        ownResources: ownRes,
+        termYears: term,
+        graceMonths: grace,
+        interestRate: rate,
+      }
+    }
 
   let html = ''
 
@@ -181,14 +257,90 @@ export async function resolveCreditProjectDocument(
       html = generateProjetoCusteioSafraHtml(baseData as any)
       break
     default:
-      throw new Error(`Gerador não implementado para o código: ${templateCode}`)
+      throw new Error(`Modelo "${templateCode}" não possui gerador de HTML registrado.`)
   }
 
   return {
-    templateMeta,
     html,
+    templateMeta,
     producerName: producer.name,
-    propertyName: property.propertyName || property.name,
-    generatedAt: new Date().toISOString()
+    propertyName: property.propertyName || property.name || 'Fazenda'
   }
+}
+
+/**
+ * Salva os parâmetros preenchidos pelo usuário no banco de dados para serem recuperados depois.
+ */
+export async function saveCreditProjectData(
+  producerId: string,
+  propertyId: string,
+  templateCode: string,
+  payload: Record<string, any>
+) {
+  const user = await getUserContext()
+  if (!user) throw new Error('Não autorizado')
+
+  const producer = await prisma.producer.findUnique({
+    where: { id: producerId },
+    select: { branchId: true }
+  })
+  if (!producer) throw new Error('Produtor não encontrado')
+
+  const branchId = user.branchId || producer.branchId
+
+  const existing = await prisma.generatedForm.findFirst({
+    where: {
+      producerId,
+      propertyId: propertyId || null,
+      templateCode,
+      branchId,
+    },
+    orderBy: { createdAt: 'desc' }
+  })
+
+  if (existing) {
+    const updated = await prisma.generatedForm.update({
+      where: { id: existing.id },
+      data: {
+        payloadSnapshot: payload,
+        createdAt: new Date(),
+      }
+    })
+    return { success: true, id: updated.id }
+  } else {
+    const created = await prisma.generatedForm.create({
+      data: {
+        branchId,
+        producerId,
+        propertyId: propertyId || null,
+        templateCode,
+        templateVersion: 1,
+        payloadSnapshot: payload,
+      }
+    })
+    return { success: true, id: created.id }
+  }
+}
+
+/**
+ * Recupera os últimos parâmetros salvos para um produtor, imóvel e modelo.
+ */
+export async function getSavedCreditProjectData(
+  producerId: string,
+  propertyId: string,
+  templateCode: string
+) {
+  const user = await getUserContext()
+  if (!user) return null
+
+  const existing = await prisma.generatedForm.findFirst({
+    where: {
+      producerId,
+      propertyId: propertyId || null,
+      templateCode,
+    },
+    orderBy: { createdAt: 'desc' }
+  })
+
+  return (existing?.payloadSnapshot as Record<string, any>) || null
 }

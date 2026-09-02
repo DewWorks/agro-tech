@@ -19,6 +19,7 @@ export interface CusteioSafraDocumentData {
     state?: string
     totalAreaHa?: number
     agricultureAreaHa?: number
+    explorationActivity?: string
     accessRoute?: string
   }
   organization: {
@@ -30,11 +31,13 @@ export interface CusteioSafraDocumentData {
     name: string
   }
   options?: {
+    responsibleName?: string
     cropName?: string
     cropAreaHa?: number
     safraYear?: string
     expectedYieldScHa?: number
     pricePerSc?: number
+    costPerHa?: number
     interestRate?: number
     agronomistName?: string
     creaNumber?: string
@@ -47,26 +50,26 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
   const prop = data.property
   const opt = data.options || {}
   
-  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgName = data.organization?.name || 'Organização'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
-  const orgOwnerName = data.organization?.ownerName || opt.agronomistName || 'João Victor Póvoa França'
+  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || opt.agronomistName || 'Responsável Técnico'
 
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
-  const safra = opt.safraYear || '2026/2027'
-  const crop = opt.cropName || 'Soja Grão (Safra Principal)'
-  const areaHa = opt.cropAreaHa || Math.min(250, Math.round(prop.agricultureAreaHa || prop.totalAreaHa || 150))
-  const yieldSc = opt.expectedYieldScHa || 62 // 62 sc/ha média de soja
-  const priceSc = opt.pricePerSc || 128.00 // R$ 128,00 por saca
+  const safra = opt.safraYear || ''
+  const crop = opt.cropName || prop.explorationActivity || ''
+  const areaHa = opt.cropAreaHa && opt.cropAreaHa > 0 ? opt.cropAreaHa : 0
+  const yieldSc = opt.expectedYieldScHa && opt.expectedYieldScHa > 0 ? opt.expectedYieldScHa : 0
+  const priceSc = opt.pricePerSc && opt.pricePerSc > 0 ? opt.pricePerSc : 0
   
-  const costPerHa = 3850 // R$ 3.850 / ha de custo operacional financiado
-  const totalCost = areaHa * costPerHa
-  const grossRevenue = areaHa * yieldSc * priceSc
+  const costPerHa = opt.costPerHa && opt.costPerHa > 0 ? opt.costPerHa : 0
+  const totalCost = areaHa > 0 && costPerHa > 0 ? areaHa * costPerHa : 0
+  const grossRevenue = areaHa > 0 && yieldSc > 0 && priceSc > 0 ? areaHa * yieldSc * priceSc : 0
   const netMargin = grossRevenue - totalCost
-  const rate = opt.interestRate || 8.0 // Pronamp / Custeio BB
+  const rate = opt.interestRate || 0
 
   const agroName = orgOwnerName
-  const crea = opt.creaNumber || 'CREA/TO 12345-D'
-  const art = opt.artNumber || 'ART 2026/0987654'
+  const crea = opt.creaNumber || 'Pendente'
+  const art = opt.artNumber || 'Pendente'
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
@@ -113,15 +116,15 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
         </div>
         <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
           <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Área de Plantio</div>
-          <div style="font-size: 11px; font-weight: bold; color: #1B4D3E;">${areaHa.toFixed(2)} Hectares</div>
+          <div style="font-size: 11px; font-weight: bold; color: #1B4D3E;">${areaHa > 0 ? areaHa.toFixed(2) + ' ha' : 'Pendente'}</div>
         </div>
         <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
           <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Produtividade Esperada</div>
-          <div style="font-size: 11px; font-weight: bold; color: #1B4D3E;">${yieldSc} sc / ha</div>
+          <div style="font-size: 11px; font-weight: bold; color: #1B4D3E;">${yieldSc > 0 ? yieldSc + ' sc / ha' : 'Pendente'}</div>
         </div>
         <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
           <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Produção Total Estimada</div>
-          <div style="font-size: 11px; font-weight: bold; color: #1B4D3E;">${(areaHa * yieldSc).toLocaleString('pt-BR')} sacas</div>
+          <div style="font-size: 11px; font-weight: bold; color: #1B4D3E;">${areaHa > 0 && yieldSc > 0 ? (areaHa * yieldSc).toLocaleString('pt-BR') + ' sacas' : 'Pendente'}</div>
         </div>
       </div>
     </div>
@@ -129,7 +132,7 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
     <!-- 03. ORÇAMENTO DETALHADO POR HECTARE -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        03 - Composição do Orçamento de Custeio (${areaHa.toFixed(2)} ha)
+        03 - Composição do Orçamento de Custeio ${areaHa > 0 ? `(${areaHa.toFixed(2)} ha)` : ''}
       </div>
       <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
         <thead>
@@ -141,30 +144,38 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
           </tr>
         </thead>
         <tbody>
+          ${areaHa > 0 && costPerHa > 0 ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 4px 8px; font-weight: bold;">Sementes Certificadas</td>
             <td style="padding: 4px 8px;">Sementes Tratadas Industriais com Biológicos e Fungicidas</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 680,00</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaHa * 680).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(costPerHa * 0.18).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalCost * 0.18).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 4px 8px; font-weight: bold;">Fertilizantes & Nutrição</td>
-            <td style="padding: 4px 8px;">NPK Base no Sulco (02-20-18) + Cobertura Cloreto de Potássio</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 1.520,00</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaHa * 1520).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px;">NPK Base no Sulco + Cobertura de Nutrientes</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(costPerHa * 0.40).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalCost * 0.40).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 4px 8px; font-weight: bold;">Defensivos Agrícolas</td>
-            <td style="padding: 4px 8px;">Herbicidas Dessecação/Pós + Inseticidas + Fungicidas Sítio-Específicos</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 1.050,00</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaHa * 1050).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px;">Herbicidas, Inseticidas e Fungicidas Sítio-Específicos</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(costPerHa * 0.27).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalCost * 0.27).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 4px 8px; font-weight: bold;">Operações e Combustível</td>
-            <td style="padding: 4px 8px;">Preparo, Plantio, Pulverizações Terrestres e Colheita Mecanizada</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ 600,00</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(areaHa * 600).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px;">Preparo, Plantio, Pulverizações e Colheita Mecanizada</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(costPerHa * 0.15).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalCost * 0.15).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
+          ` : `
+          <tr>
+            <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
+              ⚠️ Aguardando preenchimento da cultura, área de plantio e custos por hectare no formulário lateral.
+            </td>
+          </tr>
+          `}
           <tr style="background: #f3f4f6; font-weight: bold;">
             <td colspan="3" style="padding: 5px 8px;">VALOR TOTAL DO CUSTEIO A FINANCIAR</td>
             <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-size: 11px;">R$ ${totalCost.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>

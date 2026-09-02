@@ -44,7 +44,11 @@ export interface LimiteCreditoDocumentData {
     name: string
   }
   options?: {
+    responsibleName?: string
+    creaNumber?: string
+    artNumber?: string
     estimatedLandValuePerHa?: number
+    estimatedCattleHeadValue?: number
     improvementsValue?: number
     machineryValue?: number
     annualRevenue?: number
@@ -58,9 +62,9 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const prop = data.property
   const opt = data.options || {}
   
-  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgName = data.organization?.name || 'Organização'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
-  const orgOwnerName = data.organization?.ownerName || 'João Victor Póvoa França'
+  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Responsável Técnico'
   
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
@@ -70,11 +74,12 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const resArea = prop.preservationAreaHa || 0
   const totalArea = prop.totalAreaHa && prop.totalAreaHa > 0 ? prop.totalAreaHa : (pastArea + agricArea + resArea)
 
-  const landValuePerHa = opt.estimatedLandValuePerHa || 12000
+  const landValuePerHa = opt.estimatedLandValuePerHa && opt.estimatedLandValuePerHa > 0 ? opt.estimatedLandValuePerHa : 0
   const totalLandValue = totalArea * landValuePerHa
 
   const totalCattle = prop.livestockData?.totalCattle || 0
-  const cattleEstimatedValue = totalCattle * 3500
+  const cattleHeadValue = opt.estimatedCattleHeadValue && opt.estimatedCattleHeadValue > 0 ? opt.estimatedCattleHeadValue : 0
+  const cattleEstimatedValue = totalCattle > 0 && cattleHeadValue > 0 ? totalCattle * cattleHeadValue : 0
 
   const improvementsValue = opt.improvementsValue !== undefined ? opt.improvementsValue : 0
   const machineryValue = opt.machineryValue !== undefined ? opt.machineryValue : 0

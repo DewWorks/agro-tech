@@ -17,11 +17,18 @@ export interface ChecklistDocumentData {
     registrationNumber?: string
     registryOffice?: string
     car?: string
+    ccir?: string
+    itr?: string
+    explorationActivity?: string
     city?: string
     state?: string
     totalAreaHa?: number
     accessRoute?: string
   }
+  attachedDocs?: Array<{
+    documentType: string
+    status: string
+  }>
   organization: {
     name: string
     cnpj?: string
@@ -37,6 +44,7 @@ export interface ChecklistDocumentData {
     entryDate?: string
     responsibleName?: string
     agronomistCrea?: string
+    artNumber?: string
     itemsState?: Record<string, boolean>
   }
 }
@@ -46,16 +54,27 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
   const prop = data.property
   const opt = data.options || {}
   
-  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgName = data.organization?.name || 'Organização'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
-  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'João Victor Póvoa França'
+  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Responsável Técnico'
 
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
-  const bank = opt.targetBank || 'Banco do Brasil'
-  const purpose = opt.purpose || 'Custeio / Investimento Agropecuário'
+  const bank = opt.targetBank || 'Não informada'
+  const purpose = opt.purpose || 'Não informada'
   const entryDate = opt.entryDate || new Date().toLocaleDateString('pt-BR')
   const responsible = orgOwnerName
+
+  const items = opt.itemsState || {}
+  const attached = data.attachedDocs || []
+  
+  const hasDoc = (key: string, docType?: string, autoFallback = false): boolean => {
+    if (items[key] !== undefined) return !!items[key]
+    if (docType && attached.some(d => d.documentType === docType && d.status !== 'REJECTED')) {
+      return true
+    }
+    return autoFallback
+  }
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.5; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff;">
@@ -107,27 +126,27 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
         </div>
         <div style="padding: 10px 14px; background: #fff; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('proponente_doc', 'RG_CPF', !!p.document) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>CPF e RG ou CNH (Proponente)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" ${p.spouseName ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('conjuge_doc', 'RG_CPF', !!p.spouseCpf) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>CPF e RG ou CNH (Cônjuge / Outorga)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" ${p.spouseName ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('certidao_casamento', 'CERTIDAO_CASAMENTO', !!p.spouseName) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Certidão de Casamento / União Estável</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('comp_residencia', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Comprovante de Endereço Atualizado</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('irpf', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Declaração de IRPF + Recibo de Entrega</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('scr', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Autorização de Consulta SCR / BACEN</span>
           </div>
         </div>
@@ -140,35 +159,35 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
         </div>
         <div style="padding: 10px 14px; background: #fff; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" ${prop.registrationNumber ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('matricula', 'MATRICULA', !!prop.registrationNumber) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Certidão de Inteiro Teor da Matrícula (atualizada)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('ccir', 'CCIR', !!prop.ccir) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>CCIR - Certificado de Cadastro de Imóvel Rural Vigente</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('itr', 'ITR', !!prop.itr) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>ITR - Imposto Territorial Rural (DIAT / DIAC)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" ${prop.car ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('car', 'CAR', !!prop.car) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>CAR - Cadastro Ambiental Rural (Ativo / Homologado)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('croqui', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Mapa / Croqui Georreferenciado com Poligonal</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" ${prop.accessRoute ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('roteiro_acesso', undefined, !!prop.accessRoute) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Roteiro de Acesso detalhado desde o Centro da Cidade</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('arrendamento', 'CONTRATO_ARRENDAMENTO', false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Contrato de Arrendamento / Comodato / Parceria (se houver)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('outorga', 'OUTORGA_AGUA', false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Outorga de Água / DUI / Dispensa (quando aplicável)</span>
           </div>
         </div>
@@ -181,19 +200,19 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
         </div>
         <div style="padding: 10px 14px; background: #fff; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('onus_reais', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Certidão de Ônus Reais e Ações (< 30 dias)</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('dominial', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Certidão de Cadeia Dominial Quinzenária</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
-            <span>Comprovante de Exploração Pecuária (ADAPEC / INDEF)</span>
+            <input type="checkbox" ${hasDoc('exploracao_pecuaria', undefined, !!prop.explorationActivity) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <span>Comprovante de Exploração Agropecuária / Declaração de Rebanho</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('nf_maquinas', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Nota Fiscal e Fotos de Máquinas / Equipamentos</span>
           </div>
         </div>
@@ -206,27 +225,27 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
         </div>
         <div style="padding: 10px 14px; background: #fff; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('orcamento', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Orçamento Discriminado com Cotações</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('memorial', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Memorial Descritivo e Justificativa Agronômica</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('plano_investimento', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Plano de Investimento e Cronograma Físico-Financeiro</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" checked style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('art', undefined, !!opt.artNumber) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>ART / TRT com Comprovante de Pagamento</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
-            <span>Laudo de Análise Química e Física de Solo (0-20 e 20-40cm)</span>
+            <input type="checkbox" ${hasDoc('laudo_solo', 'LAUDO_TECNICO', false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <span>Laudo de Análise Química e Física de Solo</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('fluxo_caixa', undefined, false) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Demonstração de Capacidade de Pagamento / Fluxo de Caixa</span>
           </div>
         </div>
