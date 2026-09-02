@@ -38,6 +38,7 @@ export interface LimiteCreditoDocumentData {
   organization: {
     name: string
     cnpj?: string
+    ownerName?: string
   }
   branch?: {
     name: string
@@ -56,6 +57,10 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const p = data.producer
   const prop = data.property
   const opt = data.options || {}
+  
+  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
+  const orgOwnerName = data.organization?.ownerName || 'João Victor Póvoa França'
   
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
@@ -79,26 +84,19 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const annualRev = opt.annualRevenue || 0
   const annualExp = opt.annualExpenses || 0
   const debts = opt.existingDebts || 0
-  const netCapacity = annualRev - annualExp - debts
+  const netCapacity = Math.max(0, annualRev - annualExp - debts)
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.4; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
     
     <!-- CABEÇALHO OFICIAL -->
-    <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center;">
-      <div>
-        <h1 style="font-size: 16px; font-weight: 800; color: #1B4D3E; margin: 0; text-transform: uppercase;">
-          Ficha Cadastral e Levantamento Patrimonial
-        </h1>
-        <p style="font-size: 10px; color: #6b7280; margin: 2px 0 0 0;">
-          Dossiê para Proposta de Limite de Crédito Rural • Banco do Brasil
-        </p>
-      </div>
-      <div style="text-align: right;">
-        <span style="background: #1B4D3E; color: #fff; font-weight: bold; font-size: 10px; padding: 4px 8px; border-radius: 4px;">
-          LIMITE DE CRÉDITO BB
-        </span>
-      </div>
+    <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 8px; margin-bottom: 14px;">
+      <h1 style="font-size: 16px; font-weight: 800; color: #1B4D3E; margin: 0; text-transform: uppercase;">
+        Ficha Cadastral e Levantamento Patrimonial
+      </h1>
+      <p style="font-size: 10px; color: #6b7280; margin: 2px 0 0 0;">
+        Dossiê para Proposta de Limite de Crédito Rural • Banco do Brasil
+      </p>
     </div>
 
     <!-- I. IDENTIFICAÇÃO DO PROPONENTE -->
@@ -290,18 +288,35 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
       Declaro, sob as penas da lei, que as informações cadastrais e os bens patrimoniais acima discriminados são a expressão fiel da verdade e refletem a real situação fundiária, zootécnica e financeira da propriedade rural, autorizando a instituição financeira a realizar as devidas averiguações perante os órgãos competentes e consulta ao SCR/BACEN.
     </div>
 
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; text-align: center; font-size: 11px;">
+    <div style="display: grid; grid-template-columns: ${p.spouseName ? '1fr 1fr 1fr' : '1fr 1fr'}; gap: 24px; text-align: center; font-size: 11px;">
+      <!-- Assinatura do Proponente -->
       <div>
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Proponente'}</strong>
         </div>
-        <div style="color: #6b7280;">Assinatura do Proponente</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #6b7280; font-size: 10px;">Assinatura do Proponente</div>
       </div>
+
+      <!-- Assinatura do Cônjuge (se houver) -->
+      ${p.spouseName ? `
       <div>
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${p.spouseName ? p.spouseName : 'Responsável Técnico'}</strong>
+          <strong>${p.spouseName}</strong>
         </div>
-        <div style="color: #6b7280;">${p.spouseName ? 'Assinatura do Cônjuge' : 'Consultor AgroTech'}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">CPF: ${spouseDocFormatted || '-'}</div>
+        <div style="color: #6b7280; font-size: 10px;">Assinatura do Cônjuge</div>
+      </div>
+      ` : ''}
+
+      <!-- Responsável Técnico / Owner da Organização -->
+      <div>
+        <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
+          <strong>${orgOwnerName}</strong>
+        </div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${orgName}</div>
+        ${orgCnpj ? `<div style="color: #4b5563; font-size: 10px;">CNPJ: ${orgCnpj}</div>` : ''}
+        <div style="color: #6b7280; font-size: 10px;">Responsável Técnico / Elaborador</div>
       </div>
     </div>
 

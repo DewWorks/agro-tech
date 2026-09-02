@@ -25,6 +25,7 @@ export interface RenovAgroDocumentData {
   organization: {
     name: string
     cnpj?: string
+    ownerName?: string
   }
   branch?: {
     name: string
@@ -50,6 +51,10 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
   const prop = data.property
   const opt = data.options || {}
   
+  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
+  const orgOwnerName = data.organization?.ownerName || opt.agronomistName || 'João Victor Póvoa França'
+
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const projectDate = opt.projectDate || new Date().toLocaleDateString('pt-BR')
   const subline = opt.subline || 'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)'
@@ -64,7 +69,7 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
   const grace = opt.graceMonths || 24
   const rate = opt.interestRate || 10.5
   
-  const agroName = opt.agronomistName || 'Engenheiro Agrônomo Responsável'
+  const agroName = orgOwnerName
   const crea = opt.creaNumber || 'CREA/TO 12345-D'
   const art = opt.artNumber || 'ART 2026/0987654'
 
@@ -218,13 +223,16 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Proponente'}</strong>
         </div>
-        <div style="color: #6b7280;">Proponente / Beneficiário</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #6b7280; font-size: 10px;">Proponente / Beneficiário</div>
       </div>
       <div>
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${agroName}</strong>
+          <strong>${orgOwnerName}</strong>
         </div>
-        <div style="color: #6b7280;">${crea} • ${art}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${orgName}</div>
+        ${orgCnpj ? `<div style="color: #4b5563; font-size: 10px;">CNPJ: ${orgCnpj}</div>` : ''}
+        <div style="color: #6b7280; font-size: 10px;">${crea} • ${art}</div>
       </div>
     </div>
 

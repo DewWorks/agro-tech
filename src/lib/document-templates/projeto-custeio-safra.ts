@@ -24,6 +24,7 @@ export interface CusteioSafraDocumentData {
   organization: {
     name: string
     cnpj?: string
+    ownerName?: string
   }
   branch?: {
     name: string
@@ -46,6 +47,10 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
   const prop = data.property
   const opt = data.options || {}
   
+  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
+  const orgOwnerName = data.organization?.ownerName || opt.agronomistName || 'João Victor Póvoa França'
+
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const safra = opt.safraYear || '2026/2027'
   const crop = opt.cropName || 'Soja Grão (Safra Principal)'
@@ -59,9 +64,9 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
   const netMargin = grossRevenue - totalCost
   const rate = opt.interestRate || 8.0 // Pronamp / Custeio BB
 
-  const agroName = opt.agronomistName || 'Engenheiro Agrônomo RT'
-  const crea = opt.creaNumber || 'CREA 12345-D'
-  const art = opt.artNumber || 'ART 2026/998877'
+  const agroName = orgOwnerName
+  const crea = opt.creaNumber || 'CREA/TO 12345-D'
+  const art = opt.artNumber || 'ART 2026/0987654'
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
@@ -199,13 +204,16 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Proponente'}</strong>
         </div>
-        <div style="color: #6b7280;">Proponente / Tomador</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #6b7280; font-size: 10px;">Proponente / Tomador</div>
       </div>
       <div>
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${agroName}</strong>
+          <strong>${orgOwnerName}</strong>
         </div>
-        <div style="color: #6b7280;">${crea} • ${art}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${orgName}</div>
+        ${orgCnpj ? `<div style="color: #4b5563; font-size: 10px;">CNPJ: ${orgCnpj}</div>` : ''}
+        <div style="color: #6b7280; font-size: 10px;">${crea} • ${art}</div>
       </div>
     </div>
 

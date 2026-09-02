@@ -26,6 +26,7 @@ export interface ChecklistDocumentData {
     name: string
     cnpj?: string
     phone?: string
+    ownerName?: string
   }
   branch?: {
     name: string
@@ -45,12 +46,16 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
   const prop = data.property
   const opt = data.options || {}
   
+  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
+  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'João Victor Póvoa França'
+
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
   const bank = opt.targetBank || 'Banco do Brasil'
   const purpose = opt.purpose || 'Custeio / Investimento Agropecuário'
   const entryDate = opt.entryDate || new Date().toLocaleDateString('pt-BR')
-  const responsible = opt.responsibleName || 'Responsável Técnico AgroTech'
+  const responsible = orgOwnerName
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.5; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff;">
@@ -283,13 +288,16 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Produtor Rural Proponente'}</strong>
         </div>
-        <div style="color: #6b7280;">Assinatura do Proponente</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #6b7280; font-size: 10px;">Assinatura do Proponente</div>
       </div>
       <div>
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${responsible}</strong>
+          <strong>${orgOwnerName}</strong>
         </div>
-        <div style="color: #6b7280;">Responsável Técnico / Consultor AgroTech</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${orgName}</div>
+        ${orgCnpj ? `<div style="color: #4b5563; font-size: 10px;">CNPJ: ${orgCnpj}</div>` : ''}
+        <div style="color: #6b7280; font-size: 10px;">Responsável Técnico / Elaborador</div>
       </div>
     </div>
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -15,18 +15,23 @@ import {
   CheckCircle2, 
   Sparkles,
   Settings2,
-  RefreshCw
+  RefreshCw,
+  Check,
+  ChevronsUpDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { resolveCreditProjectDocument } from '@/actions/credit-projects'
 import { CreditTemplateMeta } from '@/lib/document-templates'
@@ -62,13 +67,23 @@ export default function CreditProjectWizard({ producers, templates }: CreditProj
   const searchParams = useSearchParams()
   const initialTemplate = searchParams.get('template') || templates[0]?.code || 'CHECKLIST_PROFISSIONAL'
 
-  const [selectedProducerId, setSelectedProducerId] = useState<string>(producers[0]?.id || '')
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(producers[0]?.properties[0]?.id || '')
+  // Filtrar estritamente produtores ativos
+  const activeProducers = useMemo(() => {
+    return producers.filter((p: any) => p.isActive !== false)
+  }, [producers])
+
+  const [selectedProducerId, setSelectedProducerId] = useState<string>(activeProducers[0]?.id || '')
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(activeProducers[0]?.properties[0]?.id || '')
   const [selectedTemplateCode, setSelectedTemplateCode] = useState<string>(initialTemplate)
+
+  // Combobox Popover states
+  const [openProducer, setOpenProducer] = useState(false)
+  const [openProperty, setOpenProperty] = useState(false)
+  const [openTemplate, setOpenTemplate] = useState(false)
   
   // Custom options
   const [customOptions, setCustomOptions] = useState({
-    responsibleName: 'Eng. Agrônomo Consultor',
+    responsibleName: 'João Victor Póvoa França',
     creaNumber: 'CREA/TO 12345-D',
     artNumber: 'ART 2026/0987654',
     targetBank: 'Banco do Brasil',
@@ -90,7 +105,7 @@ export default function CreditProjectWizard({ producers, templates }: CreditProj
     propertyName: string
   } | null>(null)
 
-  const currentProducer = producers.find(p => p.id === selectedProducerId)
+  const currentProducer = activeProducers.find(p => p.id === selectedProducerId)
   const availableProperties = currentProducer?.properties || []
   const currentProperty = availableProperties.find(p => p.id === selectedPropertyId)
   const currentTemplate = templates.find(t => t.code === selectedTemplateCode)
@@ -312,76 +327,234 @@ export default function CreditProjectWizard({ producers, templates }: CreditProj
             </p>
           </div>
 
-          {/* 1. Seleção do Produtor */}
+          {/* 1. Seleção do Produtor (Com Busca e Filtro de Ativos) */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-              <User className="h-3.5 w-3.5 text-[#1B4D3E]" />
-              1. Produtor Rural (Proponente) *
+            <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5 text-[#1B4D3E]" />
+                1. Produtor Rural (Proponente) *
+              </span>
+              <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                Apenas Ativos ({activeProducers.length})
+              </span>
             </Label>
-            <Select value={selectedProducerId} onValueChange={(val) => val && setSelectedProducerId(val)}>
-              <SelectTrigger className="w-full text-xs">
-                <SelectValue placeholder="Selecione o Produtor">
-                  {currentProducer ? `${currentProducer.name} (${currentProducer.type})` : undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {producers.map((prod) => (
-                  <SelectItem key={prod.id} value={prod.id} className="text-xs">
-                    {prod.name} ({prod.type})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={openProducer} onOpenChange={setOpenProducer}>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openProducer}
+                    className="w-full justify-between font-normal text-left text-xs h-9 px-3 bg-white border-gray-200 hover:bg-gray-50 shadow-2xs"
+                  />
+                }
+              >
+                <span className="truncate">
+                  {currentProducer
+                    ? `${currentProducer.name} (${currentProducer.type})`
+                    : "Buscar e selecionar produtor..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+              </PopoverTrigger>
+              <PopoverContent className="w-[320px] p-0 shadow-lg border-gray-200" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar produtor por nome ou CPF/CNPJ..." className="text-xs" />
+                  <CommandList className="max-h-[260px]">
+                    <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
+                      Nenhum produtor ativo encontrado.
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {activeProducers.map((prod) => {
+                        const cmdValue = `${prod.name} ${prod.document || ''} ${prod.type} | ${prod.id}`
+                        const isSelected = selectedProducerId === prod.id
+                        return (
+                          <CommandItem
+                            key={prod.id}
+                            value={cmdValue}
+                            onSelect={() => {
+                              setSelectedProducerId(prod.id)
+                              setOpenProducer(false)
+                            }}
+                            className="text-xs flex items-center justify-between py-2 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <Check
+                                className={cn(
+                                  "h-3.5 w-3.5 text-[#1B4D3E]",
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="truncate">
+                                <p className="font-medium text-gray-900 truncate">{prod.name}</p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {prod.document} • {prod.type}
+                                </p>
+                              </div>
+                            </div>
+                          </CommandItem>
+                        )
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
-          {/* 2. Seleção da Propriedade */}
+          {/* 2. Seleção da Propriedade (Com Busca) */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5 text-[#1B4D3E]" />
-              2. Propriedade / Imóvel Beneficiado *
+            <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-[#1B4D3E]" />
+                2. Propriedade / Imóvel Beneficiado *
+              </span>
+              {availableProperties.length > 0 && (
+                <span className="text-[10px] text-gray-500">
+                  {availableProperties.length} vinculada(s)
+                </span>
+              )}
             </Label>
             {availableProperties.length === 0 ? (
               <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-xs border border-amber-200">
                 Este produtor não possui propriedades rurais vinculadas.
               </div>
             ) : (
-              <Select value={selectedPropertyId} onValueChange={(val) => val && setSelectedPropertyId(val)}>
-                <SelectTrigger className="w-full text-xs">
-                  <SelectValue placeholder="Selecione a Propriedade">
-                    {currentProperty ? `${currentProperty.name}${currentProperty.registrationNumber ? ` (Matr. ${currentProperty.registrationNumber})` : ''}` : undefined}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {availableProperties.map((prop) => (
-                    <SelectItem key={prop.id} value={prop.id} className="text-xs">
-                      {prop.name} {prop.registrationNumber ? `(Matr. ${prop.registrationNumber})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={openProperty} onOpenChange={setOpenProperty}>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openProperty}
+                      className="w-full justify-between font-normal text-left text-xs h-9 px-3 bg-white border-gray-200 hover:bg-gray-50 shadow-2xs"
+                    />
+                  }
+                >
+                  <span className="truncate">
+                    {currentProperty
+                      ? `${currentProperty.name}${currentProperty.registrationNumber ? ` (Matr. ${currentProperty.registrationNumber})` : ''}`
+                      : "Buscar e selecionar propriedade..."}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                </PopoverTrigger>
+                <PopoverContent className="w-[320px] p-0 shadow-lg border-gray-200" align="start">
+                  <Command>
+                    <CommandInput placeholder="Buscar por nome, matrícula ou município..." className="text-xs" />
+                    <CommandList className="max-h-[260px]">
+                      <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
+                        Nenhuma propriedade encontrada.
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {availableProperties.map((prop) => {
+                          const cmdValue = `${prop.name} ${prop.registrationNumber || ''} ${prop.city || ''} ${prop.state || ''} | ${prop.id}`
+                          const isSelected = selectedPropertyId === prop.id
+                          return (
+                            <CommandItem
+                              key={prop.id}
+                              value={cmdValue}
+                              onSelect={() => {
+                                setSelectedPropertyId(prop.id)
+                                setOpenProperty(false)
+                              }}
+                              className="text-xs flex items-center justify-between py-2 cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 truncate">
+                                <Check
+                                  className={cn(
+                                    "h-3.5 w-3.5 text-[#1B4D3E]",
+                                    isSelected ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                <div className="truncate">
+                                  <p className="font-medium text-gray-900 truncate">{prop.name}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {prop.registrationNumber ? `Matr. ${prop.registrationNumber}` : 'Sem matrícula'}
+                                    {prop.city ? ` • ${prop.city}/${prop.state || ''}` : ''}
+                                    {prop.totalArea ? ` • ${prop.totalArea} ha` : ''}
+                                  </p>
+                                </div>
+                              </div>
+                            </CommandItem>
+                          )
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
 
-          {/* 3. Seleção do Modelo */}
+          {/* 3. Seleção do Modelo (Com Busca) */}
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-gray-700 flex items-center gap-1.5">
-              <Landmark className="h-3.5 w-3.5 text-[#1B4D3E]" />
-              3. Modelo Oficial Banco do Brasil *
+            <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Landmark className="h-3.5 w-3.5 text-[#1B4D3E]" />
+                3. Modelo Oficial Banco do Brasil *
+              </span>
+              <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                Padrão BB / SICOR
+              </span>
             </Label>
-            <Select value={selectedTemplateCode} onValueChange={(val) => val && setSelectedTemplateCode(val)}>
-              <SelectTrigger className="w-full text-xs font-medium">
-                <SelectValue placeholder="Selecione o Modelo">
-                  {currentTemplate ? currentTemplate.title : undefined}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map((tmpl) => (
-                  <SelectItem key={tmpl.code} value={tmpl.code} className="text-xs">
-                    {tmpl.title}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={openTemplate} onOpenChange={setOpenTemplate}>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={openTemplate}
+                    className="w-full justify-between font-medium text-left text-xs h-9 px-3 bg-white border-gray-200 hover:bg-gray-50 shadow-2xs"
+                  />
+                }
+              >
+                <span className="truncate">
+                  {currentTemplate ? currentTemplate.title : "Buscar e selecionar modelo..."}
+                </span>
+                <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+              </PopoverTrigger>
+              <PopoverContent className="w-[320px] p-0 shadow-lg border-gray-200" align="start">
+                <Command>
+                  <CommandInput placeholder="Buscar modelo (ex: Checklist, Custeio, RenovAgro...)" className="text-xs" />
+                  <CommandList className="max-h-[280px]">
+                    <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">
+                      Nenhum modelo encontrado.
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {templates.map((tmpl) => {
+                        const cmdValue = `${tmpl.title} ${tmpl.category} ${tmpl.description || ''} | ${tmpl.code}`
+                        const isSelected = selectedTemplateCode === tmpl.code
+                        return (
+                          <CommandItem
+                            key={tmpl.code}
+                            value={cmdValue}
+                            onSelect={() => {
+                              setSelectedTemplateCode(tmpl.code)
+                              setOpenTemplate(false)
+                            }}
+                            className="text-xs flex items-center justify-between py-2 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <Check
+                                className={cn(
+                                  "h-3.5 w-3.5 text-[#1B4D3E]",
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <div className="truncate">
+                                <p className="font-medium text-gray-900 truncate">{tmpl.title}</p>
+                                <p className="text-[10px] text-muted-foreground truncate">
+                                  {tmpl.category} • {tmpl.bank}
+                                </p>
+                              </div>
+                            </div>
+                          </CommandItem>
+                        )
+                      })}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           {/* 4. Valores & Parâmetros Patrimoniais (Opcional) */}
@@ -467,11 +640,12 @@ export default function CreditProjectWizard({ producers, templates }: CreditProj
             </span>
             
             <div className="space-y-1">
-              <Label className="text-[11px] text-gray-600">Nome do Engenheiro / RT</Label>
+              <Label className="text-[11px] text-gray-600">Responsável Técnico (Owner da Organização)</Label>
               <Input
                 value={customOptions.responsibleName}
                 onChange={(e) => setCustomOptions(prev => ({ ...prev, responsibleName: e.target.value }))}
                 className="h-8 text-xs"
+                placeholder="Ex: João Victor Póvoa França"
               />
             </div>
 

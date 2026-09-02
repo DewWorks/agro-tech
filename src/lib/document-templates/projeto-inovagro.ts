@@ -23,6 +23,7 @@ export interface InovAgroDocumentData {
   organization: {
     name: string
     cnpj?: string
+    ownerName?: string
   }
   branch?: {
     name: string
@@ -48,6 +49,10 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
   const prop = data.property
   const opt = data.options || {}
   
+  const orgName = data.organization?.name || 'LN - CONSULTORIA E PROJETOS RURAIS'
+  const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
+  const orgOwnerName = data.organization?.ownerName || opt.agronomistName || 'João Victor Póvoa França'
+
   const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
   const projectDate = opt.projectDate || new Date().toLocaleDateString('pt-BR')
   const powerKw = opt.systemPowerKw || 45
@@ -65,9 +70,9 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
   const monthlySavings = Math.round(monthlyGenerationKwh * 0.95) // R$ 0,95 por kWh
   const annualSavings = monthlySavings * 12
 
-  const agroName = opt.agronomistName || 'Engenheiro Responsável'
-  const crea = opt.creaNumber || 'CREA 54321-D'
-  const art = opt.artNumber || 'ART 2026/1122334'
+  const agroName = orgOwnerName
+  const crea = opt.creaNumber || 'CREA/TO 12345-D'
+  const art = opt.artNumber || 'ART 2026/0987654'
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
@@ -193,13 +198,16 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Proponente'}</strong>
         </div>
-        <div style="color: #6b7280;">Proponente / Beneficiário</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #6b7280; font-size: 10px;">Proponente / Beneficiário</div>
       </div>
       <div>
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${agroName}</strong>
+          <strong>${orgOwnerName}</strong>
         </div>
-        <div style="color: #6b7280;">${crea} • ${art}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${orgName}</div>
+        ${orgCnpj ? `<div style="color: #4b5563; font-size: 10px;">CNPJ: ${orgCnpj}</div>` : ''}
+        <div style="color: #6b7280; font-size: 10px;">${crea} • ${art}</div>
       </div>
     </div>
 

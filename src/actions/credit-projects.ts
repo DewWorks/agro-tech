@@ -83,8 +83,16 @@ export async function resolveCreditProjectDocument(
   if (!property) throw new Error('Propriedade não encontrada.')
 
   const org = user.organizationId ? await prisma.organization.findUnique({
-    where: { id: user.organizationId }
+    where: { id: user.organizationId },
+    include: {
+      users: {
+        where: { role: 'OWNER' }
+      }
+    }
   }) : null
+
+  const orgOwner = org?.users[0] || (user.role === 'OWNER' ? user : null)
+  const ownerName = orgOwner?.fullName || user.fullName || 'João Victor Póvoa França'
 
   const branch = user.branchId ? await prisma.branch.findUnique({
     where: { id: user.branchId }
@@ -132,8 +140,9 @@ export async function resolveCreditProjectDocument(
       }
     },
     organization: {
-      name: org?.name || 'AgroTech Consultoria & Projetos',
+      name: org?.name || 'LN - CONSULTORIA E PROJETOS RURAIS',
       cnpj: org?.cnpj || undefined,
+      ownerName: ownerName,
       phone: undefined,
     },
     branch: branch ? {
@@ -141,6 +150,9 @@ export async function resolveCreditProjectDocument(
     } : undefined,
     options: {
       ...options,
+      responsibleName: options.responsibleName && options.responsibleName !== 'Eng. Agrônomo Consultor' && options.responsibleName !== 'Responsável Técnico'
+        ? options.responsibleName
+        : ownerName,
       estimatedLandValuePerHa: options.estimatedLandValuePerHa !== undefined ? Number(options.estimatedLandValuePerHa) : 12000,
       improvementsValue: options.improvementsValue !== undefined ? Number(options.improvementsValue) : 0,
       machineryValue: options.machineryValue !== undefined ? Number(options.machineryValue) : 0,
