@@ -331,6 +331,20 @@ export async function saveCreditProjectData(
         }
       }
 
+      if (payload.improvementsValue || payload.machineryValue || payload.estimatedLandValuePerHa) {
+        const cur = await prisma.property.findUnique({
+          where: { id: propertyId },
+          select: { improvements: true }
+        })
+        const curImp = (cur?.improvements as any) || {}
+        propUpdate.improvements = {
+          ...curImp,
+          improvementsValue: payload.improvementsValue !== undefined ? Number(payload.improvementsValue) : curImp.improvementsValue,
+          machineryValue: payload.machineryValue !== undefined ? Number(payload.machineryValue) : curImp.machineryValue,
+          estimatedLandValuePerHa: payload.estimatedLandValuePerHa !== undefined ? Number(payload.estimatedLandValuePerHa) : curImp.estimatedLandValuePerHa,
+        }
+      }
+
       if (Object.keys(propUpdate).length > 0) {
         await prisma.property.update({
           where: { id: propertyId },
@@ -339,6 +353,29 @@ export async function saveCreditProjectData(
       }
     } catch (e) {
       console.error('Error synchronizing property data from credit form:', e)
+    }
+  }
+
+  // Se houver dados do produtor para atualizar, sincroniza com o cadastro do produtor
+  if (producerId) {
+    try {
+      const prodUpdate: any = {}
+      if (payload.producerPhone) prodUpdate.phone = payload.producerPhone
+      if (payload.producerEmail) prodUpdate.email = payload.producerEmail
+      if (payload.producerCivilStatus) prodUpdate.civilStatus = payload.producerCivilStatus
+      if (payload.producerSpouseName) prodUpdate.spouseName = payload.producerSpouseName
+      if (payload.producerSpouseCpf) prodUpdate.spouseCpf = payload.producerSpouseCpf
+      if (payload.producerProfession) prodUpdate.profession = payload.producerProfession
+      if (payload.representativeCpf) prodUpdate.representativeCpf = payload.representativeCpf
+
+      if (Object.keys(prodUpdate).length > 0) {
+        await prisma.producer.update({
+          where: { id: producerId },
+          data: prodUpdate
+        })
+      }
+    } catch (e) {
+      console.error('Error synchronizing producer data from credit form:', e)
     }
   }
 

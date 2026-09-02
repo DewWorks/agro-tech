@@ -20,7 +20,14 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Check, ChevronsUpDown, Save, Database, User, MapPin, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MissingFieldsFormProps {
@@ -43,6 +50,7 @@ export function MissingFieldsForm({ missingFields, onSave, isSubmitting }: Missi
   const [openCitySelect, setOpenCitySelect] = useState<string | null>(null)
   const [citySelectAttemptedWithoutUf, setCitySelectAttemptedWithoutUf] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
 
   // Identificar chaves de UF e Município
   const ufField = missingFields.find(f => f.label.toLowerCase() === 'uf' || f.label.toLowerCase().includes('estado'))
@@ -109,6 +117,11 @@ export function MissingFieldsForm({ missingFields, onSave, isSubmitting }: Missi
       return
     }
 
+    setIsConfirmModalOpen(true)
+  }
+
+  const handleConfirmSave = () => {
+    setIsConfirmModalOpen(false)
     onSave(values)
   }
 
@@ -316,6 +329,88 @@ export function MissingFieldsForm({ missingFields, onSave, isSubmitting }: Missi
           {isSubmitting ? 'Salvando...' : 'Salvar e Gerar Preview'}
         </Button>
       </div>
+
+      {/* Modal de Confirmação para Salvar no Cadastro Oficial */}
+      <Dialog open={isConfirmModalOpen} onOpenChange={setIsConfirmModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-2xl">
+          <div className="p-6 bg-slate-50 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center text-[#1B4D3E]">
+                <Database className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold text-gray-900">
+                  Confirmar Gravação de Dados no Cadastro Oficial
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                  Esta ação salvará as informações preenchidas diretamente no cadastro permanente do Produtor e da Propriedade Rural no sistema.
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 overflow-y-auto space-y-4 max-h-[60vh]">
+            <div className="p-3 bg-emerald-50/80 border border-emerald-200 rounded-lg text-xs text-emerald-900 flex items-start gap-2.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Sincronização com o Cadastro Permanente</p>
+                <p className="text-[11px] text-emerald-800/90 mt-0.5">
+                  Os dados preenchidos abaixo ficarão salvos na página do produtor e da propriedade vinculada, ficando disponíveis permanentemente para futuras emissões e relatórios.
+                </p>
+              </div>
+            </div>
+
+            {Object.entries(groupedFields).map(([group, fieldsList]) => {
+              const fields = fieldsList as Array<any>
+              const filledFields = fields.filter((f: any) => values[f.key] !== undefined && values[f.key] !== '')
+              if (filledFields.length === 0) return null
+
+              return (
+                <div key={group} className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                    <span className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide">
+                      {group === 'Producer' ? <User className="h-4 w-4 text-[#1B4D3E]" /> : <MapPin className="h-4 w-4 text-[#1B4D3E]" />}
+                      {groupLabels[group] || group}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold">
+                      {group === 'Producer' ? 'Salvo na Página do Produtor' : 'Salvo na Página da Propriedade'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    {filledFields.map((field: any) => (
+                      <div key={field.key} className="bg-slate-50/60 p-2 rounded border border-slate-100">
+                        <span className="text-gray-500 text-[10.5px] block">{field.label}:</span>
+                        <p className="font-semibold text-gray-900">{values[field.key]}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="p-4 bg-slate-50 border-t border-gray-200 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsConfirmModalOpen(false)}
+              className="text-xs"
+            >
+              Voltar para Ajustar
+            </Button>
+
+            <Button
+              type="button"
+              onClick={handleConfirmSave}
+              disabled={isSubmitting}
+              className="bg-[#1B4D3E] hover:bg-[#113025] text-white flex items-center gap-2 text-xs font-bold shadow-xs px-5"
+            >
+              {isSubmitting ? 'Gravando...' : 'Confirmar e Gravar no Cadastro'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </form>
   )
 }

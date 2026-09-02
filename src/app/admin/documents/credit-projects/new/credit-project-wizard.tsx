@@ -23,7 +23,8 @@ import {
   Coins,
   ShieldCheck,
   Calendar,
-  Save
+  Save,
+  Database
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -190,6 +191,7 @@ export default function CreditProjectWizard({
   const [loading, setLoading] = useState(false)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
 
   // Recuperar CREA/ART reais do RT persistidos no navegador
   useEffect(() => {
@@ -232,7 +234,15 @@ export default function CreditProjectWizard({
     return () => { isMounted = false }
   }, [selectedProducerId, selectedPropertyId, selectedTemplateCode])
 
-  const handleSaveDraft = async () => {
+  const handleOpenSaveModal = () => {
+    if (!selectedProducerId || !selectedTemplateCode) {
+      toast.error('Selecione um produtor e um modelo antes de salvar.')
+      return
+    }
+    setIsSaveDraftModalOpen(true)
+  }
+
+  const executeSaveDraft = async () => {
     if (!selectedProducerId || !selectedTemplateCode) {
       toast.error('Selecione um produtor e um modelo para salvar.')
       return
@@ -245,7 +255,8 @@ export default function CreditProjectWizard({
         if (customOptions.artNumber) localStorage.setItem('agrotech_rt_art', customOptions.artNumber)
         if (customOptions.responsibleName) localStorage.setItem('agrotech_rt_name', customOptions.responsibleName)
       }
-      toast.success('Todas as informações foram salvas com sucesso!')
+      setIsSaveDraftModalOpen(false)
+      toast.success('Informações salvas e sincronizadas com sucesso no cadastro permanente do Produtor e da Propriedade!')
     } catch (err: any) {
       toast.error(err.message || 'Erro ao salvar informações do projeto.')
     } finally {
@@ -552,7 +563,7 @@ export default function CreditProjectWizard({
             <Button
               type="button"
               variant="outline"
-              onClick={handleSaveDraft}
+              onClick={handleOpenSaveModal}
               disabled={isSavingDraft || !selectedProducerId}
               className="border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-1.5 text-xs font-semibold"
               title="Salvar alterações preenchidas para este projeto"
@@ -1600,7 +1611,7 @@ export default function CreditProjectWizard({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => handleSaveDraft()}
+                onClick={() => handleOpenSaveModal()}
                 disabled={isSavingDraft || !selectedProducerId}
                 className="w-full text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
               >
@@ -1958,6 +1969,216 @@ export default function CreditProjectWizard({
             </Button>
           </div>
 
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Gravação Permanente no Cadastro */}
+      <Dialog open={isSaveDraftModalOpen} onOpenChange={setIsSaveDraftModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-2xl bg-white border border-gray-200 shadow-2xl">
+          {/* Header */}
+          <div className="p-6 bg-slate-50 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-700">
+                <Save className="h-6 w-6" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-bold text-gray-900">
+                  Confirmar Gravação Permanente no Cadastro
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500 mt-0.5">
+                  Esta ação gravará os dados preenchidos diretamente no cadastro permanente do Produtor Rural e da Propriedade Rural, além de atualizar o rascunho oficial deste documento.
+                </DialogDescription>
+              </div>
+            </div>
+          </div>
+
+          {/* Body */}
+          <div className="p-6 overflow-y-auto space-y-4 max-h-[60vh]">
+            <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-start gap-2.5">
+              <Database className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold">Atualização Simultânea da Base Oficial</p>
+                <p className="text-[11px] text-blue-800/90 mt-0.5">
+                  Os dados listados abaixo serão sincronizados com as páginas oficiais de cadastro do cliente e do imóvel rural, ficando disponíveis permanentemente para novos contratos, projetos e consultas no sistema.
+                </p>
+              </div>
+            </div>
+
+            {/* Card 1: 🏡 Propriedade Rural */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide">
+                  <MapPin className="h-4 w-4 text-[#1B4D3E]" />
+                  Propriedade Rural • {currentProperty?.name || 'Imóvel'}
+                </span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold">
+                  Salvo na Página do Imóvel
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">Matrícula / Registro:</span>
+                  <p className="font-semibold text-gray-900">{customOptions.propertyRegistrationNumber || 'Pendente'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">Cartório de Imóveis (CRI):</span>
+                  <p className="font-semibold text-gray-900">{customOptions.propertyRegistryOffice || 'Não informado'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">Nº do CAR (Recibo):</span>
+                  <p className="font-semibold text-gray-900">{customOptions.propertyCar || 'Pendente'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">Área Total do Imóvel:</span>
+                  <p className="font-semibold text-gray-900">{customOptions.propertyTotalArea ? `${customOptions.propertyTotalArea} ha` : '0.00 ha'}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-500 text-[10.5px] block">Atividade Principal do Imóvel:</span>
+                  <p className="font-semibold text-gray-900">{customOptions.propertyActivity || 'Não informada'}</p>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-gray-500 text-[10.5px] block">Roteiro de Acesso à Propriedade:</span>
+                  <p className="font-semibold text-gray-900 text-[11.5px]">{customOptions.propertyAccessRoute || 'Não informado'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: 👤 Produtor Rural */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide">
+                  <User className="h-4 w-4 text-[#1B4D3E]" />
+                  Produtor Rural • {currentProducer?.name || 'Cliente'}
+                </span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 font-semibold">
+                  Salvo na Página do Produtor
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">Documento Oficial:</span>
+                  <p className="font-semibold text-gray-900">
+                    {currentProducer?.document ? (currentProducer.type === 'PF' ? `CPF: ${formatCPF(currentProducer.document)}` : `CNPJ: ${formatCNPJ(currentProducer.document)}`) : '-'}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">Telefone de Contato:</span>
+                  <p className="font-semibold text-gray-900">{currentProducer?.phone || 'Não informado'}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: 📋 Parâmetros Técnicos do Documento */}
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-2.5">
+              <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                <span className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide">
+                  <FileText className="h-4 w-4 text-[#1B4D3E]" />
+                  Parâmetros do Modelo • {currentTemplate?.title}
+                </span>
+                <span className="text-[10px] text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 font-semibold">
+                  Salvo no Rascunho Oficial
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                {selectedTemplateCode === 'PROJETO_RENOVAGRO' && (
+                  <>
+                    <div className="col-span-2">
+                      <span className="text-gray-500 text-[10.5px] block">Sublinha do Programa:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.renovagroSubline || 'Não informada'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Área a Recuperar:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.renovagroAreaHa} ha</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Investimento Total:</span>
+                      <p className="font-semibold text-gray-900">R$ {Number(customOptions.renovagroTotalInvestment).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Financiamento Solicitado:</span>
+                      <p className="font-semibold text-gray-900">R$ {Number(customOptions.renovagroFinanced).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Condições Financeiras:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.renovagroTermYears} anos • {customOptions.renovagroGraceMonths}m • {customOptions.renovagroInterestRate}% a.a.</p>
+                    </div>
+                  </>
+                )}
+                {selectedTemplateCode === 'PROJETO_INOVAGRO' && (
+                  <>
+                    <div className="col-span-2">
+                      <span className="text-gray-500 text-[10.5px] block">Equipamento / Inovação:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.inovagroEquipment || 'Não informado'}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Investimento Total:</span>
+                      <p className="font-semibold text-gray-900">R$ {Number(customOptions.inovagroTotalInvestment).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Potência / Capacidade:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.inovagroPower} kWp</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Condições Financeiras:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.inovagroTermYears} anos • {customOptions.inovagroGraceMonths}m • {customOptions.inovagroInterestRate}% a.a.</p>
+                    </div>
+                  </>
+                )}
+                {selectedTemplateCode === 'PROJETO_CUSTEIO_SAFRA' && (
+                  <>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Ano Safra & Cultura:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.custeioSafraYear} • {customOptions.custeioCropName}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Área de Plantio:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.custeioAreaHa} ha</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Orçamento Financiado:</span>
+                      <p className="font-semibold text-gray-900">R$ {(customOptions.custeioAreaHa * customOptions.custeioCostPerHa).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 text-[10.5px] block">Taxa de Juros:</span>
+                      <p className="font-semibold text-gray-900">{customOptions.custeioInterestRate}% a.a.</p>
+                    </div>
+                  </>
+                )}
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">Responsável Técnico:</span>
+                  <p className="font-semibold text-gray-900">{customOptions.responsibleName || 'Não informado'}</p>
+                </div>
+                <div>
+                  <span className="text-gray-500 text-[10.5px] block">CREA / ART:</span>
+                  <p className="font-semibold text-gray-900">
+                    {customOptions.creaNumber ? `CREA: ${customOptions.creaNumber}` : 'Sem CREA'} • {customOptions.artNumber ? `ART: ${customOptions.artNumber}` : 'Sem ART'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="p-4 bg-slate-50 border-t border-gray-200 flex items-center justify-between gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsSaveDraftModalOpen(false)}
+              className="text-xs"
+            >
+              Voltar para Ajustar
+            </Button>
+
+            <Button
+              type="button"
+              onClick={executeSaveDraft}
+              disabled={isSavingDraft}
+              className="bg-[#1B4D3E] hover:bg-[#13382D] text-white flex items-center gap-2 text-xs font-bold shadow-xs px-5"
+            >
+              {isSavingDraft ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Confirmar e Gravar no Cadastro Oficial
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
