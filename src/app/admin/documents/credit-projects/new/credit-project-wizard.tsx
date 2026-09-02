@@ -85,10 +85,14 @@ interface CreditProjectWizardProps {
       registrationNumber?: string | null
       registryOffice?: string | null
       car?: string | null
+      ccir?: string | null
+      itr?: string | null
       totalArea?: number
       productiveArea?: number
       pastureArea?: number
       preserveArea?: number
+      explorationActivity?: string | null
+      accessRoute?: string | null
     }>
   }>
   templates: CreditTemplateMeta[]
@@ -171,6 +175,16 @@ export default function CreditProjectWizard({
     custeioPricePerUnit: 0,
     custeioCostPerHa: 0,
     custeioInterestRate: 0,
+
+    // Dados Fundiários do Imóvel Beneficiado
+    propertyRegistrationNumber: '',
+    propertyRegistryOffice: '',
+    propertyCar: '',
+    propertyCcir: '',
+    propertyItr: '',
+    propertyTotalArea: 0,
+    propertyAccessRoute: '',
+    propertyActivity: '',
   })
 
   const [loading, setLoading] = useState(false)
@@ -251,12 +265,62 @@ export default function CreditProjectWizard({
   const currentProperty = availableProperties.find(p => p.id === selectedPropertyId)
   const currentTemplate = templates.find(t => t.code === selectedTemplateCode)
 
+  // Sincronizar dados fundiários do imóvel selecionado com o formulário
+  useEffect(() => {
+    if (currentProperty) {
+      setCustomOptions(prev => ({
+        ...prev,
+        propertyRegistrationNumber: prev.propertyRegistrationNumber || currentProperty.registrationNumber || '',
+        propertyRegistryOffice: prev.propertyRegistryOffice || currentProperty.registryOffice || '',
+        propertyCar: prev.propertyCar || currentProperty.car || '',
+        propertyCcir: prev.propertyCcir || currentProperty.ccir || '',
+        propertyItr: prev.propertyItr || currentProperty.itr || '',
+        propertyTotalArea: (prev.propertyTotalArea && prev.propertyTotalArea > 0) ? prev.propertyTotalArea : (currentProperty.totalArea || 0),
+        propertyAccessRoute: prev.propertyAccessRoute || currentProperty.accessRoute || '',
+        propertyActivity: prev.propertyActivity || currentProperty.explorationActivity || '',
+      }))
+    }
+  }, [selectedPropertyId, currentProperty])
+
   // Validation of mandatory fields by template
   const validationErrors = useMemo(() => {
     const errors: string[] = []
     if (!selectedProducerId) errors.push('Selecione o Produtor Rural (Proponente)')
     if (!selectedPropertyId) errors.push('Selecione a Propriedade / Imóvel Beneficiado')
     if (!selectedTemplateCode) errors.push('Selecione o Modelo Oficial Banco do Brasil')
+
+    // Validação obrigatória dos dados fundiários do imóvel beneficiado (sem "Pendente" ou "0.00 ha")
+    if (selectedPropertyId) {
+      if (!customOptions.propertyRegistrationNumber?.trim()) {
+        errors.push('Matrícula / Registro do Imóvel (CRI) é obrigatório')
+      }
+      if (!customOptions.propertyCar?.trim()) {
+        errors.push('Nº do CAR (Cadastro Ambiental Rural) é obrigatório')
+      }
+      if (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) {
+        errors.push('Área Total do Imóvel (ha) deve ser maior que 0')
+      }
+      if (!customOptions.propertyAccessRoute?.trim()) {
+        errors.push('Roteiro de Acesso ao Imóvel é obrigatório')
+      }
+      if (!customOptions.propertyActivity?.trim()) {
+        errors.push('Atividade Principal do Imóvel é obrigatória')
+      }
+
+      if (selectedTemplateCode === 'PROJETO_RENOVAGRO') {
+        const areaRec = Number(customOptions.renovagroAreaHa || 0)
+        const totalArea = Number(customOptions.propertyTotalArea || 0)
+        if (totalArea > 0 && areaRec > totalArea) {
+          errors.push(`Área do projeto (${areaRec} ha) não pode exceder a Área Total do imóvel (${totalArea} ha)`)
+        }
+      } else if (selectedTemplateCode === 'PROJETO_CUSTEIO_SAFRA') {
+        const cropArea = Number(customOptions.custeioAreaHa || 0)
+        const totalArea = Number(customOptions.propertyTotalArea || 0)
+        if (totalArea > 0 && cropArea > totalArea) {
+          errors.push(`Área de plantio (${cropArea} ha) não pode exceder a Área Total do imóvel (${totalArea} ha)`)
+        }
+      }
+    }
 
     if (!customOptions.responsibleName?.trim()) {
       errors.push('Nome do Responsável Técnico é obrigatório')
@@ -267,20 +331,27 @@ export default function CreditProjectWizard({
       if (!customOptions.inovagroPower || Number(customOptions.inovagroPower) <= 0) errors.push('Potência / Capacidade do sistema deve ser maior que 0')
       if (!customOptions.inovagroTotalInvestment || Number(customOptions.inovagroTotalInvestment) <= 0) errors.push('Investimento Total (R$) deve ser maior que 0')
       if (!customOptions.inovagroFinanced || Number(customOptions.inovagroFinanced) <= 0) errors.push('Financiamento Solicitado (R$) deve ser maior que 0')
+      if (!customOptions.inovagroTermYears || Number(customOptions.inovagroTermYears) <= 0) errors.push('Prazo do financiamento (anos) deve ser maior que 0')
+      if (!customOptions.inovagroInterestRate || Number(customOptions.inovagroInterestRate) <= 0) errors.push('Taxa de Juros (% a.a.) deve ser informada')
       if (!customOptions.creaNumber?.trim()) errors.push('Nº do CREA é obrigatório')
       if (!customOptions.artNumber?.trim()) errors.push('Nº da ART/TRT é obrigatório')
     } else if (selectedTemplateCode === 'PROJETO_RENOVAGRO') {
+      if (!customOptions.renovagroSubline?.trim()) errors.push('Sublinha do Programa RenovAgro é obrigatória')
       if (!customOptions.renovagroAreaHa || Number(customOptions.renovagroAreaHa) <= 0) errors.push('Área a Recuperar (ha) deve ser maior que 0')
       if (!customOptions.renovagroTotalInvestment || Number(customOptions.renovagroTotalInvestment) <= 0) errors.push('Investimento Total do RenovAgro (R$) deve ser maior que 0')
       if (!customOptions.renovagroFinanced || Number(customOptions.renovagroFinanced) <= 0) errors.push('Financiamento Solicitado (R$) deve ser maior que 0')
+      if (!customOptions.renovagroTermYears || Number(customOptions.renovagroTermYears) <= 0) errors.push('Prazo do financiamento (anos) deve ser maior que 0')
+      if (!customOptions.renovagroInterestRate || Number(customOptions.renovagroInterestRate) <= 0) errors.push('Taxa de Juros (% a.a.) deve ser informada')
       if (!customOptions.creaNumber?.trim()) errors.push('Nº do CREA é obrigatório')
       if (!customOptions.artNumber?.trim()) errors.push('Nº da ART/TRT é obrigatório')
     } else if (selectedTemplateCode === 'PROJETO_CUSTEIO_SAFRA') {
+      if (!customOptions.custeioSafraYear?.trim()) errors.push('Ano Safra é obrigatório (ex: 2026/2027)')
       if (!customOptions.custeioCropName?.trim()) errors.push('Cultura / Atividade de Custeio é obrigatória')
       if (!customOptions.custeioAreaHa || Number(customOptions.custeioAreaHa) <= 0) errors.push('Área de Plantio (ha) deve ser maior que 0')
       if (!customOptions.custeioCostPerHa || Number(customOptions.custeioCostPerHa) <= 0) errors.push('Custo Financiado / ha (R$) deve ser maior que 0')
       if (!customOptions.custeioExpectedYield || Number(customOptions.custeioExpectedYield) <= 0) errors.push('Produtividade Esperada (sc/ha) deve ser maior que 0')
       if (!customOptions.custeioPricePerUnit || Number(customOptions.custeioPricePerUnit) <= 0) errors.push('Preço / Saca (R$) deve ser maior que 0')
+      if (!customOptions.custeioInterestRate || Number(customOptions.custeioInterestRate) <= 0) errors.push('Taxa de Juros (% a.a.) deve ser informada')
       if (!customOptions.creaNumber?.trim()) errors.push('Nº do CREA é obrigatório')
       if (!customOptions.artNumber?.trim()) errors.push('Nº da ART/TRT é obrigatório')
     } else if (selectedTemplateCode === 'LIMITE_CREDITO_BB') {
@@ -710,6 +781,96 @@ export default function CreditProjectWizard({
             )}
           </div>
 
+          {/* Dados Fundiários & Cadastrais do Imóvel Beneficiado */}
+          {selectedPropertyId && (
+            <div className="p-3 bg-slate-50/80 border border-gray-200 rounded-lg space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-[#1B4D3E]" />
+                  Dados Fundiários do Imóvel
+                </span>
+                {(!customOptions.propertyRegistrationNumber?.trim() || !customOptions.propertyCar?.trim() || !customOptions.propertyTotalArea || !customOptions.propertyAccessRoute?.trim() || !customOptions.propertyActivity?.trim()) ? (
+                  <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Pendências Cadastrais
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Imóvel Regular
+                  </span>
+                )}
+              </div>
+
+              {(!customOptions.propertyRegistrationNumber?.trim() || !customOptions.propertyCar?.trim() || !customOptions.propertyTotalArea || !customOptions.propertyAccessRoute?.trim() || !customOptions.propertyActivity?.trim()) && (
+                <p className="text-[10px] text-amber-800 bg-amber-50/90 p-2 rounded border border-amber-200 leading-tight">
+                  ⚠️ Preencha os dados fundiários pendentes abaixo para regularizar e emitir o documento oficial:
+                </p>
+              )}
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10.5px] text-gray-600">Matrícula / Registro *</Label>
+                  <Input
+                    value={customOptions.propertyRegistrationNumber}
+                    onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyRegistrationNumber: e.target.value }))}
+                    className={cn("h-8 text-xs", !customOptions.propertyRegistrationNumber?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+                    placeholder="Ex: 12.345"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10.5px] text-gray-600">Cartório de Registro (CRI)</Label>
+                  <Input
+                    value={customOptions.propertyRegistryOffice}
+                    onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyRegistryOffice: e.target.value }))}
+                    className="h-8 text-xs"
+                    placeholder="Ex: CRI de Palmas - TO"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[10.5px] text-gray-600">Nº do CAR (Recibo) *</Label>
+                  <Input
+                    value={customOptions.propertyCar}
+                    onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: e.target.value }))}
+                    className={cn("h-8 text-xs", !customOptions.propertyCar?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+                    placeholder="Ex: TO-1700000-XXXXXXXX"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10.5px] text-gray-600">Área Total do Imóvel (ha) *</Label>
+                  <Input
+                    type="number"
+                    value={customOptions.propertyTotalArea || ''}
+                    onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyTotalArea: Number(e.target.value) }))}
+                    className={cn("h-8 text-xs", (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) && "border-amber-400 focus-visible:ring-amber-400")}
+                    placeholder="Ex: 1500"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[10.5px] text-gray-600">Atividade Principal do Imóvel *</Label>
+                <Input
+                  value={customOptions.propertyActivity}
+                  onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyActivity: e.target.value }))}
+                  className={cn("h-8 text-xs", !customOptions.propertyActivity?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+                  placeholder="Ex: Pecuária de Corte e Cria"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[10.5px] text-gray-600">Roteiro de Acesso à Propriedade *</Label>
+                <Input
+                  value={customOptions.propertyAccessRoute}
+                  onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyAccessRoute: e.target.value }))}
+                  className={cn("h-8 text-xs", !customOptions.propertyAccessRoute?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+                  placeholder="Ex: Partindo de Palmas pela TO-050 por 45km..."
+                />
+              </div>
+            </div>
+          )}
+
           {/* 3. Seleção do Modelo (Com Busca) */}
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between">
@@ -874,14 +1035,46 @@ export default function CreditProjectWizard({
                 </span>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-[10.5px] text-gray-600">Equipamento / Objeto</Label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10.5px] text-gray-700 font-medium">Equipamento / Objeto *</Label>
+                  <span className={cn(
+                    "text-[9.5px] font-medium px-1.5 py-0.2 rounded border",
+                    customOptions.inovagroEquipment?.trim()
+                      ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                      : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+                  )}>
+                    {customOptions.inovagroEquipment?.trim() ? 'Preenchido' : 'Obrigatório'}
+                  </span>
+                </div>
                 <Input
                   value={customOptions.inovagroEquipment}
                   onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroEquipment: e.target.value }))}
-                  className="h-8 text-xs"
-                  placeholder="Ex: Gerador Solar Fotovoltaico On-Grid"
+                  className={cn("h-8 text-xs", !customOptions.inovagroEquipment?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+                  placeholder="Selecione abaixo ou digite..."
                 />
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {[
+                    'Gerador Solar Fotovoltaico On-Grid',
+                    'Trator Agrícola com Piloto Automático',
+                    'Sistema de Irrigação Automatizado',
+                    'Estação Meteorológica e Sensores'
+                  ].map((eq) => (
+                    <button
+                      key={eq}
+                      type="button"
+                      onClick={() => setCustomOptions(prev => ({ ...prev, inovagroEquipment: eq }))}
+                      className={cn(
+                        "text-[9.5px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer text-left",
+                        customOptions.inovagroEquipment === eq
+                          ? "bg-emerald-100 text-[#1B4D3E] border-emerald-300 font-semibold"
+                          : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-emerald-50 hover:text-[#1B4D3E]"
+                      )}
+                    >
+                      {eq.split('com')[0].trim()}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-1">
@@ -977,34 +1170,54 @@ export default function CreditProjectWizard({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Prazo (anos)</Label>
-                  <Input
-                    type="number"
-                    value={customOptions.inovagroTermYears}
-                    onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroTermYears: Number(e.target.value) }))}
-                    className="h-8 text-xs"
-                  />
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500 font-medium">Condições Financeiras *</span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomOptions(prev => ({
+                      ...prev,
+                      inovagroTermYears: 10,
+                      inovagroGraceMonths: 24,
+                      inovagroInterestRate: 12.5
+                    }))}
+                    className="text-[9.5px] text-emerald-700 hover:underline cursor-pointer font-medium"
+                  >
+                    Usar padrão (10a / 24m / 12.5%)
+                  </button>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Carência (m)</Label>
-                  <Input
-                    type="number"
-                    value={customOptions.inovagroGraceMonths}
-                    onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroGraceMonths: Number(e.target.value) }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Juros (% a.a.)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={customOptions.inovagroInterestRate}
-                    onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroInterestRate: Number(e.target.value) }))}
-                    className="h-8 text-xs"
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-gray-600">Prazo (anos) *</Label>
+                    <Input
+                      type="number"
+                      value={customOptions.inovagroTermYears || ''}
+                      onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroTermYears: Number(e.target.value) }))}
+                      className="h-8 text-xs"
+                      placeholder="Ex: 10"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-gray-600">Carência (m)</Label>
+                    <Input
+                      type="number"
+                      value={customOptions.inovagroGraceMonths || ''}
+                      onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroGraceMonths: Number(e.target.value) }))}
+                      className="h-8 text-xs"
+                      placeholder="Ex: 24"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-gray-600">Juros (% a.a.) *</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={customOptions.inovagroInterestRate || ''}
+                      onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroInterestRate: Number(e.target.value) }))}
+                      className="h-8 text-xs"
+                      placeholder="Ex: 12.5"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1021,18 +1234,51 @@ export default function CreditProjectWizard({
                 </span>
               </div>
 
-              <div className="space-y-1">
-                <Label className="text-[10.5px] text-gray-600">Sublinha do Programa</Label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10.5px] text-gray-700 font-medium">Sublinha do Programa *</Label>
+                  <span className={cn(
+                    "text-[9.5px] font-medium px-1.5 py-0.2 rounded border",
+                    customOptions.renovagroSubline?.trim()
+                      ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                      : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+                  )}>
+                    {customOptions.renovagroSubline?.trim() ? 'Preenchido' : 'Obrigatório'}
+                  </span>
+                </div>
                 <Input
                   value={customOptions.renovagroSubline}
                   onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroSubline: e.target.value }))}
-                  className="h-8 text-xs"
+                  className={cn("h-8 text-xs", !customOptions.renovagroSubline?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+                  placeholder="Selecione abaixo ou digite..."
                 />
+                <div className="flex flex-wrap gap-1 pt-0.5">
+                  {[
+                    'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)',
+                    'Integração Lavoura-Pecuária-Floresta (ILPF)',
+                    'Sistemas Agroflorestais (SAF)',
+                    'Manejo de Solo e Água'
+                  ].map((sub) => (
+                    <button
+                      key={sub}
+                      type="button"
+                      onClick={() => setCustomOptions(prev => ({ ...prev, renovagroSubline: sub }))}
+                      className={cn(
+                        "text-[9.5px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer text-left",
+                        customOptions.renovagroSubline === sub
+                          ? "bg-emerald-100 text-[#1B4D3E] border-emerald-300 font-semibold"
+                          : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-emerald-50 hover:text-[#1B4D3E]"
+                      )}
+                    >
+                      {sub.startsWith('Recuperação') ? 'Recup. de Pastagens' : sub.split('(')[0].trim()}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] text-gray-600">Área a Recuperar (ha)</Label>
+                  <Label className="text-[10.5px] text-gray-600">Área a Recuperar (ha) *</Label>
                   <Input
                     type="number"
                     value={customOptions.renovagroAreaHa || ''}
@@ -1056,7 +1302,7 @@ export default function CreditProjectWizard({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] text-gray-600">Custo / ha (R$)</Label>
+                  <Label className="text-[10.5px] text-gray-600">Custo / ha (R$) *</Label>
                   <Input
                     type="number"
                     value={customOptions.renovagroCostPerHa || ''}
@@ -1074,14 +1320,14 @@ export default function CreditProjectWizard({
                       })
                     }}
                     className="h-8 text-xs"
-                    placeholder="3500"
+                    placeholder="Ex: 3500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] font-semibold text-gray-800">Investimento Total (R$)</Label>
+                  <Label className="text-[10.5px] font-semibold text-gray-800">Investimento Total (R$) *</Label>
                   <Input
                     type="number"
                     value={customOptions.renovagroTotalInvestment || ''}
@@ -1099,7 +1345,7 @@ export default function CreditProjectWizard({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] text-gray-600">Financiamento (R$)</Label>
+                  <Label className="text-[10.5px] text-gray-600">Financiamento (R$) *</Label>
                   <Input
                     type="number"
                     value={customOptions.renovagroFinanced || ''}
@@ -1110,34 +1356,54 @@ export default function CreditProjectWizard({
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Prazo (anos)</Label>
-                  <Input
-                    type="number"
-                    value={customOptions.renovagroTermYears}
-                    onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroTermYears: Number(e.target.value) }))}
-                    className="h-8 text-xs"
-                  />
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-gray-500 font-medium">Condições Financeiras *</span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomOptions(prev => ({
+                      ...prev,
+                      renovagroTermYears: 8,
+                      renovagroGraceMonths: 24,
+                      renovagroInterestRate: 10.5
+                    }))}
+                    className="text-[9.5px] text-emerald-700 hover:underline cursor-pointer font-medium"
+                  >
+                    Usar padrão (8a / 24m / 10.5%)
+                  </button>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Carência (m)</Label>
-                  <Input
-                    type="number"
-                    value={customOptions.renovagroGraceMonths}
-                    onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroGraceMonths: Number(e.target.value) }))}
-                    className="h-8 text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Juros (% a.a.)</Label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    value={customOptions.renovagroInterestRate}
-                    onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroInterestRate: Number(e.target.value) }))}
-                    className="h-8 text-xs"
-                  />
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-gray-600">Prazo (anos) *</Label>
+                    <Input
+                      type="number"
+                      value={customOptions.renovagroTermYears || ''}
+                      onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroTermYears: Number(e.target.value) }))}
+                      className="h-8 text-xs"
+                      placeholder="Ex: 8"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-gray-600">Carência (m)</Label>
+                    <Input
+                      type="number"
+                      value={customOptions.renovagroGraceMonths || ''}
+                      onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroGraceMonths: Number(e.target.value) }))}
+                      className="h-8 text-xs"
+                      placeholder="Ex: 24"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-gray-600">Juros (% a.a.) *</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      value={customOptions.renovagroInterestRate || ''}
+                      onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroInterestRate: Number(e.target.value) }))}
+                      className="h-8 text-xs"
+                      placeholder="Ex: 10.5"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -1156,28 +1422,52 @@ export default function CreditProjectWizard({
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] text-gray-600">Ano Safra</Label>
+                  <Label className="text-[10.5px] text-gray-600">Ano Safra *</Label>
                   <Input
                     value={customOptions.custeioSafraYear}
                     onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioSafraYear: e.target.value }))}
                     className="h-8 text-xs"
-                    placeholder="2026/2027"
+                    placeholder="Ex: 2026/2027"
                   />
+                  <div className="flex gap-1 pt-0.5">
+                    {['2025/2026', '2026/2027'].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setCustomOptions(prev => ({ ...prev, custeioSafraYear: s }))}
+                        className="text-[9px] px-1 py-0.2 rounded bg-gray-100 hover:bg-blue-50 text-gray-700 border border-gray-200 cursor-pointer"
+                      >
+                        + {s}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] text-gray-600">Cultura / Atividade</Label>
+                  <Label className="text-[10.5px] text-gray-600">Cultura / Atividade *</Label>
                   <Input
                     value={customOptions.custeioCropName}
                     onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioCropName: e.target.value }))}
                     className="h-8 text-xs"
                     placeholder="Ex: Soja Grão, Milho"
                   />
+                  <div className="flex gap-1 pt-0.5">
+                    {['Soja Grão', 'Milho', 'Bovinocultura'].map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setCustomOptions(prev => ({ ...prev, custeioCropName: c }))}
+                        className="text-[9px] px-1 py-0.2 rounded bg-gray-100 hover:bg-blue-50 text-gray-700 border border-gray-200 cursor-pointer"
+                      >
+                        + {c}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] text-gray-600">Área de Plantio (ha)</Label>
+                  <Label className="text-[10.5px] text-gray-600">Área de Plantio (ha) *</Label>
                   <Input
                     type="number"
                     value={customOptions.custeioAreaHa || ''}
@@ -1187,7 +1477,7 @@ export default function CreditProjectWizard({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10.5px] text-gray-600">Custo / ha (R$)</Label>
+                  <Label className="text-[10.5px] text-gray-600">Custo / ha (R$) *</Label>
                   <Input
                     type="number"
                     value={customOptions.custeioCostPerHa || ''}
@@ -1200,7 +1490,7 @@ export default function CreditProjectWizard({
 
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Produtividade (sc/ha)</Label>
+                  <Label className="text-[10px] text-gray-600">Produtividade (sc/ha) *</Label>
                   <Input
                     type="number"
                     value={customOptions.custeioExpectedYield || ''}
@@ -1210,7 +1500,7 @@ export default function CreditProjectWizard({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Preço / Saca (R$)</Label>
+                  <Label className="text-[10px] text-gray-600">Preço / Saca (R$) *</Label>
                   <Input
                     type="number"
                     value={customOptions.custeioPricePerUnit || ''}
@@ -1220,13 +1510,14 @@ export default function CreditProjectWizard({
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-gray-600">Juros (% a.a.)</Label>
+                  <Label className="text-[10px] text-gray-600">Juros (% a.a.) *</Label>
                   <Input
                     type="number"
                     step="0.1"
-                    value={customOptions.custeioInterestRate}
+                    value={customOptions.custeioInterestRate || ''}
                     onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioInterestRate: Number(e.target.value) }))}
                     className="h-8 text-xs"
+                    placeholder="Ex: 8.0"
                   />
                 </div>
               </div>
@@ -1459,10 +1750,16 @@ export default function CreditProjectWizard({
                   <p className="font-semibold text-gray-900">{currentProperty?.name || 'Não selecionado'}</p>
                   <p className="text-gray-600 text-[11px]">
                     {currentProperty?.city && currentProperty?.state ? `${currentProperty.city} - ${currentProperty.state}` : ''}
-                    {currentProperty?.totalArea ? ` • Área: ${Number(currentProperty.totalArea).toFixed(2)} ha` : ''}
+                    {customOptions.propertyTotalArea ? ` • Área: ${Number(customOptions.propertyTotalArea).toFixed(2)} ha` : ''}
                   </p>
                   <p className="text-gray-500 text-[11px]">
-                    Matrícula: {currentProperty?.registrationNumber || 'Pendente'} • CAR: {currentProperty?.car ? 'Regular' : 'Pendente'}
+                    Matrícula: {customOptions.propertyRegistrationNumber || 'Pendente'} {customOptions.propertyRegistryOffice ? `(${customOptions.propertyRegistryOffice})` : ''} • CAR: {customOptions.propertyCar || 'Pendente'}
+                  </p>
+                  <p className="text-gray-500 text-[10.5px]">
+                    Atividade: {customOptions.propertyActivity || 'Não informada'}
+                  </p>
+                  <p className="text-gray-500 text-[10.5px] truncate">
+                    Acesso: {customOptions.propertyAccessRoute || 'Não informado'}
                   </p>
                 </div>
               </div>

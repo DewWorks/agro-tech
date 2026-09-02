@@ -47,19 +47,26 @@ export async function getProducersWithPropertiesForCredit() {
     spouseName: p.spouseName || undefined,
     spouseCpf: p.spouseCpf || undefined,
     phone: p.phone || undefined,
-    properties: p.properties.map(link => ({
-      id: link.property.id,
-      name: link.property.propertyName || link.property.name || 'Propriedade Sem Nome',
-      city: link.property.city || undefined,
-      state: link.property.state || undefined,
-      registrationNumber: link.property.registrationNumber || undefined,
-      registryOffice: link.property.registryOffice || undefined,
-      car: link.property.car || undefined,
-      totalArea: link.property.totalArea ? Number(link.property.totalArea) : 0,
-      productiveArea: link.property.productiveArea ? Number(link.property.productiveArea) : 0,
-      pastureArea: link.property.pastureArea ? Number(link.property.pastureArea) : 0,
-      preserveArea: link.property.preserveArea ? Number(link.property.preserveArea) : 0,
-    }))
+    properties: p.properties.map(link => {
+      const poss = (link.property.possessionData as any) || {}
+      return {
+        id: link.property.id,
+        name: link.property.propertyName || link.property.name || 'Propriedade Sem Nome',
+        city: link.property.city || undefined,
+        state: link.property.state || undefined,
+        registrationNumber: link.property.registrationNumber || undefined,
+        registryOffice: link.property.registryOffice || undefined,
+        car: link.property.car || undefined,
+        ccir: link.property.ccir || undefined,
+        itr: link.property.itr || undefined,
+        totalArea: link.property.totalArea ? Number(link.property.totalArea) : 0,
+        productiveArea: link.property.productiveArea ? Number(link.property.productiveArea) : 0,
+        pastureArea: link.property.pastureArea ? Number(link.property.pastureArea) : 0,
+        preserveArea: link.property.preserveArea ? Number(link.property.preserveArea) : 0,
+        explorationActivity: link.property.explorationActivity || undefined,
+        accessRoute: poss.accessRoute || undefined,
+      }
+    })
   }))
 }
 
@@ -162,20 +169,22 @@ export async function resolveCreditProjectDocument(
       },
       property: {
         name: property.propertyName || property.name || 'Imóvel Beneficiado',
-        registrationNumber: property.registrationNumber || undefined,
-        registryOffice: property.registryOffice || undefined,
-        car: property.car || undefined,
-        ccir: property.ccir || undefined,
-        itr: property.itr || undefined,
+        registrationNumber: options.propertyRegistrationNumber || property.registrationNumber || undefined,
+        registryOffice: options.propertyRegistryOffice || property.registryOffice || undefined,
+        car: options.propertyCar || property.car || undefined,
+        ccir: options.propertyCcir || property.ccir || undefined,
+        itr: options.propertyItr || property.itr || undefined,
         city: property.city || undefined,
         state: property.state || undefined,
-        totalAreaHa: property.totalArea ? Number(property.totalArea) : undefined,
+        totalAreaHa: (options.propertyTotalArea !== undefined && Number(options.propertyTotalArea) > 0)
+          ? Number(options.propertyTotalArea)
+          : (property.totalArea ? Number(property.totalArea) : undefined),
         openAreaHa: property.productiveArea ? Number(property.productiveArea) : undefined,
         pastureAreaHa: property.pastureArea ? Number(property.pastureArea) : undefined,
         agricultureAreaHa: property.productiveArea && property.pastureArea ? Math.max(0, Number(property.productiveArea) - Number(property.pastureArea)) : undefined,
         preservationAreaHa: property.preserveArea ? Number(property.preserveArea) : undefined,
-        explorationActivity: property.explorationActivity || undefined,
-        accessRoute: possessionData.accessRoute || undefined,
+        explorationActivity: options.propertyActivity || property.explorationActivity || undefined,
+        accessRoute: options.propertyAccessRoute || possessionData.accessRoute || undefined,
         livestockData: {
           totalCattle: livestock.totalCattle ? Number(livestock.totalCattle) : 0,
           brandRegistrationAdapec: livestock.brandRegistrationAdapec || undefined,
@@ -297,6 +306,41 @@ export async function saveCreditProjectData(
     },
     orderBy: { createdAt: 'desc' }
   })
+
+  // Se o usuário preencheu/corrigiu dados cadastrais do imóvel no formulário, sincroniza com o cadastro da propriedade
+  if (propertyId) {
+    try {
+      const propUpdate: any = {}
+      if (payload.propertyRegistrationNumber) propUpdate.registrationNumber = payload.propertyRegistrationNumber
+      if (payload.propertyRegistryOffice) propUpdate.registryOffice = payload.propertyRegistryOffice
+      if (payload.propertyCar) propUpdate.car = payload.propertyCar
+      if (payload.propertyCcir) propUpdate.ccir = payload.propertyCcir
+      if (payload.propertyItr) propUpdate.itr = payload.propertyItr
+      if (payload.propertyTotalArea && Number(payload.propertyTotalArea) > 0) propUpdate.totalArea = Number(payload.propertyTotalArea)
+      if (payload.propertyActivity) propUpdate.explorationActivity = payload.propertyActivity
+
+      if (payload.propertyAccessRoute) {
+        const cur = await prisma.property.findUnique({
+          where: { id: propertyId },
+          select: { possessionData: true }
+        })
+        const curPoss = (cur?.possessionData as any) || {}
+        propUpdate.possessionData = {
+          ...curPoss,
+          accessRoute: payload.propertyAccessRoute
+        }
+      }
+
+      if (Object.keys(propUpdate).length > 0) {
+        await prisma.property.update({
+          where: { id: propertyId },
+          data: propUpdate
+        })
+      }
+    } catch (e) {
+      console.error('Error synchronizing property data from credit form:', e)
+    }
+  }
 
   if (existing) {
     const updated = await prisma.generatedForm.update({

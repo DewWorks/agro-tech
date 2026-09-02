@@ -219,7 +219,7 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
         </div>
         <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${orgName}</div>
         ${orgCnpj ? `<div style="color: #4b5563; font-size: 10px;">CNPJ: ${orgCnpj}</div>` : ''}
-        <div style="color: #6b7280; font-size: 10px;">${crea} • ${art}</div>
+        <div style="color: #6b7280; font-size: 10px;">${crea.toUpperCase().includes('CREA') ? crea : 'CREA: ' + crea} • ${art.toUpperCase().includes('ART') ? art : 'ART: ' + art}</div>
       </div>
     </div>
 
