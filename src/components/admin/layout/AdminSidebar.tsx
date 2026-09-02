@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Building2, 
   Users, 
@@ -87,12 +87,14 @@ const getMenuItems = (
   const crmStatus = checkModule('CRM')
   if (crmStatus.show) {
     items.push({
-      title: 'CRM / Produtores',
+      title: 'CRM & Produtores',
       icon: Tractor,
       badge: crmStatus.badge,
       subItems: [
-        { title: 'Listagem Geral', href: '/admin/crm' },
+        { title: 'Produtores Rurais', href: '/admin/crm' },
+        { title: 'Propriedades Rurais', href: '/admin/crm/properties' },
         { title: 'Novo Produtor', href: '/admin/crm/new' },
+        { title: 'Nova Propriedade', href: '/admin/crm/properties/new' },
       ]
     })
   }
@@ -156,12 +158,28 @@ export default function AdminSidebar({
   const actualRealRole = realRole || role
   // Estado para controlar quais os menus estão expandidos
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
-    'Filiais': pathname.includes('/admin/branches'),
-    'Utilizadores': pathname.includes('/admin/users'),
-    'Configurações': pathname.includes('/admin/settings'),
-    'SaaS / Clientes': pathname.includes('/admin/organizations'),
-    'Documentos (GED Inteligente)': pathname.includes('/admin/ged'),
+    'CRM & Produtores': pathname.startsWith('/admin/crm'),
+    'Filiais': pathname.startsWith('/admin/branches'),
+    'Utilizadores': pathname.startsWith('/admin/users'),
+    'Configurações': pathname.startsWith('/admin/settings'),
+    'SaaS / Clientes': pathname.startsWith('/admin/organizations'),
+    'Documentos (GED Inteligente)': pathname.startsWith('/admin/ged') || pathname.startsWith('/admin/documents'),
+    'Módulos do Sistema': pathname.startsWith('/admin/modules'),
   })
+
+  // Auto-expandir menu da rota atual ao navegar
+  useEffect(() => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      'CRM & Produtores': prev['CRM & Produtores'] || pathname.startsWith('/admin/crm'),
+      'Filiais': prev['Filiais'] || pathname.startsWith('/admin/branches'),
+      'Utilizadores': prev['Utilizadores'] || pathname.startsWith('/admin/users'),
+      'Configurações': prev['Configurações'] || pathname.startsWith('/admin/settings'),
+      'SaaS / Clientes': prev['SaaS / Clientes'] || pathname.startsWith('/admin/organizations'),
+      'Documentos (GED Inteligente)': prev['Documentos (GED Inteligente)'] || pathname.startsWith('/admin/ged') || pathname.startsWith('/admin/documents'),
+      'Módulos do Sistema': prev['Módulos do Sistema'] || pathname.startsWith('/admin/modules'),
+    }))
+  }, [pathname])
 
   const toggleMenu = (title: string) => {
     setExpandedMenus(prev => ({
@@ -192,9 +210,10 @@ export default function AdminSidebar({
             <p className="px-4 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Visão Geral</p>
             <Link 
               href="/admin" 
+              prefetch={true}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
-                pathname === '/admin' ? "bg-white/20 text-white" : "text-white/80 hover:bg-white/10 hover:text-white"
+                pathname === '/admin' ? "bg-white/20 text-white font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white"
               )}
             >
               <Home size={20} />
@@ -222,7 +241,7 @@ export default function AdminSidebar({
                       onClick={() => toggleMenu(item.title)}
                       className={cn(
                         "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
-                        isActiveRoute ? "text-white bg-white/10" : "text-white/80 hover:bg-white/10 hover:text-white"
+                        isActiveRoute ? "text-white bg-white/10 font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white"
                       )}
                     >
                       <div className="flex items-center gap-3">
@@ -240,9 +259,10 @@ export default function AdminSidebar({
                     // Menu Link Direto
                     <Link
                       href={item.href || '#'}
+                      prefetch={true}
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
-                        isActiveRoute ? "text-white bg-white/20" : "text-white/80 hover:bg-white/10 hover:text-white"
+                        isActiveRoute ? "text-white bg-white/20 font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white"
                       )}
                     >
                       <item.icon size={20} className={isActiveRoute ? "text-green-400" : ""} />
@@ -264,11 +284,12 @@ export default function AdminSidebar({
                           <Link
                             key={sub.title}
                             href={sub.href}
+                            prefetch={true}
                             className={cn(
                               "block px-4 py-2 rounded-md transition-colors text-sm",
                               isSubActive 
-                                ? "text-white bg-white/10 font-medium" 
-                                : "text-white/60 hover:text-white hover:bg-white/5"
+                                ? "text-white bg-white/15 font-semibold shadow-xs" 
+                                : "text-white/70 hover:text-white hover:bg-white/5"
                             )}
                           >
                             {sub.title}

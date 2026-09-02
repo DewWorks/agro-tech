@@ -32,14 +32,14 @@ export default function AdminHeader({ email, role }: { email: string, role: stri
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuItem>
-                <Link href="/admin/settings/profile" className="flex items-center cursor-pointer w-full">
+                <Link href="/admin/settings/profile" prefetch={true} className="flex items-center cursor-pointer w-full">
                   <UserIcon className="mr-2 h-4 w-4" />
                   <span>Meu Perfil</span>
                 </Link>
               </DropdownMenuItem>
               {role === 'OWNER' && (
                 <DropdownMenuItem>
-                  <Link href="/admin/settings/organization" className="flex items-center cursor-pointer w-full">
+                  <Link href="/admin/settings/organization" prefetch={true} className="flex items-center cursor-pointer w-full">
                     <Building2 className="mr-2 h-4 w-4" />
                     <span>Minha Empresa</span>
                   </Link>
