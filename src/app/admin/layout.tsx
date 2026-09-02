@@ -5,6 +5,8 @@ import { getUserContext } from '@/lib/auth'
 import { stopImpersonating } from '@/actions/impersonate'
 import prisma from '@/lib/prisma'
 import ModuleWarningBanner from '@/components/admin/layout/ModuleWarningBanner'
+import NavigationProgress from '@/components/admin/layout/NavigationProgress'
+import AdminContentWrapper from '@/components/admin/layout/AdminContentWrapper'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const userContext = await getUserContext()
@@ -18,6 +20,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex h-screen bg-[#F8FAFC]">
+      <NavigationProgress />
       <AdminSidebar 
         role={role} 
         realRole={userContext.realRole} 
@@ -47,7 +50,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         />
         <AdminHeader email={userContext.email} role={role} />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC] p-8">
-          {children}
+          <AdminContentWrapper>
+            {children}
+          </AdminContentWrapper>
         </main>
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import prisma from '@/lib/prisma'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 
-export async function getUserContext() {
+export const getUserContext = cache(async () => {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
@@ -43,4 +44,5 @@ export async function getUserContext() {
     realRole: dbUser.role,
     impersonatedOrgName: null
   }
-}
+})
+

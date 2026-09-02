@@ -50,6 +50,7 @@ model Branch {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
+  @@index([organizationId])
   @@map("branches")
 }
 
@@ -68,6 +69,8 @@ model User {
   branch       Branch?       @relation(fields: [branchId], references: [id])
   branchId     String?
 
+  @@index([organizationId])
+  @@index([branchId])
   @@map("users")
 }
 
@@ -154,6 +157,9 @@ model Producer {
 
   // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
   @@unique([branchId, document])
+  @@index([branchId])
+  @@index([branchId, isActive])
+  @@index([name])
   @@map("producers")
   
   generatedForms GeneratedForm[]
@@ -200,6 +206,9 @@ model Property {
   producers      ProducerProperty[]
   documents      Document[]
 
+  @@index([branchId])
+  @@index([branchId, name])
+  @@index([city, state])
   @@map("properties")
   
   generatedForms GeneratedForm[]
@@ -226,6 +235,8 @@ model ProducerProperty {
   createdAt              DateTime      @default(now())
 
   @@id([producerId, propertyId])
+  @@index([propertyId])
+  @@index([producerId])
   @@map("producer_properties")
 }
 
@@ -301,7 +312,10 @@ model Document {
 
   @@index([branchId, producerId])
   @@index([branchId, documentType])
+  @@index([branchId, complianceStatus])
+  @@index([propertyId])
   @@index([expirationDate])
+  @@index([isArchived, isSuperseded])
   @@map("documents")
 }
 

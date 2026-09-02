@@ -309,19 +309,19 @@ export default async function AdminDashboardPage({
       <div className="space-y-3">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Ações Rápidas</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Link href="/admin/crm/new" className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
+          <Link href="/admin/crm/new" prefetch={true} className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
             <Plus className="h-6 w-6" />
             <span className="text-sm font-medium">Novo Produtor</span>
           </Link>
-          <Link href="/admin/crm" className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
+          <Link href="/admin/crm" prefetch={true} className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
             <Tractor className="h-6 w-6" />
             <span className="text-sm font-medium">Ver CRM</span>
           </Link>
-          <Link href="/admin/ged/explorer" className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
+          <Link href="/admin/ged/explorer" prefetch={true} className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
             <FolderTree className="h-6 w-6" />
             <span className="text-sm font-medium">GED Explorador</span>
           </Link>
-          <Link href="/admin/ged/semaphore" className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
+          <Link href="/admin/ged/semaphore" prefetch={true} className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
             <ShieldAlert className="h-6 w-6" />
             <span className="text-sm font-medium">Semáforo</span>
           </Link>
@@ -334,7 +334,7 @@ export default async function AdminDashboardPage({
         <div className="grid gap-6 md:grid-cols-3">
           
           {/* CRM Card */}
-          <Link href="/admin/crm" className="block transition-transform hover:-translate-y-1">
+          <Link href="/admin/crm" prefetch={true} className="block transition-transform hover:-translate-y-1">
             <Card className="h-full border hover:border-[#1B4D3E] shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
@@ -362,7 +362,7 @@ export default async function AdminDashboardPage({
           </Link>
 
           {/* GED Card */}
-          <Link href="/admin/ged/semaphore" className="block transition-transform hover:-translate-y-1">
+          <Link href="/admin/ged/semaphore" prefetch={true} className="block transition-transform hover:-translate-y-1">
             <Card className="h-full border hover:border-[#1B4D3E] shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
@@ -410,7 +410,7 @@ export default async function AdminDashboardPage({
           </Link>
 
           {/* Filiais e Utilizadores */}
-          <Link href="/admin/branches" className="block transition-transform hover:-translate-y-1">
+          <Link href="/admin/branches" prefetch={true} className="block transition-transform hover:-translate-y-1">
             <Card className="h-full border hover:border-[#1B4D3E] shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">

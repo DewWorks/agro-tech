@@ -314,30 +314,32 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
         </div>
       ) : null}
 
-      <div className="flex space-x-2 border-b overflow-x-auto">
+      <div className="flex space-x-1.5 border-b overflow-x-auto pb-1 scroll-smooth scrollbar-thin scrollbar-thumb-slate-300 hover:scrollbar-thumb-slate-400">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
-            onClick={() => {
+            onClick={(e) => {
               if (tab.id === activeTab) return
               const currentIndex = tabs.findIndex(t => t.id === activeTab)
               const targetIndex = tabs.findIndex(t => t.id === tab.id)
               
               if (targetIndex < currentIndex) {
                 setActiveTab(tab.id)
+                e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
               } else {
                 if (validateStep(activeTab)) {
                   setActiveTab(tab.id)
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
                 } else {
                   toast.error('Corrija os campos obrigatórios antes de mudar de aba.')
                 }
               }
             }}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+            className={`flex items-center gap-2 px-3.5 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap shrink-0 ${
               activeTab === tab.id 
-                ? 'border-[#1B4D3E] text-[#1B4D3E]' 
-                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300'
+                ? 'border-[#1B4D3E] text-[#1B4D3E] font-semibold bg-emerald-50/70 rounded-t-lg' 
+                : 'border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300 hover:bg-gray-50/50 rounded-t-lg'
             }`}
           >
             <tab.icon size={16} />
