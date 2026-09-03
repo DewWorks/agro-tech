@@ -92,7 +92,7 @@ export function DeclarationSidebar({
                   <CommandList>
                     <CommandEmpty>Nenhum produtor encontrado.</CommandEmpty>
                     <CommandGroup>
-                      {producers.map((p) => {
+                      {producers.filter((p: any) => p.isActive !== false).map((p) => {
                         // Usamos um truque para o cmdk buscar tanto por nome quanto por documento. 
                         // O value concatenado permite pesquisa, e no onSelect extraímos o ID.
                         const cmdValue = `${p.name} ${p.document} | ${p.id}`
