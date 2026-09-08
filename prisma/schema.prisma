@@ -47,6 +47,10 @@ model Branch {
   documentAlerts DocumentAlert[]
   documentTemplates DocumentTemplate[]
   generatedForms GeneratedForm[]
+  landUses       LandUse[]
+  improvements   Improvement[]
+  livestocks     Livestock[]
+  machineries    Machinery[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -89,6 +93,80 @@ model UserBranch {
 // ----------------------------------------------------------------------
 // MÓDULO CRM E CADASTRO ÚNICO
 // ----------------------------------------------------------------------
+
+enum ProducerSize {
+  PEQUENO
+  MEDIO
+  GRANDE
+}
+
+enum PropertyClassification {
+  MINIFUNDIO
+  PEQUENA_PROPRIEDADE
+  MEDIA_PROPRIEDADE
+  GRANDE_PROPRIEDADE
+}
+
+enum ConservationState {
+  RUIM
+  REGULAR
+  BOM
+  OTIMO
+  SEM_VISTORIA
+  ABANDONADO
+  NOVO
+  USADO
+}
+
+enum SeizureStatus {
+  PENHORAVEL
+  IMPENHORAVEL_PEQUENA_PROP
+  IMPENHORAVEL_BEM_FAMILIA
+  IMPENHORAVEL_OUTROS
+}
+
+enum CondominiumType {
+  INEXISTENTE
+  PRO_DIVISO
+  PRO_INDIVISO
+  BEM_COMUM_CASAL
+}
+
+enum PropertyFinancialStatus {
+  FINANCIADA
+  QUITADA
+}
+
+enum LivestockSpecies {
+  BOVINO
+  OVINO
+  CAPRINO
+  SUINO
+  FRANGO_CAIPIRA
+  EQUINO
+  OUTROS
+}
+
+enum LivestockCategory {
+  MATRIZES
+  NOVILHO
+  BEZERRO
+  TOURO
+  GARROTE
+  OUTROS
+}
+
+enum LandUseType {
+  LAVOURA_ANUAL
+  LAVOURA_PERENE
+  PRESERVACAO
+  LAGOS
+  PASTAGEM_CULTIVADA
+  PASTAGEM_NATIVA
+  SILVICULTURA
+  CAPINEIRAS
+  OUTROS
+}
 
 enum Qualification {
   PRONAF_CAF
@@ -143,6 +221,31 @@ model Producer {
   nationality    String?
   rg             String?
   rgIssuer       String?
+
+  // Dados Bancários
+  bankName        String?
+  bankAgency      String?
+  bankAccount     String?
+  bankAccountType String?   // "CORRENTE" | "POUPANCA"
+
+  // Dados Pessoais Expandidos
+  birthDate       DateTime?
+  naturalness     String?
+  educationLevel  String?
+  producerSize    ProducerSize?
+
+  // Cônjuge Expandido
+  spouseRg              String?
+  spouseRgIssuer        String?
+  spouseNationality     String?
+  spouseEducationLevel  String?
+
+  // Endereço
+  addressStreet       String?
+  addressNeighborhood String?
+  addressCity         String?
+  addressState        String?
+  addressZipcode      String?
   
   isActive       Boolean      @default(true)
   createdAt      DateTime     @default(now())
@@ -192,10 +295,35 @@ model Property {
   latitude       Float?
   longitude      Float?
 
+  // Indicadores de Propriedade
+  consolidatedArea        Float?
+  classification          PropertyClassification?
+  ruralModules            Float?
+  neighborhood            String?
+  comarca                 String?
+  accessRoute             String?  @db.Text
+  isProven                Boolean  @default(false)
+  hasLien                 Boolean  @default(false)
+  isBorderProperty        Boolean  @default(false)
+  hasInsurance            Boolean  @default(false)
+  
+  seizureStatus           SeizureStatus?
+  financialStatus         PropertyFinancialStatus?
+  condominiumType         CondominiumType?
+  conservationState       ConservationState?
+  
+  confrontants            Json? // { norte, sul, leste, oeste }
+
   // Campos Dinâmicos (JSONB no Postgres)
-  improvements   Json?        // Benfeitorias
-  livestock      Json?        // Rebanho
+  improvements   Json?        // @deprecated - migrando para relacionais
+  livestock      Json?        // @deprecated - migrando para relacionais
   possessionData Json?        // Dados de Posse
+  
+  // Tabelas Mini-ERP
+  landUses       LandUse[]
+  improvementsList Improvement[]
+  livestockList  Livestock[]
+  machineries    Machinery[]
   
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
@@ -240,6 +368,100 @@ model ProducerProperty {
   @@map("producer_properties")
 }
 
+model LandUse {
+  id            String       @id @default(uuid())
+  branchId      String       @map("branch_id")
+  propertyId    String
+  type          LandUseType
+  characteristic String?
+  unit          String       @default("ha")
+  quantity      Float        @default(0)
+  unitValue     Float        @default(0)
+  observation   String?
+
+  property      Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  branch        Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([propertyId])
+  @@index([branchId])
+  @@map("land_uses")
+}
+
+model Improvement {
+  id            String       @id @default(uuid())
+  branchId      String       @map("branch_id")
+  propertyId    String
+  specification String
+  unit          String       @default("m²")
+  quantity      Float        @default(0)
+  unitValue     Float        @default(0)
+  observation   String?
+
+  property      Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  branch        Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([propertyId])
+  @@index([branchId])
+  @@map("improvements")
+}
+
+model Livestock {
+  id            String            @id @default(uuid())
+  branchId      String            @map("branch_id")
+  propertyId    String
+  species       LivestockSpecies
+  category      LivestockCategory
+  purpose       String?
+  quantity      Int               @default(0)
+  ageMonths     Int?
+  avgWeightKg   Float?
+  unitValue     Float             @default(0)
+  observation   String?
+
+  property      Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  branch        Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([propertyId])
+  @@index([propertyId, species])
+  @@index([branchId])
+  @@map("livestock")
+}
+
+model Machinery {
+  id                      String   @id @default(uuid())
+  branchId                String   @map("branch_id")
+  propertyId              String
+  specification           String
+  brand                   String?
+  model                   String?
+  powerCapacity           String?
+  year                    Int?
+  chassisSerial           String?
+  participationPercent    Float?
+  value                   Float    @default(0)
+  hasLien                 Boolean  @default(false)
+  lienInstitution         String?
+
+  property                Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  branch                  Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([branchId])
+  @@map("machineries")
+}
+
 // ----------------------------------------------------------------------
 // MÓDULO GED - GESTÃO ELETRÔNICA DE DOCUMENTOS
 // ----------------------------------------------------------------------
@@ -258,6 +480,36 @@ enum DocumentType {
   DAP_CAF
   LAUDO_TECNICO
   OUTROS
+
+  // === Novos: Dados Pessoais ===
+  AUTORIZACAO_COMPARTILHAMENTO
+  AUTORIZACAO_SCR
+  AUTORIZACAO_SICOR
+  CPF_RG_PROPRIETARIO
+  CPF_RG_CONJUGE
+  CND_PROPRIETARIO
+  CND_CONJUGE
+  COMPROVANTE_RESIDENCIA
+  IMPOSTO_RENDA
+
+  // === Novos: Dados da Propriedade ===
+  CERTIDAO_INTEIRO_TEOR
+  CERTIDAO_CADEIA_DOMINIAL
+  CERTIDAO_ONUS_REAIS
+  TITULO_DOMINIO
+  ESCRITURA_COMPRA_VENDA
+  ESCRITURA_DOACAO
+  ESCRITURA_PERMUTA
+  ESCRITURA_CESSAO_HEREDITARIO
+  ESCRITURA_INVENTARIO
+  INSCRICAO_ESTADUAL
+  CONTRATO_CESSAO_USO
+
+  // === Novos: Ambientais ===
+  OUTORGA_AGUA_DUI
+  LICENCA_AMBIENTAL_OPERACAO
+  LICENCA_AMBIENTAL_INSTALACAO
+  LICENCA_AMBIENTAL_AEF
 }
 
 enum ComplianceStatus {

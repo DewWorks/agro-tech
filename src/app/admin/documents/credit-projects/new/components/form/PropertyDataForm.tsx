@@ -1,9 +1,13 @@
-import React from 'react'
-import { MapPin, AlertTriangle, CheckCircle2 } from 'lucide-react'
+import React, { useState } from 'react'
+import { MapPin, AlertTriangle, CheckCircle2, ChevronsUpDown, Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 import { CustomOptions } from '../../types/wizard-types'
+import { RURAL_ACTIVITIES, normalizeTitleCase } from '@/lib/validations/property'
 
 interface PropertyDataFormProps {
   customOptions: CustomOptions
@@ -16,6 +20,10 @@ export function PropertyDataForm({ customOptions, setCustomOptions }: PropertyDa
                     !customOptions.propertyTotalArea || 
                     !customOptions.propertyAccessRoute?.trim() || 
                     !customOptions.propertyActivity?.trim()
+
+  const [openActivity, setOpenActivity] = useState(false)
+  const [activitySearch, setActivitySearch] = useState('')
+  const normalizedActivitySearch = normalizeTitleCase(activitySearch)
 
   return (
     <div className="p-3 bg-slate-50/80 border border-gray-200 rounded-lg space-y-2.5">
@@ -45,16 +53,19 @@ export function PropertyDataForm({ customOptions, setCustomOptions }: PropertyDa
         <div className="space-y-1">
           <Label className="text-[10.5px] text-gray-600">Matrícula / Registro *</Label>
           <Input
-            value={customOptions.propertyRegistrationNumber}
-            onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyRegistrationNumber: e.target.value }))}
+            value={customOptions.propertyRegistrationNumber || ''}
+            onChange={(e) => {
+              const numericValue = e.target.value.replace(/\D/g, '')
+              setCustomOptions(prev => ({ ...prev, propertyRegistrationNumber: numericValue }))
+            }}
             className={cn("h-8 text-xs", !customOptions.propertyRegistrationNumber?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
-            placeholder="Ex: 12.345"
+            placeholder="Ex: 12345"
           />
         </div>
         <div className="space-y-1">
           <Label className="text-[10.5px] text-gray-600">Cartório de Registro (CRI)</Label>
           <Input
-            value={customOptions.propertyRegistryOffice}
+            value={customOptions.propertyRegistryOffice || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyRegistryOffice: e.target.value }))}
             className="h-8 text-xs"
             placeholder="Ex: CRI de Palmas - TO"
@@ -66,9 +77,9 @@ export function PropertyDataForm({ customOptions, setCustomOptions }: PropertyDa
         <div className="space-y-1">
           <Label className="text-[10.5px] text-gray-600">Nº do CAR (Recibo) *</Label>
           <Input
-            value={customOptions.propertyCar}
-            onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: e.target.value }))}
-            className={cn("h-8 text-xs", !customOptions.propertyCar?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+            value={customOptions.propertyCar || ''}
+            onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: e.target.value.toUpperCase() }))}
+            className={cn("h-8 text-xs uppercase", !customOptions.propertyCar?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
             placeholder="Ex: TO-1700000-XXXXXXXX"
           />
         </div>
@@ -76,28 +87,103 @@ export function PropertyDataForm({ customOptions, setCustomOptions }: PropertyDa
           <Label className="text-[10.5px] text-gray-600">Área Total do Imóvel (ha) *</Label>
           <Input
             type="number"
+            step="0.01"
             value={customOptions.propertyTotalArea || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyTotalArea: Number(e.target.value) }))}
             className={cn("h-8 text-xs", (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) && "border-amber-400 focus-visible:ring-amber-400")}
-            placeholder="Ex: 1500"
+            placeholder="Ex: 1500.50"
           />
         </div>
       </div>
 
       <div className="space-y-1">
         <Label className="text-[10.5px] text-gray-600">Atividade Principal do Imóvel *</Label>
-        <Input
-          value={customOptions.propertyActivity}
-          onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyActivity: e.target.value }))}
-          className={cn("h-8 text-xs", !customOptions.propertyActivity?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
-          placeholder="Ex: Pecuária de Corte e Cria"
-        />
+        <Popover open={openActivity} onOpenChange={setOpenActivity}>
+          <PopoverTrigger
+            render={
+              <Button
+                variant="outline"
+                role="combobox"
+                className={cn(
+                  "w-full justify-between h-8 text-xs font-normal bg-white",
+                  !customOptions.propertyActivity && "text-muted-foreground",
+                  !customOptions.propertyActivity?.trim() && "border-amber-400"
+                )}
+              />
+            }
+          >
+            <span className="truncate">
+              {customOptions.propertyActivity || "Selecione ou digite a atividade..."}
+            </span>
+            <ChevronsUpDown className="ml-2 h-3 w-3 shrink-0 opacity-50" />
+          </PopoverTrigger>
+          <PopoverContent className="w-[350px] p-0" align="start">
+            <Command>
+              <CommandInput 
+                placeholder="Buscar ou adicionar atividade..." 
+                value={activitySearch}
+                onValueChange={setActivitySearch}
+              />
+              <CommandList>
+                <CommandEmpty className="p-2">
+                  {normalizedActivitySearch ? (
+                    <Button 
+                      variant="ghost" 
+                      className="w-full justify-start text-xs font-medium text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                      onClick={() => {
+                        setCustomOptions(prev => ({ ...prev, propertyActivity: normalizedActivitySearch }))
+                        setOpenActivity(false)
+                        setActivitySearch("") 
+                      }}
+                    >
+                      + Adicionar "{normalizedActivitySearch}"
+                    </Button>
+                  ) : (
+                    "Digite para pesquisar ou adicionar"
+                  )}
+                </CommandEmpty>
+                <CommandGroup>
+                  {RURAL_ACTIVITIES.map(activity => (
+                    <CommandItem
+                      value={activity}
+                      key={activity}
+                      onSelect={() => {
+                        setCustomOptions(prev => ({ ...prev, propertyActivity: activity }))
+                        setOpenActivity(false)
+                      }}
+                      className="text-xs"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-3 w-3",
+                          activity === customOptions.propertyActivity ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {activity}
+                    </CommandItem>
+                  ))}
+                  {customOptions.propertyActivity && !RURAL_ACTIVITIES.includes(customOptions.propertyActivity) && (
+                    <CommandItem 
+                      value={customOptions.propertyActivity} 
+                      key={customOptions.propertyActivity} 
+                      onSelect={() => setOpenActivity(false)}
+                      className="text-xs"
+                    >
+                      <Check className="mr-2 h-3 w-3 opacity-100" />
+                      {customOptions.propertyActivity}
+                    </CommandItem>
+                  )}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="space-y-1">
         <Label className="text-[10.5px] text-gray-600">Roteiro de Acesso à Propriedade *</Label>
         <Input
-          value={customOptions.propertyAccessRoute}
+          value={customOptions.propertyAccessRoute || ''}
           onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyAccessRoute: e.target.value }))}
           className={cn("h-8 text-xs", !customOptions.propertyAccessRoute?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
           placeholder="Ex: Partindo de Palmas pela TO-050 por 45km..."

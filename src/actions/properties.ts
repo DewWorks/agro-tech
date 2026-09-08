@@ -30,13 +30,18 @@ export async function createProperty(data: any) {
 
       // Áreas (ha)
       totalArea,
+      consolidatedArea,
       productiveArea,
       pastureArea,
       preserveArea,
+      ruralModules,
+      vtnPerHectare,
+      totalLandValue,
 
       // Documentação Fundiária
       registrationNumber,
       registryOffice,
+      comarca,
       car,
       ccir,
       itr,
@@ -45,11 +50,36 @@ export async function createProperty(data: any) {
       possessionYears,
       explorationActivity,
 
-      // Rebanho & Marcas
+      // Localização e Acesso
+      accessRoute,
+      confrontants,
+
+      // Indicadores de Risco Bancário
+      impenhorabilidade,
+      seizureStatus,
+      hasLien,
+      hasInsurance,
+      isBorderProperty,
+      conservationState,
+
+      // Relacionamentos e Grids
+      machineries,
+      improvements,
+      livestocks,
+
+      // Rebanho & Marcas legados
       totalHeadCount,
       brandDescription,
       brandRegistrationAdapec,
       brandLocation,
+
+      // Dados Financeiros
+      effectiveAgroRevenue,
+      projectedAgroRevenue,
+      otherRevenues,
+      operationalExpenses,
+      existingDebtService,
+      familyLivingCosts,
     } = data
 
     if (!name && !propertyName) {
@@ -72,15 +102,27 @@ export async function createProperty(data: any) {
         longitude: longitude ? Number(longitude) : null,
 
         totalArea: totalArea ? Number(totalArea) : 0,
+        consolidatedArea: consolidatedArea ? Number(consolidatedArea) : null,
         productiveArea: productiveArea ? Number(productiveArea) : 0,
         pastureArea: pastureArea ? Number(pastureArea) : 0,
         preserveArea: preserveArea ? Number(preserveArea) : 0,
+        ruralModules: ruralModules ? Number(ruralModules) : null,
 
         registrationNumber: registrationNumber || null,
         registryOffice: registryOffice || null,
+        comarca: comarca || null,
         car: car || null,
         ccir: ccir || null,
         itr: itr || null,
+
+        accessRoute: accessRoute || null,
+        confrontants: confrontants || null,
+
+        hasLien: Boolean(hasLien),
+        hasInsurance: Boolean(hasInsurance),
+        isBorderProperty: Boolean(isBorderProperty),
+        seizureStatus: (seizureStatus || impenhorabilidade) as any || null,
+        conservationState: (conservationState as any) || null,
 
         explorationActivity: explorationActivity || null,
 
@@ -91,10 +133,18 @@ export async function createProperty(data: any) {
           brandLocation: brandLocation || null,
         } : {},
 
-        possessionData: possessionYears ? {
-          possessionYears: Number(possessionYears),
+        possessionData: {
+          possessionYears: possessionYears ? Number(possessionYears) : null,
           explorationActivity: explorationActivity || null,
-        } : (explorationActivity ? { explorationActivity } : {}),
+          vtnPerHectare: vtnPerHectare ? Number(vtnPerHectare) : null,
+          totalLandValue: totalLandValue ? Number(totalLandValue) : null,
+          effectiveAgroRevenue: effectiveAgroRevenue ? Number(effectiveAgroRevenue) : null,
+          projectedAgroRevenue: projectedAgroRevenue ? Number(projectedAgroRevenue) : null,
+          otherRevenues: otherRevenues ? Number(otherRevenues) : null,
+          operationalExpenses: operationalExpenses ? Number(operationalExpenses) : null,
+          existingDebtService: existingDebtService ? Number(existingDebtService) : null,
+          familyLivingCosts: familyLivingCosts ? Number(familyLivingCosts) : null,
+        },
 
         createdBy: dbUser.id,
 
@@ -106,7 +156,51 @@ export async function createProperty(data: any) {
             explorationPercentage: explorationPercentage ? Number(explorationPercentage) : 100,
             contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
           }
-        } : undefined
+        } : undefined,
+
+        // Criação de máquinas se fornecidas
+        machineries: machineries && Array.isArray(machineries) && machineries.length > 0 ? {
+          create: machineries.map((m: any) => ({
+            branchId,
+            specification: m.category || m.specification || 'Trator de Pneus',
+            brand: m.brand || null,
+            model: m.model || null,
+            powerCapacity: m.powerCapacity || null,
+            year: m.year ? Number(m.year) : null,
+            chassisSerial: m.chassisSerial || null,
+            participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
+            value: m.value ? Number(m.value) : 0,
+            hasLien: Boolean(m.hasLien),
+            lienInstitution: m.lienInstitution || null,
+          }))
+        } : undefined,
+
+        // Criação de benfeitorias se fornecidas
+        improvementsList: improvements && Array.isArray(improvements) && improvements.length > 0 ? {
+          create: improvements.map((imp: any) => ({
+            branchId,
+            specification: imp.specification || '',
+            unit: imp.unit || 'm²',
+            quantity: imp.quantity ? Number(imp.quantity) : 0,
+            unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
+            observation: imp.observation || null,
+          }))
+        } : undefined,
+
+        // Criação de rebanho se fornecido
+        livestockList: livestocks && Array.isArray(livestocks) && livestocks.length > 0 ? {
+          create: livestocks.map((l: any) => ({
+            branchId,
+            species: (l.species as any) || 'BOVINO',
+            category: (l.category as any) || 'MATRIZES',
+            purpose: l.purpose || null,
+            quantity: l.quantity ? Number(l.quantity) : 0,
+            ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
+            avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
+            unitValue: l.unitValue ? Number(l.unitValue) : 0,
+            observation: l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null,
+          }))
+        } : undefined,
       }
     })
 
@@ -153,13 +247,18 @@ export async function updateProperty(id: string, data: any) {
 
       // Áreas (ha)
       totalArea,
+      consolidatedArea,
       productiveArea,
       pastureArea,
       preserveArea,
+      ruralModules,
+      vtnPerHectare,
+      totalLandValue,
 
       // Documentação Fundiária
       registrationNumber,
       registryOffice,
+      comarca,
       car,
       ccir,
       itr,
@@ -168,11 +267,36 @@ export async function updateProperty(id: string, data: any) {
       possessionYears,
       explorationActivity,
 
+      // Localização e Acesso
+      accessRoute,
+      confrontants,
+
+      // Indicadores
+      impenhorabilidade,
+      seizureStatus,
+      hasLien,
+      hasInsurance,
+      isBorderProperty,
+      conservationState,
+
+      // Relacionamentos e Grids
+      machineries,
+      improvements,
+      livestocks,
+
       // Rebanho & Marcas
       totalHeadCount,
       brandDescription,
       brandRegistrationAdapec,
       brandLocation,
+
+      // Financeiro
+      effectiveAgroRevenue,
+      projectedAgroRevenue,
+      otherRevenues,
+      operationalExpenses,
+      existingDebtService,
+      familyLivingCosts,
     } = data
 
     const propName = propertyName || name || existing.name
@@ -189,15 +313,27 @@ export async function updateProperty(id: string, data: any) {
         longitude: longitude !== undefined ? (longitude ? Number(longitude) : null) : existing.longitude,
 
         totalArea: totalArea !== undefined ? (totalArea ? Number(totalArea) : 0) : existing.totalArea,
+        consolidatedArea: consolidatedArea !== undefined ? (consolidatedArea ? Number(consolidatedArea) : null) : existing.consolidatedArea,
         productiveArea: productiveArea !== undefined ? (productiveArea ? Number(productiveArea) : 0) : existing.productiveArea,
         pastureArea: pastureArea !== undefined ? (pastureArea ? Number(pastureArea) : 0) : existing.pastureArea,
         preserveArea: preserveArea !== undefined ? (preserveArea ? Number(preserveArea) : 0) : existing.preserveArea,
+        ruralModules: ruralModules !== undefined ? (ruralModules ? Number(ruralModules) : null) : existing.ruralModules,
 
         registrationNumber: registrationNumber !== undefined ? (registrationNumber || null) : existing.registrationNumber,
         registryOffice: registryOffice !== undefined ? (registryOffice || null) : existing.registryOffice,
+        comarca: comarca !== undefined ? (comarca || null) : existing.comarca,
         car: car !== undefined ? (car || null) : existing.car,
         ccir: ccir !== undefined ? (ccir || null) : existing.ccir,
         itr: itr !== undefined ? (itr || null) : existing.itr,
+
+        accessRoute: accessRoute !== undefined ? (accessRoute || null) : existing.accessRoute,
+        confrontants: confrontants !== undefined ? confrontants : existing.confrontants,
+
+        hasLien: hasLien !== undefined ? Boolean(hasLien) : existing.hasLien,
+        hasInsurance: hasInsurance !== undefined ? Boolean(hasInsurance) : existing.hasInsurance,
+        isBorderProperty: isBorderProperty !== undefined ? Boolean(isBorderProperty) : existing.isBorderProperty,
+        seizureStatus: (seizureStatus || impenhorabilidade) ? ((seizureStatus || impenhorabilidade) as any) : existing.seizureStatus,
+        conservationState: conservationState ? (conservationState as any) : existing.conservationState,
 
         explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : existing.explorationActivity,
 
@@ -213,11 +349,81 @@ export async function updateProperty(id: string, data: any) {
           ...(existing.possessionData as any || {}),
           possessionYears: possessionYears !== undefined ? (possessionYears ? Number(possessionYears) : null) : ((existing.possessionData as any)?.possessionYears || null),
           explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : ((existing.possessionData as any)?.explorationActivity || null),
+          vtnPerHectare: vtnPerHectare !== undefined ? (vtnPerHectare ? Number(vtnPerHectare) : null) : ((existing.possessionData as any)?.vtnPerHectare || null),
+          totalLandValue: totalLandValue !== undefined ? (totalLandValue ? Number(totalLandValue) : null) : ((existing.possessionData as any)?.totalLandValue || null),
+          effectiveAgroRevenue: effectiveAgroRevenue !== undefined ? (effectiveAgroRevenue ? Number(effectiveAgroRevenue) : null) : ((existing.possessionData as any)?.effectiveAgroRevenue || null),
+          projectedAgroRevenue: projectedAgroRevenue !== undefined ? (projectedAgroRevenue ? Number(projectedAgroRevenue) : null) : ((existing.possessionData as any)?.projectedAgroRevenue || null),
+          otherRevenues: otherRevenues !== undefined ? (otherRevenues ? Number(otherRevenues) : null) : ((existing.possessionData as any)?.otherRevenues || null),
+          operationalExpenses: operationalExpenses !== undefined ? (operationalExpenses ? Number(operationalExpenses) : null) : ((existing.possessionData as any)?.operationalExpenses || null),
+          existingDebtService: existingDebtService !== undefined ? (existingDebtService ? Number(existingDebtService) : null) : ((existing.possessionData as any)?.existingDebtService || null),
+          familyLivingCosts: familyLivingCosts !== undefined ? (familyLivingCosts ? Number(familyLivingCosts) : null) : ((existing.possessionData as any)?.familyLivingCosts || null),
         },
 
         updatedBy: dbUser.id,
       }
     })
+
+    // Atualização de máquinas
+    if (machineries && Array.isArray(machineries)) {
+      await prisma.machinery.deleteMany({ where: { propertyId: id } })
+      if (machineries.length > 0) {
+        await prisma.machinery.createMany({
+          data: machineries.map((m: any) => ({
+            branchId: branchId || existing.branchId,
+            propertyId: id,
+            specification: m.category || m.specification || 'Trator de Pneus',
+            brand: m.brand || null,
+            model: m.model || null,
+            powerCapacity: m.powerCapacity || null,
+            year: m.year ? Number(m.year) : null,
+            chassisSerial: m.chassisSerial || null,
+            participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
+            value: m.value ? Number(m.value) : 0,
+            hasLien: Boolean(m.hasLien),
+            lienInstitution: m.lienInstitution || null,
+          }))
+        })
+      }
+    }
+
+    // Atualização de benfeitorias
+    if (improvements && Array.isArray(improvements)) {
+      await prisma.improvement.deleteMany({ where: { propertyId: id } })
+      if (improvements.length > 0) {
+        await prisma.improvement.createMany({
+          data: improvements.map((imp: any) => ({
+            branchId: branchId || existing.branchId,
+            propertyId: id,
+            specification: imp.specification || '',
+            unit: imp.unit || 'm²',
+            quantity: imp.quantity ? Number(imp.quantity) : 0,
+            unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
+            observation: imp.observation || null,
+          }))
+        })
+      }
+    }
+
+    // Atualização de semoventes
+    if (livestocks && Array.isArray(livestocks)) {
+      await prisma.livestock.deleteMany({ where: { propertyId: id } })
+      if (livestocks.length > 0) {
+        await prisma.livestock.createMany({
+          data: livestocks.map((l: any) => ({
+            branchId: branchId || existing.branchId,
+            propertyId: id,
+            species: (l.species as any) || 'BOVINO',
+            category: (l.category as any) || 'MATRIZES',
+            purpose: l.purpose || null,
+            quantity: l.quantity ? Number(l.quantity) : 0,
+            ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
+            avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
+            unitValue: l.unitValue ? Number(l.unitValue) : 0,
+            observation: l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null,
+          }))
+        })
+      }
+    }
 
     // Sincronizar vínculo com o produtor principal se informado
     if (producerId) {

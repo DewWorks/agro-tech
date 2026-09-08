@@ -22,11 +22,24 @@ interface A4DocumentPreviewProps {
   } | null
 }
 
+import { DeclarationContent } from './blocks/DeclarationContent'
+
 export const A4DocumentPreview = React.memo(({ documentData, data }: A4DocumentPreviewProps) => {
   const doc = documentData || data
   if (!doc) return null
 
   const { template, producer, property, organization, options } = doc
+
+  const isLegalTemplate = [
+    'AUTORIZACAO_COMPARTILHAMENTO',
+    'AUTORIZACAO_SCR',
+    'AUTORIZACAO_SICOR',
+    'DECLARACAO_POSSE_MANSA',
+    'DECLARACAO_REGULARIDADE_AMBIENTAL',
+    'DECLARACAO_FORA_BIOMA',
+    'ENQUADRAMENTO_CAF',
+    'IDENTIFICACAO_ANIMAIS'
+  ].includes(template.code)
 
   return (
     <div 
@@ -46,21 +59,32 @@ export const A4DocumentPreview = React.memo(({ documentData, data }: A4DocumentP
     >
       <BBHeader 
         title={template.title} 
-        subtitle={`Dossiê para ${template.category} • Banco do Brasil`} 
+        subtitle={isLegalTemplate ? `Declaração Legal • Banco do Brasil` : `Dossiê para ${template.category} • Banco do Brasil`} 
       />
       
       <IdentificationBlock producer={producer} property={property} />
       
-      <TechnicalTables 
-        templateCode={template.code} 
-        property={property} 
-        options={options} 
-      />
-      
-      <FinancialBlock 
-        templateCode={template.code} 
-        options={options} 
-      />
+      {isLegalTemplate ? (
+        <DeclarationContent 
+          templateCode={template.code} 
+          producer={producer} 
+          property={property} 
+          options={options} 
+        />
+      ) : (
+        <>
+          <TechnicalTables 
+            templateCode={template.code} 
+            property={property} 
+            options={options} 
+          />
+          
+          <FinancialBlock 
+            templateCode={template.code} 
+            options={options} 
+          />
+        </>
+      )}
       
       <SignaturesBlock 
         organization={organization} 

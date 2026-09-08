@@ -94,26 +94,28 @@ export default async function AdminDashboardPage({
             </Card>
           </Link>
 
-          <Card className="h-full border hover:border-[#1B4D3E] shadow-sm transition-colors">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
-                <HardDrive className="h-4 w-4" />
-                Volume de Documentos (GED)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-6">
-                <div>
-                  <div className="text-3xl font-bold">{totalDocs}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Ficheiros</p>
+          <Link href="/admin/ged-global" className="block transition-transform hover:-translate-y-1">
+            <Card className="h-full border hover:border-[#1B4D3E] shadow-sm transition-colors bg-white">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
+                  <HardDrive className="h-4 w-4" />
+                  Volume de Documentos (GED)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-6">
+                  <div>
+                    <div className="text-3xl font-bold">{totalDocs}</div>
+                    <p className="text-xs text-muted-foreground mt-1">Ficheiros</p>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-amber-600">{storageValue} <span className="text-base font-normal">{storageUnit}</span></div>
+                    <p className="text-xs text-muted-foreground mt-1">Storage Utilizado</p>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-3xl font-bold text-amber-600">{storageValue} <span className="text-base font-normal">{storageUnit}</span></div>
-                  <p className="text-xs text-muted-foreground mt-1">Storage Utilizado</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
 
           <Link href="/admin/modules" className="block transition-transform hover:-translate-y-1 h-full">
             <Card className="h-full hover:shadow-md transition-all cursor-pointer bg-slate-50 border-slate-200">

@@ -47,7 +47,8 @@ const getMenuItems = (
         title: 'Sistema Global',
         icon: Settings2,
         subItems: [
-          { title: 'Gestão de Módulos', href: '/admin/modules' }
+          { title: 'Gestão de Módulos', href: '/admin/modules' },
+          { title: 'Painel GED (Global)', href: '/admin/ged-global' }
         ]
       },
       {
@@ -106,6 +107,7 @@ const getMenuItems = (
       icon: FolderTree,
       badge: gedStatus.badge,
       subItems: [
+        { title: 'Dashboard (Métricas)', href: '/admin/dashboard/owner' },
         { title: 'Explorador de Arquivos', href: '/admin/ged/explorer' },
         { title: 'Validades & Semáforo', href: '/admin/ged/semaphore' },
         { title: 'Projetos de Crédito BB', href: '/admin/documents/credit-projects' },

@@ -28,7 +28,10 @@ export default async function EditPropertyPage({
         include: {
           producer: true
         }
-      }
+      },
+      machineries: true,
+      improvementsList: true,
+      livestockList: true,
     }
   })
 

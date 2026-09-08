@@ -34,6 +34,7 @@ import { PropertyDataForm } from './components/form/PropertyDataForm';
 import { TemplateSelect } from './components/form/TemplateSelect';
 import { TemplateParamsForm } from './components/form/TemplateParamsForm';
 import { TechnicalResponsibleForm } from './components/form/TechnicalResponsibleForm';
+import { CreditProjectStepper } from './components/form/CreditProjectStepper';
 import { A4DocumentPreview } from './components/preview/A4DocumentPreview';
 import { ConfirmEmitModal } from './components/modals/ConfirmEmitModal';
 import { SaveDraftModal } from './components/modals/SaveDraftModal';
@@ -135,6 +136,7 @@ export default function CreditProjectWizard({
     defaultResponsibleName,
     defaultOrgName,
     defaultOrgCnpj,
+    initialTemplateCode: initialTemplate,
   })
 
   const {
@@ -304,9 +306,16 @@ export default function CreditProjectWizard({
               <Sparkles className="h-6 w-6" />
               Gerador de Documentos & Projetos BB
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Selecione o produtor, imóvel e o modelo desejado para emitir o documento pré-preenchido.
-            </p>
+            {currentTemplate ? (
+              <p className="text-sm font-semibold text-[#1B4D3E] mt-1 flex items-center gap-1.5">
+                📄 {currentTemplate.title}
+                <span className="text-[10px] text-muted-foreground font-medium ml-1">({currentTemplate.bank || 'Banco do Brasil'})</span>
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Selecione o produtor, imóvel e o modelo desejado para emitir o documento pré-preenchido.
+              </p>
+            )}
           </div>
         </div>
 
@@ -385,23 +394,20 @@ export default function CreditProjectWizard({
         )}
       </div>
 
-      {/* Main Grid: Control Panel (Left) & Live Preview (Right) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* Left Config Panel */}
-        <div className="lg:col-span-4 space-y-6 bg-white p-6 rounded-xl border border-gray-200 shadow-2xs print:hidden">
-          
-          <div className="border-b border-gray-100 pb-3">
-            <h2 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <Settings2 className="h-4 w-4 text-[#1B4D3E]" />
-              Parâmetros de Geração
-            </h2>
-            <p className="text-[11px] text-muted-foreground">
-              Vincule o produtor rural e a propriedade base.
-            </p>
-          </div>
+      {/* Top Selectors Bar: Produtor, Propriedade e Modelo Oficial (3 colunas) */}
+      <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs space-y-3 print:hidden">
+        <div className="flex items-center justify-between border-b border-gray-100 pb-2.5">
+          <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
+            <Settings2 className="h-4 w-4 text-[#1B4D3E]" />
+            Parâmetros de Geração do Projeto
+          </h2>
+          <span className="text-[11px] text-muted-foreground">
+            Selecione o proponente, o imóvel beneficiado e o modelo bancário
+          </span>
+        </div>
 
-                    {/* 1. Seleção do Produtor (Com Busca e Filtro de Ativos) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
+          {/* 1. Seleção do Produtor */}
           <ProducerSelect
             activeProducers={activeProducers}
             selectedProducerId={selectedProducerId}
@@ -409,7 +415,7 @@ export default function CreditProjectWizard({
             currentProducer={currentProducer}
           />
 
-          {/* 2. Seleção da Propriedade (Com Busca) */}
+          {/* 2. Seleção da Propriedade */}
           <PropertySelect
             availableProperties={availableProperties}
             selectedPropertyId={selectedPropertyId}
@@ -417,157 +423,46 @@ export default function CreditProjectWizard({
             currentProperty={currentProperty}
           />
 
-          {/* Dados Fundiários & Cadastrais do Imóvel Beneficiado */}
-          {selectedPropertyId && (
-            <PropertyDataForm
-              customOptions={customOptions}
-              setCustomOptions={setCustomOptions}
-            />
-          )}
-
-          {/* 3. Seleção do Modelo (Com Busca) */}
+          {/* 3. Seleção do Modelo */}
           <TemplateSelect
             templates={templates}
             selectedTemplateCode={selectedTemplateCode}
             setSelectedTemplateCode={setSelectedTemplateCode}
             currentTemplate={currentTemplate}
           />
-
-          {/* 4. Parâmetros Específicos por Modelo */}
-          <TemplateParamsForm
-            selectedTemplateCode={selectedTemplateCode}
-            customOptions={customOptions}
-            setCustomOptions={setCustomOptions}
-          />
-
-          {/* 5. Responsável Técnico */}
-          <TechnicalResponsibleForm
-            customOptions={customOptions}
-            setCustomOptions={setCustomOptions}
-          />
-
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleOpenSaveModal()}
-                disabled={isSavingDraft || !selectedProducerId}
-                className={cn(
-                  "w-full text-xs text-blue-700 border-blue-200 hover:bg-blue-50 cursor-pointer",
-                  !isFormValid && "border-amber-300 text-amber-800 bg-amber-50/50 hover:bg-amber-100/50"
-                )}
-              >
-                {isSavingDraft ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
-                ) : !isFormValid ? (
-                  <AlertTriangle className="h-3.5 w-3.5 mr-1.5 text-amber-600" />
-                ) : (
-                  <Save className="h-3.5 w-3.5 mr-1.5" />
-                )}
-                Salvar Dados
-                {!isFormValid && (
-                  <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-1.5 py-0.2 rounded-full ml-1">
-                    {validationErrors.length}
-                  </span>
-                )}
-              </Button>
-
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleGenerate()}
-                disabled={loading}
-                className="w-full text-xs text-[#1B4D3E] border-[#1B4D3E]/30 hover:bg-emerald-50"
-              >
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-                Atualizar
-              </Button>
-            </div>
-
-            {/* Status de Validação dos Parâmetros */}
-            <div className="pt-2">
-              {!isFormValid ? (
-                <div className="p-3 bg-amber-50/90 border border-amber-200 rounded-lg text-amber-900 text-xs space-y-1.5 animate-in fade-in">
-                  <div className="flex items-center gap-1.5 font-semibold text-amber-800">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span>Campos pendentes para emissão ({validationErrors.length})</span>
-                  </div>
-                  <ul className="list-disc list-inside space-y-0.5 text-[10.5px] text-amber-800/90 pl-1">
-                    {validationErrors.map((err, idx) => (
-                      <li key={idx} className="leading-tight">{err}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : (
-                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-xs flex items-center gap-2 font-medium">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                  <span>Todos os parâmetros validados! Pronto para emissão.</span>
-                </div>
-              )}
-            </div>
-
-            <Button
-              type="button"
-              onClick={() => {
-                if (!isFormValid) {
-                  toast.error(`Atenção: ${validationErrors[0]}`)
-                  return
-                }
-                setIsConfirmModalOpen(true)
-              }}
-              disabled={!isFormValid || isGeneratingPdf}
-              className={cn(
-                "w-full text-xs font-bold py-2.5 flex items-center justify-center gap-2 rounded-lg transition-all shadow-xs",
-                isFormValid 
-                  ? "bg-[#1B4D3E] hover:bg-[#13382D] text-white cursor-pointer" 
-                  : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
-              )}
-            >
-              {isGeneratingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-              Conferir e Emitir Documento
-            </Button>
-          </div>
-
-
-        {/* Right Live Preview Panel */}
-        <div className="lg:col-span-8">
-          
-          <div className="bg-slate-100 p-3 sm:p-6 rounded-2xl border border-slate-200 overflow-x-auto min-h-[700px] flex flex-col items-center justify-start print:p-0 print:border-0 print:bg-white">
-            
-            {loading ? (
-              <div className="py-32 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                <Loader2 className="h-8 w-8 animate-spin text-[#1B4D3E]" />
-                <p className="text-xs font-medium">Resolvendo variáveis e gerando documento institucional...</p>
-              </div>
-            ) : documentData ? (
-              <div className="w-full max-w-[800px] bg-white shadow-lg rounded-sm border border-gray-200 overflow-hidden print:shadow-none print:border-0 print:max-w-none print:w-full animate-in fade-in duration-200 flex justify-center">
-                <div 
-                  ref={contentRef}
-                  id="printable-document"
-                  style={{ 
-                    width: '100%', 
-                    backgroundColor: '#ffffff',
-                    color: '#1f2937',
-                    boxSizing: 'border-box'
-                  }}
-                >
-                  <A4DocumentPreview documentData={documentData} />
-                </div>
-              </div>
-            ) : (
-              <div className="py-32 flex flex-col items-center justify-center text-muted-foreground gap-3">
-                <FileText className="h-10 w-10 text-gray-300" />
-                <p className="text-xs font-medium">Selecione um produtor e propriedade para exibir o documento.</p>
-              </div>
-            )}
-
-          </div>
-
         </div>
-
       </div>
+
+      {/* Stepper Multi-Passos (Ocupa 100% da Largura, com Preview A4 no Último Passo) */}
+      {selectedPropertyId ? (
+        <CreditProjectStepper
+          selectedTemplateCode={selectedTemplateCode}
+          currentProducer={currentProducer}
+          currentProperty={currentProperty}
+          currentTemplate={currentTemplate}
+          customOptions={customOptions}
+          setCustomOptions={setCustomOptions}
+          validationErrors={validationErrors}
+          isFormValid={isFormValid}
+          isSavingDraft={isSavingDraft}
+          handleOpenSaveModal={handleOpenSaveModal}
+          setIsConfirmModalOpen={setIsConfirmModalOpen}
+          documentData={documentData}
+          contentRef={contentRef}
+          handlePrintIsolated={handlePrintIsolated}
+          handleDownloadOriginalTemplate={handleDownloadOriginalTemplate}
+          handleDownloadPdf={handleDownloadPdf}
+          isGeneratingPdf={isGeneratingPdf}
+        />
+      ) : (
+        <div className="p-12 bg-white rounded-2xl border border-gray-200 text-center space-y-3 shadow-2xs">
+          <FileText className="h-10 w-10 text-gray-300 mx-auto" />
+          <h3 className="text-sm font-bold text-gray-700">Selecione uma Propriedade Rural</h3>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Vincule um produtor ativo e selecione a propriedade rural para carregar os dados cadastrais e iniciar o preenchimento do projeto de crédito.
+          </p>
+        </div>
+      )}
 
       
       <ConfirmEmitModal 
