@@ -97,6 +97,45 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
           }))
           toast.info('Dados salvos deste projeto foram carregados automaticamente!')
         }
+
+        // Se o rascunho não possuir maquinários ou benfeitorias, carrega da propriedade vinculada
+        const prod = activeProducers.find(p => p.id === selectedProducerId)
+        const prop = prod?.properties?.find(p => p.id === selectedPropertyId)
+
+        if (prop && (!saved?.machineryItems || saved.machineryItems.length === 0) && prop.machineries && prop.machineries.length > 0) {
+          const machs = prop.machineries.map(m => ({
+            id: m.id || Math.random().toString(),
+            type: m.type || 'Trator de Pneus',
+            brand: m.brand || '',
+            model: m.model || '',
+            year: m.year || new Date().getFullYear(),
+            chassi: m.chassi || '',
+            value: Number(m.value) || 0,
+          }))
+          const totalVal = machs.reduce((acc, m) => acc + (Number(m.value) || 0), 0)
+          setCustomOptions(prev => ({
+            ...prev,
+            machineryItems: machs,
+            machineryValue: prev.machineryValue || totalVal,
+          }))
+        }
+
+        if (prop && (!saved?.improvementItems || saved.improvementItems.length === 0) && prop.improvements && prop.improvements.length > 0) {
+          const imps = prop.improvements.map(imp => ({
+            id: imp.id || Math.random().toString(),
+            specification: imp.specification || '',
+            unit: imp.unit || 'm²',
+            quantity: Number(imp.quantity) || 0,
+            unitValue: Number(imp.unitValue) || 0,
+            totalValue: Number(imp.totalValue) || (Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0),
+          }))
+          const totalVal = imps.reduce((acc, imp) => acc + (Number(imp.totalValue) || 0), 0)
+          setCustomOptions(prev => ({
+            ...prev,
+            improvementItems: imps,
+            improvementsValue: prev.improvementsValue || totalVal,
+          }))
+        }
       } catch (e) {
         // Silencioso
       }
@@ -104,7 +143,7 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
 
     loadSaved()
     return () => { isMounted = false }
-  }, [selectedProducerId, selectedPropertyId, selectedTemplateCode])
+  }, [selectedProducerId, selectedPropertyId, selectedTemplateCode, activeProducers])
 
   const currentProducer = activeProducers.find(p => p.id === selectedProducerId)
   const availableProperties = currentProducer?.properties || []

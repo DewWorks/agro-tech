@@ -31,6 +31,8 @@ export default async function NewDeclarationPage() {
       defaultResponsibleName={defaultResponsibleName}
       defaultOrgName={defaultOrgName}
       defaultOrgCnpj={defaultOrgCnpj}
+      backUrl="/admin/documents/declarations"
+      pageTitle="Gerador de Declarações & Autorizações BB"
     />
   )
 }

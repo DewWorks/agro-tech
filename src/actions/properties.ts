@@ -6,6 +6,44 @@ import { handleServerError } from '@/lib/errorHandler'
 import { getUserContext } from '@/lib/auth'
 import { OwnershipType } from '@prisma/client'
 
+function parseCoordinate(coordStr?: string | number | null): number | null {
+  if (coordStr === undefined || coordStr === null || coordStr === '') return null
+  if (typeof coordStr === 'number') return isNaN(coordStr) ? null : coordStr
+  const str = String(coordStr).trim()
+  if (!str) return null
+
+  const num = Number(str)
+  if (!isNaN(num)) {
+    return num
+  }
+
+  const match = str.match(/(\d+)[°\s]+(\d+)['\s]+([\d.]+)?["\s]*([NSEOWLnseowl])?/i)
+  if (match) {
+    const deg = parseFloat(match[1]) || 0
+    const min = parseFloat(match[2]) || 0
+    const sec = parseFloat(match[3]) || 0
+    const dir = (match[4] || '').toUpperCase()
+    let dec = deg + min / 60 + sec / 3600
+    if (dir === 'S' || dir === 'O' || dir === 'W') {
+      dec = -dec
+    }
+    return isNaN(dec) ? null : dec
+  }
+
+  const parsed = parseFloat(str)
+  return isNaN(parsed) ? null : parsed
+}
+
+function parseSeizureStatus(val?: string | null): any {
+  const valid = ['PENHORAVEL', 'IMPENHORAVEL_PEQUENA_PROP', 'IMPENHORAVEL_BEM_FAMILIA', 'IMPENHORAVEL_OUTROS']
+  return val && valid.includes(val) ? val : undefined
+}
+
+function parseConservationState(val?: string | null): any {
+  const valid = ['RUIM', 'REGULAR', 'BOM', 'OTIMO', 'SEM_VISTORIA', 'ABANDONADO', 'NOVO', 'USADO']
+  return val && valid.includes(val) ? val : undefined
+}
+
 export async function createProperty(data: any) {
   try {
     const dbUser = await getUserContext()
@@ -98,8 +136,8 @@ export async function createProperty(data: any) {
         propertyName: propName,
         city: city || null,
         state: state || null,
-        latitude: latitude ? Number(latitude) : null,
-        longitude: longitude ? Number(longitude) : null,
+        latitude: parseCoordinate(latitude),
+        longitude: parseCoordinate(longitude),
 
         totalArea: totalArea ? Number(totalArea) : 0,
         consolidatedArea: consolidatedArea ? Number(consolidatedArea) : null,
@@ -121,8 +159,8 @@ export async function createProperty(data: any) {
         hasLien: Boolean(hasLien),
         hasInsurance: Boolean(hasInsurance),
         isBorderProperty: Boolean(isBorderProperty),
-        seizureStatus: (seizureStatus || impenhorabilidade) as any || null,
-        conservationState: (conservationState as any) || null,
+        seizureStatus: parseSeizureStatus(seizureStatus || impenhorabilidade) ?? null,
+        conservationState: parseConservationState(conservationState) ?? null,
 
         explorationActivity: explorationActivity || null,
 
@@ -309,8 +347,8 @@ export async function updateProperty(id: string, data: any) {
         branchId: branchId || existing.branchId,
         city: city !== undefined ? city : existing.city,
         state: state !== undefined ? state : existing.state,
-        latitude: latitude !== undefined ? (latitude ? Number(latitude) : null) : existing.latitude,
-        longitude: longitude !== undefined ? (longitude ? Number(longitude) : null) : existing.longitude,
+        latitude: latitude !== undefined ? parseCoordinate(latitude) : existing.latitude,
+        longitude: longitude !== undefined ? parseCoordinate(longitude) : existing.longitude,
 
         totalArea: totalArea !== undefined ? (totalArea ? Number(totalArea) : 0) : existing.totalArea,
         consolidatedArea: consolidatedArea !== undefined ? (consolidatedArea ? Number(consolidatedArea) : null) : existing.consolidatedArea,
@@ -332,8 +370,12 @@ export async function updateProperty(id: string, data: any) {
         hasLien: hasLien !== undefined ? Boolean(hasLien) : existing.hasLien,
         hasInsurance: hasInsurance !== undefined ? Boolean(hasInsurance) : existing.hasInsurance,
         isBorderProperty: isBorderProperty !== undefined ? Boolean(isBorderProperty) : existing.isBorderProperty,
-        seizureStatus: (seizureStatus || impenhorabilidade) ? ((seizureStatus || impenhorabilidade) as any) : existing.seizureStatus,
-        conservationState: conservationState ? (conservationState as any) : existing.conservationState,
+        seizureStatus: (seizureStatus !== undefined || impenhorabilidade !== undefined)
+          ? (parseSeizureStatus(seizureStatus || impenhorabilidade) ?? null)
+          : existing.seizureStatus,
+        conservationState: conservationState !== undefined
+          ? (parseConservationState(conservationState) ?? null)
+          : existing.conservationState,
 
         explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : existing.explorationActivity,
 

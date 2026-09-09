@@ -282,7 +282,7 @@ export default function AdminSidebar({
                   {item.subItems && isExpanded && (
                     <div className="ml-4 pl-4 border-l border-white/20 space-y-1 mt-1 mb-2">
                       {item.subItems.map((sub) => {
-                        const isSubActive = pathname === sub.href
+                        const isSubActive = pathname === sub.href || (sub.href !== '/admin' && pathname.startsWith(sub.href + '/'))
                         return (
                           <Link
                             key={sub.title}

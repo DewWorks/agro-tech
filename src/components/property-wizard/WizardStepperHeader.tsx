@@ -8,6 +8,7 @@ interface WizardStepperHeaderProps {
   currentStep: number
   onStepClick: (step: number) => void
   highestVisitedStep: number
+  isEditMode?: boolean
 }
 
 const STEPS = [
@@ -47,6 +48,7 @@ export function WizardStepperHeader({
   currentStep,
   onStepClick,
   highestVisitedStep,
+  isEditMode = false,
 }: WizardStepperHeaderProps) {
   const progressPercent = ((currentStep - 1) / (STEPS.length - 1)) * 100
 
@@ -81,7 +83,7 @@ export function WizardStepperHeader({
           const Icon = s.icon
           const isCurrent = s.step === currentStep
           const isCompleted = s.step < currentStep
-          const isAccessible = s.step <= highestVisitedStep
+          const isAccessible = isEditMode || s.step <= highestVisitedStep
 
           return (
             <button

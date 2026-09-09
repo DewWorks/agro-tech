@@ -108,31 +108,33 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
           ) : (
             <div className="space-y-4">
               <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
-                <Table>
+                <Table className="min-w-[1150px]">
                   <TableHeader className="bg-slate-50 dark:bg-slate-900">
                     <TableRow className="border-b border-slate-200 dark:border-slate-800">
-                      <TableHead className="w-[180px] text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <TableHead className="w-[190px] min-w-[170px] text-xs font-bold text-slate-700 dark:text-slate-300">
                         Categoria *
                       </TableHead>
-                      <TableHead className="w-[140px] text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <TableHead className="w-[150px] min-w-[130px] text-xs font-bold text-slate-700 dark:text-slate-300">
                         Marca *
                       </TableHead>
-                      <TableHead className="w-[140px] text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <TableHead className="w-[150px] min-w-[130px] text-xs font-bold text-slate-700 dark:text-slate-300">
                         Modelo *
                       </TableHead>
-                      <TableHead className="w-[90px] text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <TableHead className="w-[100px] min-w-[90px] text-center text-xs font-bold text-slate-700 dark:text-slate-300">
                         Ano *
                       </TableHead>
-                      <TableHead className="w-[180px] text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <TableHead className="w-[190px] min-w-[170px] text-xs font-bold text-slate-700 dark:text-slate-300">
                         Chassi / Série *
                       </TableHead>
-                      <TableHead className="w-[140px] text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <TableHead className="w-[150px] min-w-[135px] text-xs font-bold text-slate-700 dark:text-slate-300">
                         Valor Unit. (R$) *
                       </TableHead>
-                      <TableHead className="w-[180px] text-xs font-bold text-slate-700 dark:text-slate-300">
+                      <TableHead className="w-[200px] min-w-[180px] text-xs font-bold text-slate-700 dark:text-slate-300">
                         Tem Penhor? / Credor
                       </TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
+                      <TableHead className="w-[60px] min-w-[60px] text-center text-xs font-bold text-slate-700 dark:text-slate-300">
+                        Ações
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -145,15 +147,17 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                           className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800"
                         >
                           {/* Categoria */}
-                          <TableCell className="p-2 align-top">
+                          <TableCell className="p-2 align-middle">
                             <Select
-                              defaultValue={fieldItem.category}
+                              value={watch(`machineries.${index}.category`) || fieldItem.category}
                               onValueChange={(val) =>
                                 setValue(`machineries.${index}.category`, val || '')
                               }
                             >
                               <SelectTrigger className="h-9 text-xs w-full">
-                                <SelectValue placeholder="Selecione" />
+                                <SelectValue placeholder="Selecione">
+                                  {watch(`machineries.${index}.category`) || fieldItem.category}
+                                </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 {MACHINERY_CATEGORIES.map((cat) => (
@@ -166,7 +170,7 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                           </TableCell>
 
                           {/* Marca */}
-                          <TableCell className="p-2 align-top">
+                          <TableCell className="p-2 align-middle">
                             <Input
                               placeholder="Ex: John Deere"
                               className="h-9 text-xs"
@@ -175,7 +179,7 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                           </TableCell>
 
                           {/* Modelo */}
-                          <TableCell className="p-2 align-top">
+                          <TableCell className="p-2 align-middle">
                             <Input
                               placeholder="Ex: 6110J"
                               className="h-9 text-xs"
@@ -184,19 +188,19 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                           </TableCell>
 
                           {/* Ano */}
-                          <TableCell className="p-2 align-top">
+                          <TableCell className="p-2 align-middle">
                             <Input
                               type="number"
                               min={1950}
                               max={new Date().getFullYear() + 1}
                               placeholder="2022"
-                              className="h-9 text-xs font-mono"
+                              className="h-9 text-xs font-mono text-center"
                               {...register(`machineries.${index}.year`)}
                             />
                           </TableCell>
 
                           {/* Chassi / Série */}
-                          <TableCell className="p-2 align-top">
+                          <TableCell className="p-2 align-middle">
                             <Input
                               placeholder="Ex: 1BM6110JJLH00123"
                               className="h-9 text-xs font-mono uppercase"
@@ -205,7 +209,7 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                           </TableCell>
 
                           {/* Valor de Mercado */}
-                          <TableCell className="p-2 align-top">
+                          <TableCell className="p-2 align-middle">
                             <Input
                               type="number"
                               step="1000"
@@ -216,39 +220,42 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                           </TableCell>
 
                           {/* Gravame / Penhor */}
-                          <TableCell className="p-2 align-top space-y-1">
-                            <div className="flex items-center space-x-2 pt-1.5">
-                              <Checkbox
-                                id={`lien-${index}`}
-                                checked={hasLien}
-                                onCheckedChange={(checked) =>
-                                  setValue(`machineries.${index}.hasLien`, !!checked)
-                                }
-                              />
-                              <label
-                                htmlFor={`lien-${index}`}
-                                className="text-xs font-medium cursor-pointer text-slate-700 dark:text-slate-300"
-                              >
-                                {hasLien ? 'Alienado' : 'Livre de Ônus'}
-                              </label>
+                          <TableCell className="p-2 align-middle">
+                            <div className="flex flex-col justify-center gap-1.5 py-0.5">
+                              <div className="flex items-center space-x-2 h-7">
+                                <Checkbox
+                                  id={`lien-${index}`}
+                                  checked={hasLien}
+                                  onCheckedChange={(checked) =>
+                                    setValue(`machineries.${index}.hasLien`, !!checked)
+                                  }
+                                />
+                                <label
+                                  htmlFor={`lien-${index}`}
+                                  className="text-xs font-medium cursor-pointer text-slate-700 dark:text-slate-300"
+                                >
+                                  {hasLien ? 'Alienado' : 'Livre de Ônus'}
+                                </label>
+                              </div>
+                              {hasLien && (
+                                <Input
+                                  placeholder="Banco / Credor"
+                                  className="h-8 text-xs border-amber-300 bg-amber-50/50 dark:bg-amber-950/20"
+                                  {...register(`machineries.${index}.lienInstitution`)}
+                                />
+                              )}
                             </div>
-                            {hasLien && (
-                              <Input
-                                placeholder="Banco / Credor"
-                                className="h-8 text-xs border-amber-300 bg-amber-50/50 dark:bg-amber-950/20"
-                                {...register(`machineries.${index}.lienInstitution`)}
-                              />
-                            )}
                           </TableCell>
 
                           {/* Ações */}
-                          <TableCell className="p-2 align-top text-right">
+                          <TableCell className="p-2 align-middle text-center">
                             <Button
                               type="button"
                               variant="ghost"
                               size="sm"
                               onClick={() => remove(index)}
-                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer"
+                              className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50 cursor-pointer inline-flex items-center justify-center"
+                              title="Remover máquina"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

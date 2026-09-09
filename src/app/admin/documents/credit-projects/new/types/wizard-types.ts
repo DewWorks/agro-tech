@@ -16,6 +16,24 @@ export interface PropertyData {
   preserveArea?: number
   explorationActivity?: string | null
   accessRoute?: string | null
+  machineries?: Array<{
+    id?: string
+    type: string
+    category?: string
+    brand?: string
+    model?: string
+    year?: number
+    chassi?: string
+    value?: number
+  }>
+  improvements?: Array<{
+    id?: string
+    specification: string
+    unit: string
+    quantity: number
+    unitValue: number
+    totalValue: number
+  }>
 }
 
 export interface ProducerData {

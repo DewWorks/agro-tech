@@ -29,6 +29,7 @@ import { Step2Machinery } from './steps/Step2Machinery'
 import { Step3ImprovementsHerd } from './steps/Step3ImprovementsHerd'
 import { Step4FinancialSummary } from './steps/Step4FinancialSummary'
 import { Step5ReviewDossier } from './steps/Step5ReviewDossier'
+import { toDMS } from './subcomponents/FarmMapModal'
 
 interface PropertyWizardContainerProps {
   initialData?: any
@@ -47,7 +48,7 @@ export function PropertyWizardContainer({
 }: PropertyWizardContainerProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<number>(1)
-  const [highestVisitedStep, setHighestVisitedStep] = useState<number>(1)
+  const [highestVisitedStep, setHighestVisitedStep] = useState<number>(isEditMode ? 5 : 1)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
   // Mapeamento dos valores iniciais se estiver em modo de edição
@@ -87,8 +88,18 @@ export function PropertyWizardContainer({
       totalLandValue: Number(initialData.totalLandValue) || 0,
       city: initialData.city || '',
       state: initialData.state || 'TO',
-      latitude: initialData.latitude ? String(initialData.latitude) : '',
-      longitude: initialData.longitude ? String(initialData.longitude) : '',
+      latitude:
+        initialData.latitude !== undefined && initialData.latitude !== null && initialData.latitude !== ''
+          ? typeof initialData.latitude === 'number'
+            ? toDMS(initialData.latitude, true)
+            : String(initialData.latitude)
+          : '',
+      longitude:
+        initialData.longitude !== undefined && initialData.longitude !== null && initialData.longitude !== ''
+          ? typeof initialData.longitude === 'number'
+            ? toDMS(initialData.longitude, false)
+            : String(initialData.longitude)
+          : '',
       accessRoute: initialData.accessRoute || '',
       confrontantNorth: initialData.confrontants?.norte || '',
       confrontantSouth: initialData.confrontants?.sul || '',
@@ -153,13 +164,14 @@ export function PropertyWizardContainer({
 
   // Validação Parcial (Partial Triggering) para Avançar
   const handleNextStep = async () => {
-    const fieldsToValidate = STEP_FIELDS_MAP[currentStep] || []
-
-    if (fieldsToValidate.length > 0) {
-      const isStepValid = await form.trigger(fieldsToValidate)
-      if (!isStepValid) {
-        toast.error('Por favor, preencha os campos obrigatórios destacados em vermelho.')
-        return
+    if (!isEditMode) {
+      const fieldsToValidate = STEP_FIELDS_MAP[currentStep] || []
+      if (fieldsToValidate.length > 0) {
+        const isStepValid = await form.trigger(fieldsToValidate)
+        if (!isStepValid) {
+          toast.error('Por favor, preencha os campos obrigatórios destacados em vermelho.')
+          return
+        }
       }
     }
 
@@ -175,13 +187,14 @@ export function PropertyWizardContainer({
   }
 
   const handleStepClick = async (targetStep: number) => {
-    if (targetStep <= currentStep) {
+    if (isEditMode || targetStep <= currentStep) {
       setCurrentStep(targetStep)
+      setHighestVisitedStep((prev) => Math.max(prev, targetStep))
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
 
-    // Se estiver pulando para a frente, valida o passo atual antes
+    // Se estiver em modo de criação pulando para a frente, valida o passo atual antes
     const fieldsToValidate = STEP_FIELDS_MAP[currentStep] || []
     if (fieldsToValidate.length > 0) {
       const isStepValid = await form.trigger(fieldsToValidate)
@@ -196,53 +209,56 @@ export function PropertyWizardContainer({
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  // Submissão Final Unificada (Apenas acionada no Step 5)
-  const onFinalSubmit = async (values: PropertyWizardFormValues) => {
+  // Salvamento unificado no banco (Parcial ao salvar no passo, ou Final no passo 5)
+  const executeSave = async (
+    values: PropertyWizardFormValues,
+    stayOnPage = false
+  ) => {
     try {
       setIsSubmitting(true)
 
       const payload = {
         name: values.name,
         propertyName: values.name,
-        branchId: values.branchId,
-        producerId: values.producerId,
-        ownershipType: values.ownershipType,
-        explorationPercentage: values.explorationPercentage,
+        branchId: values.branchId || branches[0]?.id || initialData?.branchId,
+        producerId: values.producerId || producers[0]?.id,
+        ownershipType: values.ownershipType || 'PROPRIETARIO',
+        explorationPercentage: values.explorationPercentage ?? 100,
         contractEndDate: values.contractEndDate || null,
 
         // Áreas
-        totalArea: values.totalArea,
-        consolidatedArea: values.consolidatedArea,
-        productiveArea: values.productiveArea,
-        pastureArea: values.pastureArea,
-        preserveArea: values.preserveArea,
-        ruralModules: values.ruralModules,
-        vtnPerHectare: values.vtnPerHectare,
-        totalLandValue: values.totalLandValue,
+        totalArea: values.totalArea ?? 0,
+        consolidatedArea: values.consolidatedArea ?? 0,
+        productiveArea: values.productiveArea ?? 0,
+        pastureArea: values.pastureArea ?? 0,
+        preserveArea: values.preserveArea ?? 0,
+        ruralModules: values.ruralModules ?? 0,
+        vtnPerHectare: values.vtnPerHectare ?? 0,
+        totalLandValue: values.totalLandValue ?? 0,
 
         // Registros
-        registrationNumber: values.registrationNumber,
-        registryOffice: values.registryOffice,
-        comarca: values.comarca,
-        car: values.car,
-        ccir: values.ccir,
-        itr: values.itr,
+        registrationNumber: values.registrationNumber || '',
+        registryOffice: values.registryOffice || '',
+        comarca: values.comarca || '',
+        car: values.car || '',
+        ccir: values.ccir || '',
+        itr: values.itr || '',
 
         // Localização e Posse
-        city: values.city,
-        state: values.state,
-        latitude: values.latitude,
-        longitude: values.longitude,
-        accessRoute: values.accessRoute,
-        explorationActivity: values.explorationActivity,
-        possessionYears: values.possessionYears,
+        city: values.city || '',
+        state: values.state || 'TO',
+        latitude: values.latitude || '',
+        longitude: values.longitude || '',
+        accessRoute: values.accessRoute || '',
+        explorationActivity: values.explorationActivity || 'Pecuária de Cria',
+        possessionYears: values.possessionYears ?? 0,
 
         // Indicadores
-        impenhorabilidade: values.impenhorabilidade,
-        hasLien: values.hasLien,
-        hasInsurance: values.hasInsurance,
-        isBorderProperty: values.isBorderProperty,
-        conservationState: values.conservationState,
+        impenhorabilidade: values.impenhorabilidade || 'PENHORAVEL',
+        hasLien: Boolean(values.hasLien),
+        hasInsurance: Boolean(values.hasInsurance),
+        isBorderProperty: Boolean(values.isBorderProperty),
+        conservationState: values.conservationState || 'BOM',
 
         // Confrontantes
         confrontants: {
@@ -258,12 +274,12 @@ export function PropertyWizardContainer({
         livestocks: values.livestocks || [],
 
         // Financeiro
-        effectiveAgroRevenue: values.effectiveAgroRevenue,
-        projectedAgroRevenue: values.projectedAgroRevenue,
-        otherRevenues: values.otherRevenues,
-        operationalExpenses: values.operationalExpenses,
-        existingDebtService: values.existingDebtService,
-        familyLivingCosts: values.familyLivingCosts,
+        effectiveAgroRevenue: values.effectiveAgroRevenue ?? 0,
+        projectedAgroRevenue: values.projectedAgroRevenue ?? 0,
+        otherRevenues: values.otherRevenues ?? 0,
+        operationalExpenses: values.operationalExpenses ?? 0,
+        existingDebtService: values.existingDebtService ?? 0,
+        familyLivingCosts: values.familyLivingCosts ?? 0,
       }
 
       let res
@@ -280,18 +296,54 @@ export function PropertyWizardContainer({
 
       toast.success(
         isEditMode
-          ? 'Propriedade e Levantamento Patrimonial atualizados com sucesso!'
+          ? 'Alterações salvas com sucesso!'
           : 'Propriedade e Dossiê cadastrados com sucesso!'
       )
 
-      router.push('/admin/crm/properties')
-      router.refresh()
+      if (stayOnPage) {
+        router.refresh()
+      } else {
+        router.push('/admin/crm/properties')
+        router.refresh()
+      }
     } catch (err: any) {
       console.error(err)
       toast.error('Erro inesperado ao salvar. Verifique sua conexão.')
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Handler rápido para salvar dados atuais sem validação bloqueante de passos futuros
+  const handleSaveCurrent = async () => {
+    try {
+      const values = form.getValues()
+
+      if (!values.name || values.name.trim().length < 2) {
+        toast.error('O nome da fazenda é obrigatório (mínimo 2 caracteres).')
+        return
+      }
+
+      await executeSave(values, true)
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Erro ao salvar alterações.')
+    }
+  }
+
+  const onFormError = (errors: any) => {
+    console.error('Validation errors:', errors)
+    const errorKeys = Object.keys(errors)
+    if (errorKeys.length > 0) {
+      const firstError = errors[errorKeys[0]]
+      const msg = firstError?.message || `Existem campos com pendências: ${errorKeys.join(', ')}`
+      toast.error(msg)
+    }
+  }
+
+  // Submissão Final Unificada (Acionada no Step 5)
+  const onFinalSubmit = async (values: PropertyWizardFormValues) => {
+    await executeSave(values, false)
   }
 
   const selectedProducer = producers.find(
@@ -323,12 +375,27 @@ export function PropertyWizardContainer({
         </div>
 
         <div className="flex items-center gap-2">
+          {isEditMode && (
+            <Button
+              type="button"
+              onClick={handleSaveCurrent}
+              disabled={isSubmitting}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs h-9 px-3.5 shadow-xs cursor-pointer flex items-center gap-1.5 mr-1"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Save className="w-3.5 h-3.5" />
+              )}
+              Salvar Alterações
+            </Button>
+          )}
           <span className="text-xs text-slate-500 font-medium hidden sm:inline">
             Estado do Formulário:
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Em Preenchimento
+            {isEditMode ? 'Edição Cadastral' : 'Em Preenchimento'}
           </span>
         </div>
       </div>
@@ -338,11 +405,12 @@ export function PropertyWizardContainer({
         currentStep={currentStep}
         onStepClick={handleStepClick}
         highestVisitedStep={highestVisitedStep}
+        isEditMode={isEditMode}
       />
 
       {/* Formulário Principal com Contexto RHF */}
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onFinalSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onFinalSubmit, onFormError)} className="space-y-6">
           {/* RENDERIZAÇÃO CONDICIONAL DO PASSO ATIVO */}
           {currentStep === 1 && (
             <Step1Land
@@ -364,7 +432,7 @@ export function PropertyWizardContainer({
               producerName={selectedProducer?.name}
               branchName={selectedBranch?.name}
               isSubmitting={isSubmitting}
-              onSubmit={form.handleSubmit(onFinalSubmit)}
+              onSubmit={form.handleSubmit(onFinalSubmit, onFormError)}
             />
           )}
 
@@ -388,6 +456,23 @@ export function PropertyWizardContainer({
               <span className="text-xs text-slate-500 hidden md:inline mr-2">
                 Passo {currentStep} de 5
               </span>
+
+              {isEditMode && currentStep < 5 && (
+                <Button
+                  type="button"
+                  onClick={handleSaveCurrent}
+                  disabled={isSubmitting}
+                  variant="outline"
+                  className="border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold text-xs sm:text-sm h-10 px-4 shadow-xs cursor-pointer flex items-center gap-1.5"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  Salvar Alterações
+                </Button>
+              )}
 
               {currentStep < 5 ? (
                 <Button

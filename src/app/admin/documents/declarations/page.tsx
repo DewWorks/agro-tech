@@ -68,7 +68,7 @@ export default async function CreditProjectsHubPage() {
             <ShieldCheck className="h-5 w-5 text-[#1B4D3E]" />
             Modelos de Documentos Oficiais (Padrão Banco do Brasil)
           </h2>
-          <span className="text-xs text-muted-foreground">{CREDIT_TEMPLATES_REGISTRY.length} modelos disponíveis</span>
+          <span className="text-xs text-muted-foreground">{CREDIT_TEMPLATES_REGISTRY.filter(t => t.type === 'LEGAL').length} modelos disponíveis</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

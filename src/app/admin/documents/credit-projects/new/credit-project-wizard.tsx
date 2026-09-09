@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   FileText, 
@@ -117,6 +117,8 @@ interface CreditProjectWizardProps {
   defaultResponsibleName?: string
   defaultOrgName?: string
   defaultOrgCnpj?: string
+  backUrl?: string
+  pageTitle?: string
 }
 
 export default function CreditProjectWizard({ 
@@ -124,10 +126,13 @@ export default function CreditProjectWizard({
   templates,
   defaultResponsibleName = '',
   defaultOrgName = '',
-  defaultOrgCnpj = ''
+  defaultOrgCnpj = '',
+  backUrl,
+  pageTitle
 }: CreditProjectWizardProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const pathname = usePathname()
   const initialTemplate = searchParams.get('template') || templates[0]?.code || 'CHECKLIST_PROFISSIONAL'
 
   const { state, actions } = useCreditProjectWizard({
@@ -290,21 +295,25 @@ export default function CreditProjectWizard({
     toast.success('Download do modelo base iniciado!')
   }
 
+  const isDeclarations = pathname ? pathname.includes('/declarations') : (currentTemplate?.type === 'LEGAL')
+  const resolvedBackUrl = backUrl || (isDeclarations ? '/admin/documents/declarations' : '/admin/documents/credit-projects')
+  const resolvedTitle = pageTitle || (isDeclarations ? 'Gerador de Declarações & Autorizações BB' : 'Gerador de Documentos & Projetos BB')
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       
       {/* Top Header & Breadcrumb */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
         <div className="flex items-center gap-3">
-          <Link href="/admin/documents/credit-projects">
-            <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg">
+          <Link href={resolvedBackUrl}>
+            <Button variant="outline" size="icon" className="h-9 w-9 rounded-lg hover:bg-slate-100 cursor-pointer" title="Voltar">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
               <Sparkles className="h-6 w-6" />
-              Gerador de Documentos & Projetos BB
+              {resolvedTitle}
             </h1>
             {currentTemplate ? (
               <p className="text-sm font-semibold text-[#1B4D3E] mt-1 flex items-center gap-1.5">

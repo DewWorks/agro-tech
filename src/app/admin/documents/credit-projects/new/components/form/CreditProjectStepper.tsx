@@ -24,6 +24,13 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { CustomOptions, PropertyData, ProducerData } from '../../types/wizard-types'
 import { SmartCreatableCombobox } from '@/components/property-wizard/subcomponents/SmartCreatableCombobox'
@@ -41,7 +48,7 @@ interface CreditProjectStepperProps {
   selectedTemplateCode: string
   currentProducer: ProducerData | undefined
   currentProperty: PropertyData | undefined
-  currentTemplate: { code: string; title: string; subtitle?: string; category?: string; bank?: string } | undefined
+  currentTemplate: { code: string; title: string; subtitle?: string; category?: string; bank?: string; type?: string } | undefined
   customOptions: CustomOptions
   setCustomOptions: React.Dispatch<React.SetStateAction<CustomOptions>>
   validationErrors: string[]
@@ -270,7 +277,7 @@ export function CreditProjectStepper({
             </span>
             <div className="flex flex-col">
               <span className="text-sm font-bold text-gray-900">
-                Passo a Passo do Projeto de Crédito
+                {currentTemplate?.type === 'LEGAL' ? 'Passo a Passo da Declaração' : 'Passo a Passo do Projeto de Crédito'}
               </span>
               {currentTemplate && (
                 <span className="text-xs font-semibold text-[#1B4D3E] mt-0.5">
@@ -639,15 +646,21 @@ export function CreditProjectStepper({
                       {machineryItems.map((item, idx) => (
                         <tr key={item.id || idx} className="hover:bg-slate-50/60 transition-colors">
                           <td className="p-2">
-                            <select
+                            <Select
                               value={item.type}
-                              onChange={(e) => updateMachineField(idx, 'type', e.target.value)}
-                              className="h-8 w-full text-xs bg-white border border-gray-200 rounded px-2 font-medium"
+                              onValueChange={(val) => updateMachineField(idx, 'type', val)}
                             >
-                              {MACHINERY_CATEGORIES.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                              ))}
-                            </select>
+                              <SelectTrigger className="h-8 text-xs bg-white border-gray-200 w-full min-w-[170px]">
+                                <SelectValue placeholder="Categoria">{item.type}</SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {MACHINERY_CATEGORIES.map(cat => (
+                                  <SelectItem key={cat} value={cat} className="text-xs">
+                                    {cat}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </td>
                           <td className="p-2">
                             <Input
@@ -991,6 +1004,7 @@ export function CreditProjectStepper({
             <TechnicalResponsibleForm
               customOptions={customOptions}
               setCustomOptions={setCustomOptions}
+              pendingFields={stepRTPending}
             />
 
             <div className="pt-4 border-t border-gray-100 flex justify-between">
@@ -1041,6 +1055,7 @@ export function CreditProjectStepper({
             <TechnicalResponsibleForm
               customOptions={customOptions}
               setCustomOptions={setCustomOptions}
+              pendingFields={stepRTPending}
             />
 
             <div className="pt-4 border-t border-gray-100 flex justify-between">

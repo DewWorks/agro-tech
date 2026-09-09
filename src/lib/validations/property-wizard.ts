@@ -2,19 +2,27 @@ import { z } from 'zod'
 import {
   RURAL_ACTIVITIES,
   BB_IMPROVEMENTS_CATALOG,
+  IMPROVEMENT_UNITS,
   LIVESTOCK_CATEGORIES,
   LIVESTOCK_BREEDS,
   LIVESTOCK_PURPOSES,
+  LIVESTOCK_MARKINGS,
+  LIVESTOCK_MARKING_LOCATIONS,
   MACHINERY_CATEGORIES,
+  BRAZILIAN_STATES,
 } from './reference-data'
 
 export {
   RURAL_ACTIVITIES,
   BB_IMPROVEMENTS_CATALOG,
+  IMPROVEMENT_UNITS,
   LIVESTOCK_CATEGORIES,
   LIVESTOCK_BREEDS,
   LIVESTOCK_PURPOSES,
+  LIVESTOCK_MARKINGS,
+  LIVESTOCK_MARKING_LOCATIONS,
   MACHINERY_CATEGORIES,
+  BRAZILIAN_STATES,
 }
 
 // ============================================================================
@@ -43,34 +51,20 @@ export const step1LandSchema = z.object({
   explorationPercentage: z.coerce.number().min(1).max(100).default(100),
   contractEndDate: z.string().optional(),
 
-  // Registros com Máscaras Estritas
-  registrationNumber: z
-    .string()
-    .min(1, 'A matrícula é obrigatória')
-    .regex(/^\d+$/, 'Apenas números são permitidos na matrícula'),
-  registryOffice: z.string().min(3, 'Informe o Cartório de Registro de Imóveis (CRI)'),
-  comarca: z.string().min(2, 'Informe a comarca do cartório'),
-  car: z
-    .string()
-    .regex(
-      /^[A-Z]{2}-\d{7}-[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}$/,
-      'Formato CAR inválido. Ex: TO-1700000-ABCD.1234.EF56.7890.1234.5678.90AB'
-    ),
-  ccir: z
-    .string()
-    .min(1, 'CCIR é obrigatório')
-    .regex(/^\d{13}$/, 'CCIR deve conter exatamente 13 dígitos numéricos'),
-  itr: z
-    .string()
-    .min(1, 'ITR/NIRF é obrigatório')
-    .regex(/^\d{8}$/, 'ITR/NIRF deve conter exatamente 8 dígitos numéricos'),
+  // Registros Fundiários
+  registrationNumber: z.string().optional().or(z.literal('')),
+  registryOffice: z.string().optional().or(z.literal('')),
+  comarca: z.string().optional().or(z.literal('')),
+  car: z.string().optional().or(z.literal('')),
+  ccir: z.string().optional().or(z.literal('')),
+  itr: z.string().optional().or(z.literal('')),
 
   // Atividade e Posse
-  explorationActivity: z.string().min(1, 'Selecione ou adicione a atividade principal'),
+  explorationActivity: z.string().optional().or(z.literal('')),
   possessionYears: z.coerce.number().min(0).default(0),
 
   // Áreas (em Hectares)
-  totalArea: z.coerce.number().positive('A área total deve ser maior que zero'),
+  totalArea: z.coerce.number().min(0).default(0),
   consolidatedArea: z.coerce.number().min(0).default(0),
   productiveArea: z.coerce.number().min(0).default(0),
   pastureArea: z.coerce.number().min(0).default(0),
@@ -78,17 +72,15 @@ export const step1LandSchema = z.object({
   ruralModules: z.coerce.number().min(0).default(0),
 
   // Natureza da Terra & VTN
-  vtnPerHectare: z.coerce.number().min(0, 'VTN não pode ser negativo').default(0),
+  vtnPerHectare: z.coerce.number().min(0).default(0),
   totalLandValue: z.coerce.number().min(0).default(0),
 
   // Localização & Roteiro
-  city: z.string().min(2, 'Informe o município'),
-  state: z.string().length(2, 'Informe a UF (2 letras)').toUpperCase(),
+  city: z.string().optional().or(z.literal('')),
+  state: z.string().optional().or(z.literal('')),
   latitude: z.string().optional(),
   longitude: z.string().optional(),
-  accessRoute: z
-    .string()
-    .min(10, 'Roteiro de acesso deve conter no mínimo 10 caracteres para vistoria'),
+  accessRoute: z.string().optional().or(z.literal('')),
   confrontantNorth: z.string().optional(),
   confrontantSouth: z.string().optional(),
   confrontantEast: z.string().optional(),
@@ -110,19 +102,19 @@ export type Step1LandValues = z.infer<typeof step1LandSchema>
 
 export const machineryItemSchema = z.object({
   id: z.string().optional(),
-  category: z.string().min(1, 'Categoria obrigatória'),
-  brand: z.string().min(1, 'Marca obrigatória'),
-  model: z.string().min(1, 'Modelo obrigatório'),
+  category: z.string().optional().default('Trator de Pneus'),
+  brand: z.string().optional().or(z.literal('')),
+  model: z.string().optional().or(z.literal('')),
   year: z.coerce
     .number()
-    .min(1950, 'Ano inválido')
-    .max(new Date().getFullYear() + 1, 'Ano futuro inválido'),
-  powerCapacity: z.string().optional(),
-  chassisSerial: z.string().min(3, 'Chassi/Série obrigatório para vistoria bancária'),
-  participationPercent: z.coerce.number().min(1).max(100).default(100),
-  value: z.coerce.number().positive('O valor deve ser maior que zero'),
+    .optional()
+    .default(new Date().getFullYear()),
+  powerCapacity: z.string().optional().or(z.literal('')),
+  chassisSerial: z.string().optional().or(z.literal('')),
+  participationPercent: z.coerce.number().min(0).max(100).default(100),
+  value: z.coerce.number().min(0).default(0),
   hasLien: z.boolean().default(false),
-  lienInstitution: z.string().optional(),
+  lienInstitution: z.string().optional().or(z.literal('')),
 })
 
 export const step2MachinerySchema = z.object({
@@ -138,29 +130,29 @@ export type Step2MachineryValues = z.infer<typeof step2MachinerySchema>
 
 export const improvementItemSchema = z.object({
   id: z.string().optional(),
-  specification: z.string().min(1, 'Benfeitoria obrigatória'),
-  unit: z.string().min(1, 'Unidade obrigatória'),
-  quantity: z.coerce.number().positive('Quantidade deve ser maior que zero'),
-  unitValue: z.coerce.number().positive('Valor unitário deve ser maior que zero'),
+  specification: z.string().optional().or(z.literal('')),
+  unit: z.string().optional().or(z.literal('m²')),
+  quantity: z.coerce.number().min(0).default(0),
+  unitValue: z.coerce.number().min(0).default(0),
   totalValue: z.coerce.number().min(0).default(0),
   conservationState: z.string().default('BOM'),
-  observation: z.string().optional(),
+  observation: z.string().optional().or(z.literal('')),
 })
 
 export const livestockItemSchema = z.object({
   id: z.string().optional(),
-  species: z.string().min(1, 'Espécie obrigatória'),
-  category: z.string().min(1, 'Categoria zootécnica obrigatória'),
-  purpose: z.string().min(1, 'Finalidade obrigatória'),
-  breed: z.string().min(1, 'Raça obrigatória'),
+  species: z.string().optional().or(z.literal('BOVINO')),
+  category: z.string().optional().or(z.literal('MATRIZES')),
+  purpose: z.string().optional().or(z.literal('Cria')),
+  breed: z.string().optional().or(z.literal('Nelore')),
   geneticGrade: z.string().default('Comercial'),
-  quantity: z.coerce.number().int().positive('Quantidade deve ser maior que zero'),
+  quantity: z.coerce.number().min(0).default(0),
   ageMonths: z.coerce.number().min(0).default(0),
   avgWeightKg: z.coerce.number().min(0).default(0),
-  unitValue: z.coerce.number().positive('Valor unitário deve ser maior que zero'),
+  unitValue: z.coerce.number().min(0).default(0),
   totalValue: z.coerce.number().min(0).default(0),
-  markingType: z.string().optional(),
-  markingLocation: z.string().optional(),
+  markingType: z.string().optional().or(z.literal('')),
+  markingLocation: z.string().optional().or(z.literal('')),
 })
 
 export const step3ImprovementsAndHerdSchema = z.object({

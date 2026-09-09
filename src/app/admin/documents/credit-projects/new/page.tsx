@@ -31,6 +31,8 @@ export default async function NewCreditProjectPage() {
       defaultResponsibleName={defaultResponsibleName}
       defaultOrgName={defaultOrgName}
       defaultOrgCnpj={defaultOrgCnpj}
+      backUrl="/admin/documents/credit-projects"
+      pageTitle="Gerador de Documentos & Projetos BB"
     />
   )
 }

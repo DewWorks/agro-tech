@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -29,16 +30,31 @@ import {
   Compass,
   Building2,
   HelpCircle,
+  Search,
+  Loader2,
+  Globe,
 } from 'lucide-react'
 import {
   PropertyWizardFormValues,
   RURAL_ACTIVITIES,
+  BRAZILIAN_STATES,
 } from '@/lib/validations/property-wizard'
 import {
   IMPENHORABILIDADE_OPTIONS,
   CONSERVATION_STATES,
 } from '@/lib/validations/reference-data'
 import { SmartCreatableCombobox } from '../subcomponents/SmartCreatableCombobox'
+import { FarmMapModal, toDMS } from '../subcomponents/FarmMapModal'
+
+const OWNERSHIP_LABELS: Record<string, string> = {
+  PROPRIETARIO: 'Proprietário',
+  ARRENDATARIO: 'Arrendatário',
+  COMODATARIO: 'Comodatário',
+  PARCEIRO: 'Parceiro / Meeiro',
+  CONDOMINO: 'Condômino',
+  USUFRUTUARIO: 'Usufrutuário',
+  POSSEIRO: 'Posseiro',
+}
 
 interface Step1LandProps {
   form: UseFormReturn<any>
@@ -53,11 +69,51 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
   const totalArea = watch('totalArea')
   const vtnPerHectare = watch('vtnPerHectare')
 
+  // Estados para busca de endereço e mapa interativo
+  const [searchAddressQuery, setSearchAddressQuery] = React.useState<string>('')
+  const [searchResults, setSearchResults] = React.useState<Array<any>>([])
+  const [isSearchingAddress, setIsSearchingAddress] = React.useState<boolean>(false)
+  const [isMapModalOpen, setIsMapModalOpen] = React.useState<boolean>(false)
+
+  // Debounced search para API de geocodificação
+  useEffect(() => {
+    if (!searchAddressQuery || searchAddressQuery.trim().length < 2) {
+      setSearchResults([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingAddress(true)
+      try {
+        const res = await fetch(
+          `/api/geocode/search?q=${encodeURIComponent(searchAddressQuery)}`
+        )
+        const data = await res.json()
+        setSearchResults(data.results || [])
+      } catch (e) {
+        console.error('Error fetching geocode:', e)
+      } finally {
+        setIsSearchingAddress(false)
+      }
+    }, 400)
+
+    return () => clearTimeout(timer)
+  }, [searchAddressQuery])
+
   useEffect(() => {
     const area = Number(totalArea) || 0
     const vtn = Number(vtnPerHectare) || 0
     setValue('totalLandValue', Math.round(area * vtn * 100) / 100)
   }, [totalArea, vtnPerHectare, setValue])
+
+  const handleSelectAddress = (item: any) => {
+    if (item.city) setValue('city', item.city)
+    if (item.state) setValue('state', item.state)
+    setValue('latitude', toDMS(item.lat, true))
+    setValue('longitude', toDMS(item.lon, false))
+    setSearchResults([])
+    setSearchAddressQuery('')
+  }
 
   return (
     <div className="space-y-6">
@@ -93,7 +149,9 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a filial" />
+                      <SelectValue placeholder="Selecione a filial">
+                        {branches.find((b) => b.id === field.value)?.name}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -118,7 +176,12 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione o produtor rural" />
+                      <SelectValue placeholder="Selecione o produtor rural">
+                        {(() => {
+                          const p = producers.find((prod) => prod.id === field.value)
+                          return p ? `${p.name} ${p.document ? `(${p.document})` : ''}` : undefined
+                        })()}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -143,7 +206,9 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Vínculo com a terra" />
+                      <SelectValue placeholder="Vínculo com a terra">
+                        {OWNERSHIP_LABELS[field.value] || field.value}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -497,16 +562,108 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
+          {/* BARRA DE PESQUISA DE ENDEREÇO & BOTÃO DO MAPA */}
+          <div className="p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-xl space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <span className="text-xs font-bold text-[#1B4D3E] dark:text-emerald-400 flex items-center gap-1.5 uppercase tracking-wide">
+                  <Globe className="w-4 h-4 text-emerald-600" />
+                  Localizador Inteligente & Georreferenciamento
+                </span>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Pesquise por município, vila ou rodovia, ou abra o mapa com satélite para marcar a sede da fazenda com um pin.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsMapModalOpen(true)}
+                className="bg-white dark:bg-slate-900 border-emerald-500 text-[#1B4D3E] dark:text-emerald-400 hover:bg-emerald-100/50 font-semibold text-xs h-9 px-4 rounded-xl flex items-center gap-1.5 shadow-2xs self-start sm:self-auto cursor-pointer"
+              >
+                <MapPin className="w-4 h-4 text-emerald-600" />
+                Marcar Ponto no Mapa (Pin)
+              </Button>
+            </div>
+
+            {/* Input de Busca de Endereço via API */}
+            <div className="relative">
+              <div className="relative">
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <Input
+                  value={searchAddressQuery}
+                  onChange={(e) => setSearchAddressQuery(e.target.value)}
+                  placeholder="Buscar endereço ou município via API (ex: Rodovia TO-050, Taguatinga, Palmas...)"
+                  className="pl-9 pr-9 h-9 text-xs bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-800"
+                />
+                {isSearchingAddress && (
+                  <Loader2 className="w-4 h-4 text-emerald-600 animate-spin absolute right-3 top-1/2 -translate-y-1/2" />
+                )}
+              </div>
+
+              {/* Lista flutuante de resultados da busca */}
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 z-30 mt-1 bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-800 rounded-xl shadow-xl max-h-56 overflow-y-auto divide-y divide-gray-100 dark:divide-slate-800 animate-in fade-in zoom-in-95">
+                  {searchResults.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleSelectAddress(item)}
+                      className="w-full text-left p-2.5 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors flex items-start gap-2.5 cursor-pointer text-xs"
+                    >
+                      <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-gray-800 dark:text-gray-100 block">
+                          {item.city || item.displayName.split(',')[0]} {item.state ? `- ${item.state}` : ''}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground line-clamp-1">
+                          {item.displayName}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <FormField
               control={control}
               name="city"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Município *</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Município *</FormLabel>
+                    <span className="text-[10px] text-muted-foreground">Ou escolha um polo abaixo</span>
+                  </div>
                   <FormControl>
                     <Input placeholder="Ex: Taguatinga" {...field} />
                   </FormControl>
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {[
+                      { city: 'Palmas', uf: 'TO', lat: '10°11\'01.63"S', lng: '48°20\'01.11"O' },
+                      { city: 'Taguatinga', uf: 'TO', lat: '12°24\'17.00"S', lng: '46°34\'17.00"O' },
+                      { city: 'Porto Nacional', uf: 'TO', lat: '10°42\'29.00"S', lng: '48°25\'02.00"O' },
+                      { city: 'Araguaína', uf: 'TO', lat: '07°11\'28.00"S', lng: '48°12\'28.00"O' },
+                      { city: 'Gurupi', uf: 'TO', lat: '11°43\'47.00"S', lng: '49°04\'07.00"O' },
+                      { city: 'Dianópolis', uf: 'TO', lat: '11°37\'29.00"S', lng: '46°49\'20.00"O' },
+                    ].map((c) => (
+                      <button
+                        key={c.city}
+                        type="button"
+                        onClick={() => {
+                          setValue('city', c.city)
+                          setValue('state', c.uf)
+                          if (!watch('latitude')) setValue('latitude', c.lat)
+                          if (!watch('longitude')) setValue('longitude', c.lng)
+                        }}
+                        className="text-[10.5px] px-2 py-0.5 rounded-md bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-gray-600 transition-colors border border-gray-200 cursor-pointer font-medium"
+                      >
+                        {c.city}
+                      </button>
+                    ))}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
@@ -518,14 +675,22 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>UF *</FormLabel>
-                  <FormControl>
-                    <Input
-                      maxLength={2}
-                      placeholder="TO"
-                      className="uppercase"
-                      {...field}
-                    />
-                  </FormControl>
+                  <Select onValueChange={field.onChange} value={field.value || 'TO'}>
+                    <FormControl>
+                      <SelectTrigger className="w-full font-mono font-medium">
+                        <SelectValue placeholder="UF">
+                          {field.value || 'TO'}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-60">
+                      {BRAZILIAN_STATES.map((st) => (
+                        <SelectItem key={st.value} value={st.value}>
+                          {st.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -559,6 +724,21 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
               )}
             />
           </div>
+
+          <FarmMapModal
+            isOpen={isMapModalOpen}
+            onClose={() => setIsMapModalOpen(false)}
+            initialLat={watch('latitude')}
+            initialLng={watch('longitude')}
+            initialCity={watch('city')}
+            initialState={watch('state')}
+            onConfirm={({ formattedLat, formattedLng, city, state }) => {
+              setValue('latitude', formattedLat)
+              setValue('longitude', formattedLng)
+              if (city) setValue('city', city)
+              if (state) setValue('state', state)
+            }}
+          />
 
           <FormField
             control={control}
@@ -659,7 +839,9 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione a condição legal" />
+                      <SelectValue placeholder="Selecione a condição legal">
+                        {IMPENHORABILIDADE_OPTIONS.find((opt) => opt.value === field.value)?.label}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -684,7 +866,9 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Estado de conservação" />
+                      <SelectValue placeholder="Estado de conservação">
+                        {CONSERVATION_STATES.find((opt) => opt.value === field.value)?.label}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
