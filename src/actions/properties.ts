@@ -349,144 +349,152 @@ export async function updateProperty(id: string, data: any) {
 
     const propName = propertyName || name || existing.name
 
-    await prisma.property.update({
-      where: { id },
-      data: {
-        name: propName,
-        propertyName: propName,
-        branchId: branchId || existing.branchId,
-        city: city !== undefined ? city : existing.city,
-        state: state !== undefined ? state : existing.state,
-        latitude: latitude !== undefined ? parseCoordinate(latitude) : existing.latitude,
-        longitude: longitude !== undefined ? parseCoordinate(longitude) : existing.longitude,
+    const txOps: any[] = [
+      prisma.property.update({
+        where: { id },
+        data: {
+          name: propName,
+          propertyName: propName,
+          branchId: branchId || existing.branchId,
+          city: city !== undefined ? city : existing.city,
+          state: state !== undefined ? state : existing.state,
+          latitude: latitude !== undefined ? parseCoordinate(latitude) : existing.latitude,
+          longitude: longitude !== undefined ? parseCoordinate(longitude) : existing.longitude,
 
-        totalArea: totalArea !== undefined ? (totalArea ? Number(totalArea) : 0) : existing.totalArea,
-        consolidatedArea: consolidatedArea !== undefined ? (consolidatedArea ? Number(consolidatedArea) : null) : existing.consolidatedArea,
-        productiveArea: productiveArea !== undefined ? (productiveArea ? Number(productiveArea) : 0) : existing.productiveArea,
-        pastureArea: pastureArea !== undefined ? (pastureArea ? Number(pastureArea) : 0) : existing.pastureArea,
-        preserveArea: preserveArea !== undefined ? (preserveArea ? Number(preserveArea) : 0) : existing.preserveArea,
-        ruralModules: ruralModules !== undefined ? (ruralModules ? Number(ruralModules) : null) : existing.ruralModules,
+          totalArea: totalArea !== undefined ? (totalArea ? Number(totalArea) : 0) : existing.totalArea,
+          consolidatedArea: consolidatedArea !== undefined ? (consolidatedArea ? Number(consolidatedArea) : null) : existing.consolidatedArea,
+          productiveArea: productiveArea !== undefined ? (productiveArea ? Number(productiveArea) : 0) : existing.productiveArea,
+          pastureArea: pastureArea !== undefined ? (pastureArea ? Number(pastureArea) : 0) : existing.pastureArea,
+          preserveArea: preserveArea !== undefined ? (preserveArea ? Number(preserveArea) : 0) : existing.preserveArea,
+          ruralModules: ruralModules !== undefined ? (ruralModules ? Number(ruralModules) : null) : existing.ruralModules,
 
-        registrationNumber: registrationNumber !== undefined ? (registrationNumber || null) : existing.registrationNumber,
-        registryOffice: registryOffice !== undefined ? (registryOffice || null) : existing.registryOffice,
-        comarca: comarca !== undefined ? (comarca || null) : existing.comarca,
-        car: car !== undefined ? (car || null) : existing.car,
-        ccir: ccir !== undefined ? (ccir || null) : existing.ccir,
-        itr: itr !== undefined ? (itr || null) : existing.itr,
+          registrationNumber: registrationNumber !== undefined ? (registrationNumber || null) : existing.registrationNumber,
+          registryOffice: registryOffice !== undefined ? (registryOffice || null) : existing.registryOffice,
+          comarca: comarca !== undefined ? (comarca || null) : existing.comarca,
+          car: car !== undefined ? (car || null) : existing.car,
+          ccir: ccir !== undefined ? (ccir || null) : existing.ccir,
+          itr: itr !== undefined ? (itr || null) : existing.itr,
 
-        accessRoute: accessRoute !== undefined ? (accessRoute || null) : existing.accessRoute,
-        confrontants: confrontants !== undefined ? confrontants : existing.confrontants,
+          accessRoute: accessRoute !== undefined ? (accessRoute || null) : existing.accessRoute,
+          confrontants: confrontants !== undefined ? confrontants : existing.confrontants,
 
-        hasLien: hasLien !== undefined ? Boolean(hasLien) : existing.hasLien,
-        hasInsurance: hasInsurance !== undefined ? Boolean(hasInsurance) : existing.hasInsurance,
-        isBorderProperty: isBorderProperty !== undefined ? Boolean(isBorderProperty) : existing.isBorderProperty,
-        seizureStatus: (seizureStatus !== undefined || impenhorabilidade !== undefined)
-          ? (parseSeizureStatus(seizureStatus || impenhorabilidade) ?? null)
-          : existing.seizureStatus,
-        conservationState: conservationState !== undefined
-          ? (parseConservationState(conservationState) ?? null)
-          : existing.conservationState,
+          hasLien: hasLien !== undefined ? Boolean(hasLien) : existing.hasLien,
+          hasInsurance: hasInsurance !== undefined ? Boolean(hasInsurance) : existing.hasInsurance,
+          isBorderProperty: isBorderProperty !== undefined ? Boolean(isBorderProperty) : existing.isBorderProperty,
+          seizureStatus: (seizureStatus !== undefined || impenhorabilidade !== undefined)
+            ? (parseSeizureStatus(seizureStatus || impenhorabilidade) ?? null)
+            : existing.seizureStatus,
+          conservationState: conservationState !== undefined
+            ? (parseConservationState(conservationState) ?? null)
+            : existing.conservationState,
 
-        explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : existing.explorationActivity,
+          explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : existing.explorationActivity,
 
-        livestock: {
-          ...(existing.livestock as any || {}),
-          totalHeadCount: totalHeadCount !== undefined ? (totalHeadCount ? Number(totalHeadCount) : 0) : ((existing.livestock as any)?.totalHeadCount || 0),
-          brandDescription: brandDescription !== undefined ? (brandDescription || null) : ((existing.livestock as any)?.brandDescription || null),
-          brandRegistrationAdapec: brandRegistrationAdapec !== undefined ? (brandRegistrationAdapec || null) : ((existing.livestock as any)?.brandRegistrationAdapec || null),
-          brandLocation: brandLocation !== undefined ? (brandLocation || null) : ((existing.livestock as any)?.brandLocation || null),
-        },
+          livestock: {
+            ...(existing.livestock as any || {}),
+            totalHeadCount: totalHeadCount !== undefined ? (totalHeadCount ? Number(totalHeadCount) : 0) : ((existing.livestock as any)?.totalHeadCount || 0),
+            brandDescription: brandDescription !== undefined ? (brandDescription || null) : ((existing.livestock as any)?.brandDescription || null),
+            brandRegistrationAdapec: brandRegistrationAdapec !== undefined ? (brandRegistrationAdapec || null) : ((existing.livestock as any)?.brandRegistrationAdapec || null),
+            brandLocation: brandLocation !== undefined ? (brandLocation || null) : ((existing.livestock as any)?.brandLocation || null),
+          },
 
-        improvements: {
-          ...(existing.improvements as any || {}),
-          machineryValue: machineries && Array.isArray(machineries)
-            ? machineries.reduce((acc: number, m: any) => acc + (Number(m.value) || 0), 0)
-            : ((existing.improvements as any)?.machineryValue || 0),
-          improvementsValue: improvements && Array.isArray(improvements)
-            ? improvements.reduce((acc: number, imp: any) => acc + ((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0)), 0)
-            : ((existing.improvements as any)?.improvementsValue || 0),
-          estimatedLandValuePerHa: vtnPerHectare !== undefined
-            ? (vtnPerHectare ? Number(vtnPerHectare) : 0)
-            : ((existing.improvements as any)?.estimatedLandValuePerHa || 0),
-        },
+          improvements: {
+            ...(existing.improvements as any || {}),
+            machineryValue: machineries && Array.isArray(machineries)
+              ? machineries.reduce((acc: number, m: any) => acc + (Number(m.value) || 0), 0)
+              : ((existing.improvements as any)?.machineryValue || 0),
+            improvementsValue: improvements && Array.isArray(improvements)
+              ? improvements.reduce((acc: number, imp: any) => acc + ((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0)), 0)
+              : ((existing.improvements as any)?.improvementsValue || 0),
+            estimatedLandValuePerHa: vtnPerHectare !== undefined
+              ? (vtnPerHectare ? Number(vtnPerHectare) : 0)
+              : ((existing.improvements as any)?.estimatedLandValuePerHa || 0),
+          },
 
-        possessionData: {
-          ...(existing.possessionData as any || {}),
-          possessionYears: possessionYears !== undefined ? (possessionYears ? Number(possessionYears) : null) : ((existing.possessionData as any)?.possessionYears || null),
-          explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : ((existing.possessionData as any)?.explorationActivity || null),
-          vtnPerHectare: vtnPerHectare !== undefined ? (vtnPerHectare ? Number(vtnPerHectare) : null) : ((existing.possessionData as any)?.vtnPerHectare || null),
-          totalLandValue: totalLandValue !== undefined ? (totalLandValue ? Number(totalLandValue) : null) : ((existing.possessionData as any)?.totalLandValue || null),
-          effectiveAgroRevenue: effectiveAgroRevenue !== undefined ? (effectiveAgroRevenue ? Number(effectiveAgroRevenue) : null) : ((existing.possessionData as any)?.effectiveAgroRevenue || null),
-          projectedAgroRevenue: projectedAgroRevenue !== undefined ? (projectedAgroRevenue ? Number(projectedAgroRevenue) : null) : ((existing.possessionData as any)?.projectedAgroRevenue || null),
-          otherRevenues: otherRevenues !== undefined ? (otherRevenues ? Number(otherRevenues) : null) : ((existing.possessionData as any)?.otherRevenues || null),
-          operationalExpenses: operationalExpenses !== undefined ? (operationalExpenses ? Number(operationalExpenses) : null) : ((existing.possessionData as any)?.operationalExpenses || null),
-          existingDebtService: existingDebtService !== undefined ? (existingDebtService ? Number(existingDebtService) : null) : ((existing.possessionData as any)?.existingDebtService || null),
-          familyLivingCosts: familyLivingCosts !== undefined ? (familyLivingCosts ? Number(familyLivingCosts) : null) : ((existing.possessionData as any)?.familyLivingCosts || null),
-        },
+          possessionData: {
+            ...(existing.possessionData as any || {}),
+            possessionYears: possessionYears !== undefined ? (possessionYears ? Number(possessionYears) : null) : ((existing.possessionData as any)?.possessionYears || null),
+            explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : ((existing.possessionData as any)?.explorationActivity || null),
+            vtnPerHectare: vtnPerHectare !== undefined ? (vtnPerHectare ? Number(vtnPerHectare) : null) : ((existing.possessionData as any)?.vtnPerHectare || null),
+            totalLandValue: totalLandValue !== undefined ? (totalLandValue ? Number(totalLandValue) : null) : ((existing.possessionData as any)?.totalLandValue || null),
+            effectiveAgroRevenue: effectiveAgroRevenue !== undefined ? (effectiveAgroRevenue ? Number(effectiveAgroRevenue) : null) : ((existing.possessionData as any)?.effectiveAgroRevenue || null),
+            projectedAgroRevenue: projectedAgroRevenue !== undefined ? (projectedAgroRevenue ? Number(projectedAgroRevenue) : null) : ((existing.possessionData as any)?.projectedAgroRevenue || null),
+            otherRevenues: otherRevenues !== undefined ? (otherRevenues ? Number(otherRevenues) : null) : ((existing.possessionData as any)?.otherRevenues || null),
+            operationalExpenses: operationalExpenses !== undefined ? (operationalExpenses ? Number(operationalExpenses) : null) : ((existing.possessionData as any)?.operationalExpenses || null),
+            existingDebtService: existingDebtService !== undefined ? (existingDebtService ? Number(existingDebtService) : null) : ((existing.possessionData as any)?.existingDebtService || null),
+            familyLivingCosts: familyLivingCosts !== undefined ? (familyLivingCosts ? Number(familyLivingCosts) : null) : ((existing.possessionData as any)?.familyLivingCosts || null),
+          },
 
-        updatedBy: dbUser.id,
-      }
-    })
+          updatedBy: dbUser.id,
+        }
+      })
+    ]
 
-    // Atualização de máquinas
+    // Atualização de máquinas em lote
     if (machineries && Array.isArray(machineries)) {
-      await prisma.machinery.deleteMany({ where: { propertyId: id } })
+      txOps.push(prisma.machinery.deleteMany({ where: { propertyId: id } }))
       if (machineries.length > 0) {
-        await prisma.machinery.createMany({
-          data: machineries.map((m: any) => ({
-            branchId: branchId || existing.branchId,
-            propertyId: id,
-            specification: m.category || m.specification || 'Trator de Pneus',
-            brand: m.brand || null,
-            model: m.model || null,
-            powerCapacity: m.powerCapacity || null,
-            year: m.year ? Number(m.year) : null,
-            chassisSerial: m.chassisSerial || null,
-            participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
-            value: m.value ? Number(m.value) : 0,
-            hasLien: Boolean(m.hasLien),
-            lienInstitution: m.lienInstitution || null,
-          }))
-        })
+        txOps.push(
+          prisma.machinery.createMany({
+            data: machineries.map((m: any) => ({
+              branchId: branchId || existing.branchId,
+              propertyId: id,
+              specification: m.category || m.specification || 'Trator de Pneus',
+              brand: m.brand || null,
+              model: m.model || null,
+              powerCapacity: m.powerCapacity || null,
+              year: m.year ? Number(m.year) : null,
+              chassisSerial: m.chassisSerial || null,
+              participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
+              value: m.value ? Number(m.value) : 0,
+              hasLien: Boolean(m.hasLien),
+              lienInstitution: m.lienInstitution || null,
+            }))
+          })
+        )
       }
     }
 
-    // Atualização de benfeitorias
+    // Atualização de benfeitorias em lote
     if (improvements && Array.isArray(improvements)) {
-      await prisma.improvement.deleteMany({ where: { propertyId: id } })
+      txOps.push(prisma.improvement.deleteMany({ where: { propertyId: id } }))
       if (improvements.length > 0) {
-        await prisma.improvement.createMany({
-          data: improvements.map((imp: any) => ({
-            branchId: branchId || existing.branchId,
-            propertyId: id,
-            specification: imp.specification || '',
-            unit: imp.unit || 'm²',
-            quantity: imp.quantity ? Number(imp.quantity) : 0,
-            unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
-            observation: imp.observation || null,
-          }))
-        })
+        txOps.push(
+          prisma.improvement.createMany({
+            data: improvements.map((imp: any) => ({
+              branchId: branchId || existing.branchId,
+              propertyId: id,
+              specification: imp.specification || '',
+              unit: imp.unit || 'm²',
+              quantity: imp.quantity ? Number(imp.quantity) : 0,
+              unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
+              observation: imp.observation || null,
+            }))
+          })
+        )
       }
     }
 
-    // Atualização de semoventes
+    // Atualização de semoventes em lote
     if (livestocks && Array.isArray(livestocks)) {
-      await prisma.livestock.deleteMany({ where: { propertyId: id } })
+      txOps.push(prisma.livestock.deleteMany({ where: { propertyId: id } }))
       if (livestocks.length > 0) {
-        await prisma.livestock.createMany({
-          data: livestocks.map((l: any) => ({
-            branchId: branchId || existing.branchId,
-            propertyId: id,
-            species: (l.species as any) || 'BOVINO',
-            category: (l.category as any) || 'MATRIZES',
-            purpose: l.purpose || null,
-            quantity: l.quantity ? Number(l.quantity) : 0,
-            ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
-            avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
-            unitValue: l.unitValue ? Number(l.unitValue) : 0,
-            observation: l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null,
-          }))
-        })
+        txOps.push(
+          prisma.livestock.createMany({
+            data: livestocks.map((l: any) => ({
+              branchId: branchId || existing.branchId,
+              propertyId: id,
+              species: (l.species as any) || 'BOVINO',
+              category: (l.category as any) || 'MATRIZES',
+              purpose: l.purpose || null,
+              quantity: l.quantity ? Number(l.quantity) : 0,
+              ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
+              avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
+              unitValue: l.unitValue ? Number(l.unitValue) : 0,
+              observation: l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null,
+            }))
+          })
+        )
       }
     }
 
@@ -502,36 +510,40 @@ export async function updateProperty(id: string, data: any) {
       })
 
       if (existingLink) {
-        await prisma.producerProperty.update({
-          where: {
-            producerId_propertyId: {
-              producerId,
-              propertyId: id
+        txOps.push(
+          prisma.producerProperty.update({
+            where: {
+              producerId_propertyId: {
+                producerId,
+                propertyId: id
+              }
+            },
+            data: {
+              ownershipType: (ownershipType as OwnershipType) || existingLink.ownershipType,
+              explorationPercentage: explorationPercentage ? Number(explorationPercentage) : existingLink.explorationPercentage,
+              contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
             }
-          },
-          data: {
-            ownershipType: (ownershipType as OwnershipType) || existingLink.ownershipType,
-            explorationPercentage: explorationPercentage ? Number(explorationPercentage) : existingLink.explorationPercentage,
-            contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
-          }
-        })
+          })
+        )
       } else {
-        // Remove vínculos anteriores se for troca de titular
-        await prisma.producerProperty.deleteMany({
-          where: { propertyId: id }
-        })
-
-        await prisma.producerProperty.create({
-          data: {
-            producerId,
-            propertyId: id,
-            ownershipType: (ownershipType as OwnershipType) || 'PROPRIETARIO',
-            explorationPercentage: explorationPercentage ? Number(explorationPercentage) : 100,
-            contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
-          }
-        })
+        txOps.push(
+          prisma.producerProperty.deleteMany({
+            where: { propertyId: id }
+          }),
+          prisma.producerProperty.create({
+            data: {
+              producerId,
+              propertyId: id,
+              ownershipType: (ownershipType as OwnershipType) || 'PROPRIETARIO',
+              explorationPercentage: explorationPercentage ? Number(explorationPercentage) : 100,
+              contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
+            }
+          })
+        )
       }
     }
+
+    await prisma.$transaction(txOps)
 
     revalidatePath('/admin/crm')
     revalidatePath('/admin/crm/properties')

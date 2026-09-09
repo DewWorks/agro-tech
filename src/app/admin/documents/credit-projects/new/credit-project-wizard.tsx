@@ -36,8 +36,16 @@ import { TemplateParamsForm } from './components/form/TemplateParamsForm';
 import { TechnicalResponsibleForm } from './components/form/TechnicalResponsibleForm';
 import { CreditProjectStepper } from './components/form/CreditProjectStepper';
 import { A4DocumentPreview } from './components/preview/A4DocumentPreview';
-import { ConfirmEmitModal } from './components/modals/ConfirmEmitModal';
-import { SaveDraftModal } from './components/modals/SaveDraftModal';
+import dynamic from 'next/dynamic';
+
+const ConfirmEmitModal = dynamic(
+  () => import('./components/modals/ConfirmEmitModal').then((mod) => mod.ConfirmEmitModal),
+  { ssr: false }
+);
+const SaveDraftModal = dynamic(
+  () => import('./components/modals/SaveDraftModal').then((mod) => mod.SaveDraftModal),
+  { ssr: false }
+);
 import { useCreditProjectWizard } from './hooks/useCreditProjectWizard';
 
 import { Button } from '@/components/ui/button'
@@ -474,38 +482,42 @@ export default function CreditProjectWizard({
       )}
 
       
-      <ConfirmEmitModal 
-        isOpen={isConfirmModalOpen}
-        setIsOpen={setIsConfirmModalOpen}
-        currentProducer={currentProducer}
-        currentProperty={currentProperty}
-        currentTemplate={currentTemplate}
-        customOptions={customOptions}
-        selectedTemplateCode={selectedTemplateCode}
-        defaultOrgName={defaultOrgName}
-        defaultOrgCnpj={defaultOrgCnpj}
-        isGeneratingPdf={isGeneratingPdf}
-        handleDownloadPdf={handleDownloadPdf}
-      />
+      {isConfirmModalOpen && (
+        <ConfirmEmitModal 
+          isOpen={isConfirmModalOpen}
+          setIsOpen={setIsConfirmModalOpen}
+          currentProducer={currentProducer}
+          currentProperty={currentProperty}
+          currentTemplate={currentTemplate}
+          customOptions={customOptions}
+          selectedTemplateCode={selectedTemplateCode}
+          defaultOrgName={defaultOrgName}
+          defaultOrgCnpj={defaultOrgCnpj}
+          isGeneratingPdf={isGeneratingPdf}
+          handleDownloadPdf={handleDownloadPdf}
+        />
+      )}
 
-      <SaveDraftModal 
-        isOpen={isSaveDraftModalOpen}
-        setIsOpen={setIsSaveDraftModalOpen}
-        saveModalStep={saveModalStep}
-        setSaveModalStep={setSaveModalStep}
-        propertyErrors={propertyErrors}
-        producerErrors={producerErrors}
-        projectErrors={projectErrors}
-        validationErrors={validationErrors}
-        isFormValid={isFormValid}
-        currentProperty={currentProperty}
-        currentProducer={currentProducer}
-        currentTemplate={currentTemplate}
-        customOptions={customOptions}
-        selectedTemplateCode={selectedTemplateCode}
-        isSavingDraft={isSavingDraft}
-        executeSaveDraft={executeSaveDraft}
-      />
+      {isSaveDraftModalOpen && (
+        <SaveDraftModal 
+          isOpen={isSaveDraftModalOpen}
+          setIsOpen={setIsSaveDraftModalOpen}
+          saveModalStep={saveModalStep}
+          setSaveModalStep={setSaveModalStep}
+          propertyErrors={propertyErrors}
+          producerErrors={producerErrors}
+          projectErrors={projectErrors}
+          validationErrors={validationErrors}
+          isFormValid={isFormValid}
+          currentProperty={currentProperty}
+          currentProducer={currentProducer}
+          currentTemplate={currentTemplate}
+          customOptions={customOptions}
+          selectedTemplateCode={selectedTemplateCode}
+          isSavingDraft={isSavingDraft}
+          executeSaveDraft={executeSaveDraft}
+        />
+      )}
     </div>
   )
 }

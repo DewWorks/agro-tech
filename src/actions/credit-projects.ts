@@ -29,14 +29,61 @@ export async function getProducersWithPropertiesForCredit() {
 
   const producers = await prisma.producer.findMany({
     where: whereClause,
-    include: {
-      branch: true,
+    select: {
+      id: true,
+      name: true,
+      document: true,
+      type: true,
+      spouseName: true,
+      spouseCpf: true,
+      phone: true,
+      email: true,
+      civilStatus: true,
+      branch: {
+        select: {
+          name: true,
+        }
+      },
       properties: {
-        include: {
+        select: {
           property: {
-            include: {
-              machineries: true,
-              improvementsList: true,
+            select: {
+              id: true,
+              name: true,
+              propertyName: true,
+              city: true,
+              state: true,
+              registrationNumber: true,
+              registryOffice: true,
+              car: true,
+              ccir: true,
+              itr: true,
+              totalArea: true,
+              productiveArea: true,
+              pastureArea: true,
+              preserveArea: true,
+              explorationActivity: true,
+              possessionData: true,
+              machineries: {
+                select: {
+                  id: true,
+                  specification: true,
+                  brand: true,
+                  model: true,
+                  year: true,
+                  chassisSerial: true,
+                  value: true,
+                }
+              },
+              improvementsList: {
+                select: {
+                  id: true,
+                  specification: true,
+                  unit: true,
+                  quantity: true,
+                  unitValue: true,
+                }
+              }
             }
           }
         }

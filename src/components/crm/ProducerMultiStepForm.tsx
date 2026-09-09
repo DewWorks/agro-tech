@@ -1,106 +1,30 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
-import { Badge } from '@/components/ui/badge'
 import { createProducer, updateProducer } from '@/actions/producers'
 import { toast } from 'sonner'
-import { Loader2, User, Users, FileText, CheckCircle2, AlertTriangle, Plus, BookText, MapPin, Check, ChevronsUpDown, Pencil, ExternalLink } from 'lucide-react'
-import ProducerDocumentsSection from '../ged/ProducerDocumentsSection'
-
-interface IbgeLocation {
-  id: number
-  nome: string
-  sigla?: string
-}
-
-function validateCPF(cpf: string) {
-  cpf = cpf.replace(/[^\d]+/g, '')
-  if (cpf.length !== 11 || !!cpf.match(/(\d)\1{10}/)) return false
-  const values = cpf.split('').map(Number)
-  const calc = (n: number) => {
-    let sum = 0
-    for (let i = 0; i < n; i++) sum += values[i] * (n + 1 - i)
-    return (sum % 11) < 2 ? 0 : 11 - (sum % 11)
-  }
-  return calc(9) === values[9] && calc(10) === values[10]
-}
-
-function validateCNPJ(cnpj: string) {
-  cnpj = cnpj.replace(/[^\d]+/g, '')
-  if (cnpj.length !== 14 || !!cnpj.match(/(\d)\1{13}/)) return false
-  const values = cnpj.split('').map(Number)
-  const calc = (n: number, weights: number[]) => {
-    let sum = 0
-    for (let i = 0; i < n; i++) sum += values[i] * weights[i]
-    return (sum % 11) < 2 ? 0 : 11 - (sum % 11)
-  }
-  return calc(12, [5,4,3,2,9,8,7,6,5,4,3,2]) === values[12] && 
-         calc(13, [6,5,4,3,2,9,8,7,6,5,4,3,2]) === values[13]
-}
-
-function formatCPF(value: string) {
-  return value
-    .replace(/\D/g, '')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-    .replace(/(-\d{2})\d+?$/, '$1')
-}
-
-function formatCNPJ(value: string) {
-  return value
-    .replace(/\D/g, '')
-    .replace(/(\d{2})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1.$2')
-    .replace(/(\d{3})(\d)/, '$1/$2')
-    .replace(/(\d{4})(\d{1,2})/, '$1-$2')
-    .replace(/(-\d{2})\d+?$/, '$1')
-}
-
-function formatPhone(value: string) {
-  const digits = value.replace(/\D/g, '')
-  if (digits.length <= 10) {
-    return digits
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4})(\d)/, '$1-$2')
-      .replace(/(-\d{4})\d+?$/, '$1')
-  }
-  return digits
-    .replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d)/, '$1-$2')
-    .replace(/(-\d{4})\d+?$/, '$1')
-}
+import { Loader2, User, Users, FileText, CheckCircle2, AlertTriangle, Plus, BookText, MapPin } from 'lucide-react'
+import {
+  validateCPF,
+  validateCNPJ,
+  formatCPF,
+  formatCNPJ,
+  formatPhone,
+} from '@/lib/utils/masks'
+import { ProducerBasicInfoStep } from './producer-steps/ProducerBasicInfoStep'
+import { ProducerSpouseStep } from './producer-steps/ProducerSpouseStep'
+import { ProducerPropertyStep, type IbgeLocation } from './producer-steps/ProducerPropertyStep'
+import { ProducerLegalDataStep } from './producer-steps/ProducerLegalDataStep'
+import { ProducerQualificationStep } from './producer-steps/ProducerQualificationStep'
 
 export default function ProducerMultiStepForm({ branches, initialData }: { branches: any[], initialData?: any }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('DADOS')
+  const [isPendingTab, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const [formData, setFormData] = useState({
@@ -246,7 +170,9 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
   const handleNext = () => {
     if (validateStep(activeTab)) {
       const idx = tabs.findIndex(t => t.id === activeTab)
-      setActiveTab(tabs[idx + 1].id)
+      startTransition(() => {
+        setActiveTab(tabs[idx + 1].id)
+      })
     } else {
       toast.error('Corrija os campos obrigatórios antes de avançar.')
     }
@@ -325,11 +251,15 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
               const targetIndex = tabs.findIndex(t => t.id === tab.id)
               
               if (targetIndex < currentIndex) {
-                setActiveTab(tab.id)
+                startTransition(() => {
+                  setActiveTab(tab.id)
+                })
                 e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
               } else {
                 if (validateStep(activeTab)) {
-                  setActiveTab(tab.id)
+                  startTransition(() => {
+                    setActiveTab(tab.id)
+                  })
                   e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
                 } else {
                   toast.error('Corrija os campos obrigatórios antes de mudar de aba.')
@@ -350,724 +280,55 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
 
       <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
         {activeTab === 'DADOS' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {initialData?.properties && initialData.properties.length > 0 && (
-              <div className="col-span-1 md:col-span-2 p-3.5 bg-emerald-50/90 border border-emerald-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-emerald-100 text-[#1B4D3E] flex items-center justify-center shrink-0">
-                    <MapPin className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="text-xs font-bold text-emerald-950 block">
-                      {initialData.properties.length} Propriedade(s) Rural(is) Vinculada(s)
-                    </span>
-                    <span className="text-[11px] text-emerald-700">
-                      {initialData.properties.map((p: any) => p.property?.name).filter(Boolean).join(', ')}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setActiveTab('PROPRIEDADE')}
-                    className="text-xs text-[#1B4D3E] border-emerald-300 hover:bg-emerald-100 font-semibold h-8 cursor-pointer"
-                  >
-                    Ver Propriedades →
-                  </Button>
-                  {initialData.properties[0]?.property?.id && (
-                    <Link href={`/admin/crm/properties/${initialData.properties[0].property.id}/edit`}>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs font-semibold h-8 gap-1 shadow-2xs cursor-pointer"
-                      >
-                        <Pencil className="h-3 w-3" />
-                        Acessar Fazenda
-                      </Button>
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
-            
-            <div className="space-y-2 col-span-1 md:col-span-2">
-              <Label>Filial de Vínculo *</Label>
-              <div className="flex gap-2">
-                <Select 
-                  value={formData.branchId} 
-                  onValueChange={(val) => handleChange('branchId', val)}
-                  disabled={branches.length === 0}
-                >
-                  <SelectTrigger className={`w-full flex-1 ${errors.branchId ? 'border-red-500' : ''}`}>
-                    <SelectValue placeholder={branches.length === 0 ? "Nenhuma filial disponível" : "Selecione a filial"}>
-                      {formData.branchId && branches.find(b => b.id === formData.branchId) 
-                        ? `${branches.find(b => b.id === formData.branchId)?.name} - CNPJ: ${formatCNPJ(branches.find(b => b.id === formData.branchId)?.cnpj || '')}`
-                        : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {branches.map((branch) => {
-                      // Se for inativa, não renderiza no dropdown em hipótese alguma (pedido explícito)
-                      if (!branch.isActive) return null
-
-                      return (
-                        <SelectItem 
-                          key={branch.id} 
-                          value={branch.id}
-                        >
-                          <div className="flex items-center gap-3">
-                            <span>{branch.name}</span>
-                            {branch.isActive ? (
-                              <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 pointer-events-none">
-                                Ativa
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200 pointer-events-none">
-                                Inativa
-                              </Badge>
-                            )}
-                          </div>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectContent>
-                </Select>
-                {branches.length > 0 && (
-                  <Link href="/admin/branches/new">
-                    <Button type="button" variant="outline" title="Criar Nova Filial">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </Link>
-                )}
-              </div>
-              {errors.branchId && <p className="text-xs text-red-500 font-medium">{errors.branchId}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo de Produtor</Label>
-              <Select 
-                value={formData.type} 
-                onValueChange={(val) => {
-                  setFormData({ ...formData, type: val, document: '' })
-                  setErrors({ ...errors, document: '' })
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PF">Pessoa Física (CPF)</SelectItem>
-                  <SelectItem value="PJ">Pessoa Jurídica (CNPJ)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>{formData.type === 'PF' ? 'CPF' : 'CNPJ'} *</Label>
-              <Input 
-                value={formData.document}
-                onChange={(e) => handleChange('document', e.target.value)}
-                placeholder={formData.type === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
-                className={errors.document ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                maxLength={formData.type === 'PF' ? 14 : 18}
-              />
-              {errors.document && <p className="text-xs text-red-500 font-medium">{errors.document}</p>}
-            </div>
-
-            <div className="space-y-2 col-span-1 md:col-span-2">
-              <Label>Nome Completo / Razão Social *</Label>
-              <Input 
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-                placeholder="Ex: João da Silva / AgroTech LTDA"
-                className={errors.name ? 'border-red-500' : ''}
-              />
-              {errors.name && <p className="text-xs text-red-500 font-medium">{errors.name}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label>E-mail</Label>
-              <Input 
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange('email', e.target.value)}
-                placeholder="email@exemplo.com"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Telemóvel / Telefone</Label>
-              <Input 
-                value={formData.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
-                placeholder="(00) 00000-0000"
-                maxLength={15}
-              />
-            </div>
-
-            {formData.type === 'PJ' && (
-              <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-lg border">
-                <Label className="text-[#1B4D3E]">CPF do Representante Legal *</Label>
-                <Input 
-                  value={formData.representativeCpf}
-                  onChange={(e) => handleChange('representativeCpf', e.target.value)}
-                  placeholder="000.000.000-00"
-                  maxLength={14}
-                  className={errors.representativeCpf ? 'border-red-500' : ''}
-                />
-                <p className="text-xs text-slate-500">
-                  Necessário para assinatura de documentos, procurações e declarações onde a Pessoa Jurídica é representada.
-                </p>
-                {errors.representativeCpf && <p className="text-xs text-red-500 font-medium">{errors.representativeCpf}</p>}
-              </div>
-            )}
-
-            {formData.type === 'PF' && (
-              <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-lg border">
-                <Label className="text-[#1B4D3E]">Estado Civil</Label>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Importante: O estado civil dita a exigência de Outorga Uxória para garantias.
-                </p>
-                <Select 
-                  value={formData.civilStatus} 
-                  onValueChange={(val) => {
-                    setFormData({ ...formData, civilStatus: val, marriageRegime: '' })
-                  }}
-                >
-                  <SelectTrigger className="w-full bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SOLTEIRO">Solteiro(a)</SelectItem>
-                    <SelectItem value="CASADO">Casado(a)</SelectItem>
-                    <SelectItem value="UNIAO_ESTAVEL">União Estável</SelectItem>
-                    <SelectItem value="DIVORCIADO">Divorciado(a)</SelectItem>
-                    <SelectItem value="VIUVO">Viúvo(a)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          <ProducerBasicInfoStep
+            branches={branches}
+            initialData={initialData}
+            formData={formData}
+            handleChange={handleChange}
+            setFormData={setFormData}
+            errors={errors}
+            setErrors={setErrors}
+            setActiveTab={setActiveTab}
+          />
         )}
 
         {activeTab === 'CONJUGE' && requireSpouse && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="col-span-1 md:col-span-2 p-4 bg-orange-50 text-orange-800 rounded-lg border border-orange-200">
-              <strong className="block mb-1">Atenção: Exigência de Outorga Uxória</strong>
-              Como o estado civil é Casado ou União Estável, os dados do cônjuge e o regime de casamento são cruciais para a emissão de garantias (Hipoteca/Alienação).
-            </div>
-
-            <div className="space-y-2 col-span-1 md:col-span-2">
-              <Label>Regime de Casamento *</Label>
-              <Select 
-                value={formData.marriageRegime} 
-                onValueChange={(val) => handleChange('marriageRegime', val)}
-              >
-                <SelectTrigger className={`w-full ${errors.marriageRegime ? 'border-red-500' : ''}`}>
-                  <SelectValue placeholder="Selecione o regime" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="COMUNHAO_PARCIAL">Comunhão Parcial de Bens</SelectItem>
-                  <SelectItem value="COMUNHAO_UNIVERSAL">Comunhão Universal de Bens</SelectItem>
-                  <SelectItem value="SEPARACAO_TOTAL">Separação Total (Convencional)</SelectItem>
-                  <SelectItem value="SEPARACAO_OBRIGATORIA">Separação Obrigatória (Legal)</SelectItem>
-                  <SelectItem value="PARTICIPACAO_FINAL">Participação Final nos Aquestos</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.marriageRegime && <p className="text-xs text-red-500 font-medium">{errors.marriageRegime}</p>}
-            </div>
-
-            <div className="space-y-2 col-span-1 md:col-span-2">
-              <Label>Nome do Cônjuge *</Label>
-              <Input 
-                value={formData.spouseName}
-                onChange={(e) => handleChange('spouseName', e.target.value)}
-                placeholder="Nome completo do cônjuge"
-                className={errors.spouseName ? 'border-red-500' : ''}
-              />
-              {errors.spouseName && <p className="text-xs text-red-500 font-medium">{errors.spouseName}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label>CPF do Cônjuge</Label>
-              <Input 
-                value={formData.spouseCpf}
-                onChange={(e) => handleChange('spouseCpf', e.target.value)}
-                placeholder="000.000.000-00"
-                className={errors.spouseCpf ? 'border-red-500' : ''}
-                maxLength={14}
-              />
-              {errors.spouseCpf && <p className="text-xs text-red-500 font-medium">{errors.spouseCpf}</p>}
-            </div>
-          </div>
+          <ProducerSpouseStep
+            formData={formData}
+            handleChange={handleChange}
+            errors={errors}
+          />
         )}
 
         {activeTab === 'PROPRIEDADE' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Seção de Propriedades Vinculadas */}
-            <div className="col-span-1 md:col-span-2 space-y-4 p-5 border-2 border-emerald-200 rounded-2xl bg-linear-to-b from-emerald-50/50 to-white shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-100">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-[#1B4D3E] text-white flex items-center justify-center font-bold shadow-xs">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                      Propriedades Rurais Vinculadas
-                      <Badge variant="outline" className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs">
-                        {initialData?.properties?.length || 0} cadastrada(s)
-                      </Badge>
-                    </h3>
-                    <p className="text-xs text-muted-foreground">
-                      Acesse diretamente para editar o levantamento patrimonial completo, máquinas, rebanho e benfeitorias.
-                    </p>
-                  </div>
-                </div>
-
-                <Link href="/admin/crm/properties/new">
-                  <Button size="sm" className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs font-semibold h-9 px-4 gap-1.5 shadow-2xs cursor-pointer">
-                    <Plus className="h-4 w-4" />
-                    Nova Propriedade
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Cards de Propriedades */}
-              {initialData?.properties && initialData.properties.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                  {initialData.properties.map((item: any) => {
-                    const prop = item.property
-                    if (!prop) return null
-                    return (
-                      <div
-                        key={prop.id}
-                        className="p-4 rounded-xl border-2 border-emerald-100 bg-white hover:border-[#1B4D3E] hover:shadow-md transition-all flex flex-col justify-between gap-3 group"
-                      >
-                        <div>
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <span className="font-bold text-gray-900 text-sm group-hover:text-[#1B4D3E] transition-colors flex items-center gap-1.5">
-                                <MapPin className="h-4 w-4 text-[#1B4D3E]" />
-                                {prop.name || prop.propertyName || 'Sem nome'}
-                              </span>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {prop.city && prop.state ? `${prop.city} - ${prop.state}` : 'Localização não informada'}
-                              </p>
-                            </div>
-                            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                              {item.ownershipType || 'Proprietário'}
-                            </span>
-                          </div>
-
-                          <div className="mt-3 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                            <div>
-                              <span className="text-[10px] text-gray-400 block font-medium">Área Total:</span>
-                              <span className="font-semibold text-gray-800">
-                                {prop.totalArea ? `${Number(prop.totalArea).toFixed(2)} ha` : '0.00 ha'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-gray-400 block font-medium">Pastagens:</span>
-                              <span className="font-semibold text-gray-800">
-                                {prop.pastureArea ? `${Number(prop.pastureArea).toFixed(2)} ha` : '0.00 ha'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-gray-400 block font-medium">Matrícula:</span>
-                              <span className="font-semibold text-gray-800 truncate block">
-                                {prop.registrationNumber || 'Pendente'}
-                              </span>
-                            </div>
-                            <div>
-                              <span className="text-[10px] text-gray-400 block font-medium">CAR:</span>
-                              <span className="font-semibold text-gray-800 truncate block">
-                                {prop.car || 'Pendente'}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-gray-100 flex items-center gap-2">
-                          <Link 
-                            href={`/admin/crm/properties/${prop.id}/edit`}
-                            className="w-full"
-                          >
-                            <Button
-                              type="button"
-                              className="w-full bg-[#1B4D3E] hover:bg-[#13382D] text-white font-bold text-xs h-9 flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              Acessar e Editar Propriedade (5 Etapas)
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-6 bg-gray-50/70 border border-dashed border-gray-200 rounded-xl space-y-2">
-                  <MapPin className="h-7 w-7 text-gray-400 mx-auto" />
-                  <p className="text-xs text-gray-600 font-medium">
-                    Nenhuma propriedade rural cadastrada para este produtor ainda.
-                  </p>
-                  <Link href="/admin/crm/properties/new">
-                    <Button type="button" variant="outline" size="sm" className="text-xs text-[#1B4D3E] border-emerald-300 mt-1 cursor-pointer">
-                      <Plus className="h-3.5 w-3.5 mr-1" />
-                      Cadastrar Primeira Propriedade
-                    </Button>
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            <div className="col-span-1 md:col-span-2 space-y-4 p-5 border rounded-xl bg-white shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-[#1B4D3E]">Edição Rápida dos Dados da Fazenda</h3>
-                  <p className="text-sm text-muted-foreground mt-0">
-                    Ajuste os dados cadastrais básicos abaixo ou acesse o dossiê completo acima.
-                  </p>
-                </div>
-                {initialData?.properties?.[0]?.property?.id && (
-                  <Link href={`/admin/crm/properties/${initialData.properties[0].property.id}/edit`}>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="text-xs font-bold text-[#1B4D3E] border-emerald-300 bg-emerald-50 hover:bg-emerald-100 flex items-center gap-1.5 cursor-pointer shadow-2xs"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                      Abrir Levantamento Patrimonial Completo
-                    </Button>
-                  </Link>
-                )}
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="space-y-2 col-span-1 md:col-span-2">
-                  <Label>Nome da Propriedade</Label>
-                  <Input 
-                    value={formData.propertyName}
-                    onChange={(e) => handleChange('propertyName', e.target.value)}
-                    placeholder="Ex: Fazenda Boa Esperança"
-                  />
-                </div>
-                <div className="space-y-2 flex flex-col">
-                  <Label>Estado (UF)</Label>
-                  <Popover open={openUfSelect} onOpenChange={setOpenUfSelect}>
-                    <PopoverTrigger 
-                      render={
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          className={cn(
-                            "w-full justify-between font-normal bg-white h-10",
-                            !formData.propertyState && "text-muted-foreground"
-                          )}
-                        />
-                      }
-                    >
-                      {formData.propertyState ? formData.propertyState : "Selecione o estado..."}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar estado..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhum estado encontrado.</CommandEmpty>
-                          <CommandGroup>
-                            {states.map((s) => (
-                              <CommandItem
-                                key={s.id}
-                                value={`${s.nome} ${s.sigla}`}
-                                onSelect={() => {
-                                  handleChange('propertyState', s.sigla || '')
-                                  setOpenUfSelect(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.propertyState === s.sigla ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {s.nome} ({s.sigla})
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="space-y-2 flex flex-col">
-                  <Label>Município</Label>
-                  <Popover 
-                    open={openCitySelect} 
-                    onOpenChange={(val) => {
-                      if (val && !formData.propertyState) {
-                        setCitySelectAttemptedWithoutUf(true)
-                        return
-                      }
-                      setCitySelectAttemptedWithoutUf(false)
-                      setOpenCitySelect(val)
-                    }}
-                  >
-                    <PopoverTrigger 
-                      render={
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          onClick={(e) => {
-                            if (!formData.propertyState) {
-                              e.preventDefault()
-                              setCitySelectAttemptedWithoutUf(true)
-                            }
-                          }}
-                          className={cn(
-                            "w-full justify-between font-normal bg-white h-10",
-                            !formData.propertyCity && "text-muted-foreground",
-                            !formData.propertyState && "opacity-60"
-                          )}
-                        />
-                      }
-                    >
-                      <span className="truncate block">
-                        {formData.propertyCity ? formData.propertyCity : "Selecione o município..."}
-                      </span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[300px] p-0" align="start">
-                      <Command>
-                        <CommandInput placeholder="Buscar município..." />
-                        <CommandList>
-                          <CommandEmpty>Nenhum município encontrado.</CommandEmpty>
-                          <CommandGroup>
-                            {cities.map((c) => (
-                              <CommandItem
-                                key={c.id}
-                                value={c.nome}
-                                onSelect={() => {
-                                  handleChange('propertyCity', c.nome)
-                                  setOpenCitySelect(false)
-                                  setCitySelectAttemptedWithoutUf(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.propertyCity === c.nome ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {c.nome}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  {citySelectAttemptedWithoutUf && !formData.propertyState && (
-                    <p className="text-xs text-red-500 font-medium">Selecione o estado primeiro.</p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label>Área de Pastagem (ha)</Label>
-                  <Input 
-                    type="number"
-                    step="0.01"
-                    value={formData.pastureArea}
-                    onChange={(e) => handleChange('pastureArea', e.target.value)}
-                    placeholder="Ex: 150"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-1 md:col-span-2 space-y-4 p-5 border rounded-xl bg-white shadow-sm mt-4">
-              <h3 className="text-lg font-semibold text-[#1B4D3E]">Dados de Rebanho</h3>
-              <p className="text-sm text-muted-foreground mt-0">
-                Detalhes do rebanho e rebanho atual.
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Total de Cabeças</Label>
-                  <Input 
-                    type="number"
-                    value={formData.totalHeadCount}
-                    onChange={(e) => handleChange('totalHeadCount', e.target.value)}
-                    placeholder="Informe total de cabeças"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Registro ADAPEC da Marca</Label>
-                  <Input 
-                    value={formData.brandRegistrationAdapec}
-                    onChange={(e) => handleChange('brandRegistrationAdapec', e.target.value)}
-                    placeholder="Ex: 123456"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição da Marca (Visual)</Label>
-                  <Input 
-                    value={formData.brandDescription}
-                    onChange={(e) => handleChange('brandDescription', e.target.value)}
-                    placeholder="Ex: Letra J, Círculo"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Localização da Marca</Label>
-                  <Input 
-                    value={formData.brandLocation}
-                    onChange={(e) => handleChange('brandLocation', e.target.value)}
-                    placeholder="Ex: Perna Esquerda"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-1 md:col-span-2 space-y-4 p-5 border rounded-xl bg-white shadow-sm mt-4">
-              <h3 className="text-lg font-semibold text-[#1B4D3E]">Documentação da Propriedade</h3>
-              <p className="text-sm text-muted-foreground mt-0">
-                Matrícula, CAR e registro.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Matrícula</Label>
-                  <Input 
-                    value={formData.registrationNumber}
-                    onChange={(e) => handleChange('registrationNumber', e.target.value)}
-                    placeholder="Número da Matrícula"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Cartório</Label>
-                  <Input 
-                    value={formData.registryOffice}
-                    onChange={(e) => handleChange('registryOffice', e.target.value)}
-                    placeholder="Nome do Cartório"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Número do CAR</Label>
-                  <Input 
-                    value={formData.car}
-                    onChange={(e) => handleChange('car', e.target.value)}
-                    placeholder="Ex: TO-1234..."
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="col-span-1 md:col-span-2 space-y-4 p-5 border rounded-xl bg-white shadow-sm mt-4">
-              <h3 className="text-lg font-semibold text-[#1B4D3E]">Dados de Posse e Exploração</h3>
-              <p className="text-sm text-muted-foreground mt-0">
-                Atividade exercida e tempo de posse para declarações.
-              </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Tempo de Posse (Anos)</Label>
-                  <Input 
-                    type="number"
-                    value={formData.possessionYears}
-                    onChange={(e) => handleChange('possessionYears', e.target.value)}
-                    placeholder="Ex: 10"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Atividade Explorada</Label>
-                  <Input 
-                    value={formData.explorationActivity}
-                    onChange={(e) => handleChange('explorationActivity', e.target.value)}
-                    placeholder="Ex: Pecuária de Corte"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProducerPropertyStep
+            initialData={initialData}
+            formData={formData}
+            handleChange={handleChange}
+            states={states}
+            cities={cities}
+            openUfSelect={openUfSelect}
+            setOpenUfSelect={setOpenUfSelect}
+            openCitySelect={openCitySelect}
+            setOpenCitySelect={setOpenCitySelect}
+            citySelectAttemptedWithoutUf={citySelectAttemptedWithoutUf}
+            setCitySelectAttemptedWithoutUf={setCitySelectAttemptedWithoutUf}
+          />
         )}
 
         {activeTab === 'LEGAIS' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="col-span-1 md:col-span-2 space-y-4 p-5 border rounded-xl bg-white shadow-sm">
-              <h3 className="text-lg font-semibold text-[#1B4D3E]">Documentação e Informações Legais</h3>
-              <p className="text-sm text-muted-foreground mt-0">Essas informações costumam ser preenchidas automaticamente pela emissão de documentos, mas você pode editar aqui.</p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                <div className="space-y-2">
-                  <Label>Nacionalidade</Label>
-                  <Input 
-                    value={formData.nationality}
-                    onChange={(e) => handleChange('nationality', e.target.value)}
-                    placeholder="Ex: Brasileiro(a)"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Profissão</Label>
-                  <Input 
-                    value={formData.profession}
-                    onChange={(e) => handleChange('profession', e.target.value)}
-                    placeholder="Ex: Produtor(a) Rural"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Registro Geral (RG)</Label>
-                  <Input 
-                    value={formData.rg}
-                    onChange={(e) => handleChange('rg', e.target.value)}
-                    placeholder="Ex: 0000000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Órgão Emissor do RG</Label>
-                  <Input 
-                    value={formData.rgIssuer}
-                    onChange={(e) => handleChange('rgIssuer', e.target.value)}
-                    placeholder="Ex: SSP/TO"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+          <ProducerLegalDataStep
+            formData={formData}
+            handleChange={handleChange}
+          />
         )}
 
         {activeTab === 'QUALIFICACAO' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            
-            <div className="col-span-1 md:col-span-2 space-y-4 p-5 border rounded-xl bg-white shadow-sm">
-              <div className="space-y-2">
-                <Label>Nº DAP / CAF (Opcional)</Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Necessário para enquadramento no PRONAF e taxas subsidiadas.
-                </p>
-                <Input 
-                  value={formData.dapCafNumber}
-                  onChange={(e) => handleChange('dapCafNumber', e.target.value)}
-                  placeholder="Código DAP ou CAF"
-                />
-              </div>
-            </div>
-            {initialData?.id ? (
-              <div className="col-span-1 md:col-span-2">
-                <ProducerDocumentsSection
-                  producerId={initialData.id}
-                  branchId={formData.branchId}
-                />
-              </div>
-            ) : (
-              <div className="col-span-1 md:col-span-2 p-8 border-2 border-dashed rounded-xl flex flex-col items-center justify-center text-muted-foreground bg-slate-50">
-                <FileText className="h-8 w-8 mb-2 opacity-50" />
-                <p className="font-medium">Gestão Eletrônica de Documentos</p>
-                <p className="text-xs text-center mt-1 max-w-md">
-                  Salve o produtor primeiro para habilitar o upload de documentos (RG, CNH, Certidões) para a nuvem.
-                </p>
-              </div>
-            )}
-          </div>
+          <ProducerQualificationStep
+            initialData={initialData}
+            formData={formData}
+            handleChange={handleChange}
+          />
         )}
 
         <div className="flex justify-between items-center pt-6 border-t">
@@ -1086,7 +347,9 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
                 variant="outline"
                 onClick={() => {
                   const idx = tabs.findIndex(t => t.id === activeTab)
-                  setActiveTab(tabs[idx - 1].id)
+                  startTransition(() => {
+                    setActiveTab(tabs[idx - 1].id)
+                  })
                 }}
               >
                 Anterior

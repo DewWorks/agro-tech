@@ -64,8 +64,8 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
       include: {
         branch: true,
         properties: {
-          include: {
-            property: true
+          select: {
+            propertyId: true
           }
         },
         _count: {
