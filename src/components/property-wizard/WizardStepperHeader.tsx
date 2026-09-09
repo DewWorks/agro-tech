@@ -9,6 +9,7 @@ interface WizardStepperHeaderProps {
   onStepClick: (step: number) => void
   highestVisitedStep: number
   isEditMode?: boolean
+  hasFinancialModule?: boolean
 }
 
 const STEPS = [
@@ -49,8 +50,15 @@ export function WizardStepperHeader({
   onStepClick,
   highestVisitedStep,
   isEditMode = false,
+  hasFinancialModule = false,
 }: WizardStepperHeaderProps) {
-  const progressPercent = ((currentStep - 1) / (STEPS.length - 1)) * 100
+  const visibleSteps = hasFinancialModule ? STEPS : STEPS.filter((s) => s.step !== 4)
+  const currentStepDisplayIndex = Math.max(1, visibleSteps.findIndex((s) => s.step === currentStep) + 1)
+  const currentStepObj = visibleSteps.find((s) => s.step === currentStep) || visibleSteps[0]
+
+  const progressPercent = visibleSteps.length > 1
+    ? ((currentStepDisplayIndex - 1) / (visibleSteps.length - 1)) * 100
+    : 100
 
   return (
     <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 shadow-xs mb-6">
@@ -58,10 +66,10 @@ export function WizardStepperHeader({
       <div className="flex items-center justify-between mb-4">
         <div>
           <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Etapa {currentStep} de {STEPS.length}
+            Etapa {currentStepDisplayIndex} de {visibleSteps.length}
           </span>
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            {STEPS[currentStep - 1]?.title}
+            {currentStepObj?.title}
           </h2>
         </div>
         <div className="text-right">
@@ -78,11 +86,12 @@ export function WizardStepperHeader({
       </div>
 
       {/* Grid de Steps */}
-      <div className="grid grid-cols-5 gap-2 sm:gap-4 relative pt-2">
-        {STEPS.map((s) => {
+      <div className={cn('grid gap-2 sm:gap-4 relative pt-2', hasFinancialModule ? 'grid-cols-5' : 'grid-cols-4')}>
+        {visibleSteps.map((s, index) => {
           const Icon = s.icon
+          const displayNum = index + 1
           const isCurrent = s.step === currentStep
-          const isCompleted = s.step < currentStep
+          const isCompleted = currentStepDisplayIndex > displayNum
           const isAccessible = isEditMode || s.step <= highestVisitedStep
 
           return (
@@ -122,7 +131,7 @@ export function WizardStepperHeader({
                   !isCompleted && !isCurrent && 'text-slate-700 dark:text-slate-200'
                 )}
               >
-                {s.step}. {s.title}
+                {displayNum}. {s.title}
               </span>
               <span className="hidden md:block text-[11px] text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5">
                 {s.description}

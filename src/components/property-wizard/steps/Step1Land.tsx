@@ -103,7 +103,9 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
   useEffect(() => {
     const area = Number(totalArea) || 0
     const vtn = Number(vtnPerHectare) || 0
-    setValue('totalLandValue', Math.round(area * vtn * 100) / 100)
+    const val = Math.round(area * vtn * 100) / 100
+    setValue('totalLandValue', val)
+    setValue('computedLandValue', val)
   }, [totalArea, vtnPerHectare, setValue])
 
   const handleSelectAddress = (item: any) => {

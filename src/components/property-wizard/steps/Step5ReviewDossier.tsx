@@ -24,6 +24,7 @@ interface Step5ReviewDossierProps {
   branchName?: string
   isSubmitting?: boolean
   onSubmit: () => void
+  hasFinancialModule?: boolean
 }
 
 export function Step5ReviewDossier({
@@ -32,8 +33,10 @@ export function Step5ReviewDossier({
   branchName,
   isSubmitting = false,
   onSubmit,
+  hasFinancialModule = false,
 }: Step5ReviewDossierProps) {
-  const values = form.getValues()
+  // Observa os valores em tempo real para atualizar o preview imediatamente sem precisar recarregar
+  const values = form.watch()
   const printRef = useRef<HTMLDivElement>(null)
 
   const formatBRL = (val: number | undefined) =>
@@ -41,27 +44,42 @@ export function Step5ReviewDossier({
       val || 0
     )
 
-  const landTotal =
-    Number(values.computedLandValue) ||
-    Number(values.totalArea || 0) * Number(values.vtnPerHectare || 0)
-  const machineriesTotal =
-    Number(values.computedMachineryValue) ||
-    (values.machineries || []).reduce((acc: number, cur: any) => acc + Number(cur.value || 0), 0)
-  const improvementsTotal =
-    Number(values.computedImprovementsValue) ||
-    (values.improvements || []).reduce(
-      (acc: number, cur: any) => acc + Number(cur.quantity || 0) * Number(cur.unitValue || 0),
-      0
-    )
-  const livestockTotal =
-    Number(values.computedLivestockValue) ||
-    (values.livestocks || []).reduce(
-      (acc: number, cur: any) => acc + Number(cur.quantity || 0) * Number(cur.unitValue || 0),
-      0
-    )
-  const totalAssets =
-    Number(values.computedTotalAssets) ||
-    landTotal + machineriesTotal + improvementsTotal + livestockTotal
+  // Recalcula os totais SEMPRE a partir dos itens reais (fonte da verdade)
+  const machineriesList = values.machineries || []
+  const improvementsList = values.improvements || []
+  const livestocksList = values.livestocks || []
+  const totalAreaNum = Number(values.totalArea || 0)
+  const vtnNum = Number(values.vtnPerHectare || 0)
+
+  const landTotal = Math.round(totalAreaNum * vtnNum * 100) / 100
+  const machineriesTotal = machineriesList.reduce(
+    (acc: number, cur: any) => acc + (Number(cur.value) || 0),
+    0
+  )
+  const improvementsTotal = improvementsList.reduce(
+    (acc: number, cur: any) => acc + ((Number(cur.quantity) || 0) * (Number(cur.unitValue) || 0)),
+    0
+  )
+  const livestockTotal = livestocksList.reduce(
+    (acc: number, cur: any) => acc + ((Number(cur.quantity) || 0) * (Number(cur.unitValue) || 0)),
+    0
+  )
+  const totalAssets = landTotal + machineriesTotal + improvementsTotal + livestockTotal
+
+  // Sempre que o preview é exibido ou itens mudam, sincroniza os totais no formulário
+  React.useEffect(() => {
+    const curLand = form.getValues('computedLandValue')
+    const curMach = form.getValues('computedMachineryValue')
+    const curImp = form.getValues('computedImprovementsValue')
+    const curLive = form.getValues('computedLivestockValue')
+    const curTotal = form.getValues('computedTotalAssets')
+
+    if (curLand !== landTotal) form.setValue('computedLandValue', landTotal)
+    if (curMach !== machineriesTotal) form.setValue('computedMachineryValue', machineriesTotal)
+    if (curImp !== improvementsTotal) form.setValue('computedImprovementsValue', improvementsTotal)
+    if (curLive !== livestockTotal) form.setValue('computedLivestockValue', livestockTotal)
+    if (curTotal !== totalAssets) form.setValue('computedTotalAssets', totalAssets)
+  }, [landTotal, machineriesTotal, improvementsTotal, livestockTotal, totalAssets, form])
 
   const handlePrint = () => {
     window.print()
@@ -277,37 +295,39 @@ export function Step5ReviewDossier({
           </div>
 
           {/* 5. CAPACIDADE DE PAGAMENTO */}
-          <div className="mb-8">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2">
-              5. Capacidade de Pagamento Anual
-            </h2>
-            <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50 p-2 rounded-sm border border-slate-200">
-              <div>
-                <span className="text-[10px] text-slate-700 block">Receitas Anuais</span>
-                <span className="font-bold">
-                  {formatBRL((Number(values.effectiveAgroRevenue) || 0) + (Number(values.otherRevenues) || 0))}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-700 block">Despesas + Dívidas</span>
-                <span className="font-bold text-red-700">
-                  {formatBRL((Number(values.operationalExpenses) || 0) + (Number(values.existingDebtService) || 0) + (Number(values.familyLivingCosts) || 0))}
-                </span>
-              </div>
-              <div>
-                <span className="text-[10px] text-slate-700 block">Margem Líquida</span>
-                <span className="font-bold text-emerald-700">
-                  {formatBRL(
-                    (Number(values.effectiveAgroRevenue) || 0) +
-                      (Number(values.otherRevenues) || 0) -
-                      ((Number(values.operationalExpenses) || 0) +
-                        (Number(values.existingDebtService) || 0) +
-                        (Number(values.familyLivingCosts) || 0))
-                  )}
-                </span>
+          {hasFinancialModule && (
+            <div className="mb-8">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2">
+                5. Capacidade de Pagamento Anual
+              </h2>
+              <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50 p-2 rounded-sm border border-slate-200">
+                <div>
+                  <span className="text-[10px] text-slate-700 block">Receitas Anuais</span>
+                  <span className="font-bold">
+                    {formatBRL((Number(values.effectiveAgroRevenue) || 0) + (Number(values.otherRevenues) || 0))}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-700 block">Despesas + Dívidas</span>
+                  <span className="font-bold text-red-700">
+                    {formatBRL((Number(values.operationalExpenses) || 0) + (Number(values.existingDebtService) || 0) + (Number(values.familyLivingCosts) || 0))}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-slate-700 block">Margem Líquida</span>
+                  <span className="font-bold text-emerald-700">
+                    {formatBRL(
+                      (Number(values.effectiveAgroRevenue) || 0) +
+                        (Number(values.otherRevenues) || 0) -
+                        ((Number(values.operationalExpenses) || 0) +
+                          (Number(values.existingDebtService) || 0) +
+                          (Number(values.familyLivingCosts) || 0))
+                    )}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* BLOCO DE ASSINATURAS */}
           <div className="pt-8 border-t border-slate-300 grid grid-cols-2 gap-8 text-center text-xs">

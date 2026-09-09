@@ -140,6 +140,8 @@ export default async function EditPropertyPage({
     }
   }
 
+  const hasFinancialModule = (dbUser.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -159,6 +161,7 @@ export default async function EditPropertyPage({
           branches={userBranches} 
           initialData={property} 
           producers={producers}
+          hasFinancialModule={hasFinancialModule}
         />
       </div>
     </div>

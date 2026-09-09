@@ -212,3 +212,5 @@ export const BRAZILIAN_STATES = [
   { value: 'TO', label: 'TO - Tocantins' },
 ] as const
 
+export const MODULE_FINANCIAL_SUMMARY = 'FINANCIAL_SUMMARY' as const
+

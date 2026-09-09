@@ -10,6 +10,7 @@ import {
   LIVESTOCK_MARKING_LOCATIONS,
   MACHINERY_CATEGORIES,
   BRAZILIAN_STATES,
+  MODULE_FINANCIAL_SUMMARY,
 } from './reference-data'
 
 export {
@@ -23,6 +24,7 @@ export {
   LIVESTOCK_MARKING_LOCATIONS,
   MACHINERY_CATEGORIES,
   BRAZILIAN_STATES,
+  MODULE_FINANCIAL_SUMMARY,
 }
 
 // ============================================================================
@@ -170,19 +172,19 @@ export type Step3ImprovementsAndHerdValues = z.infer<typeof step3ImprovementsAnd
 
 export const step4FinancialSummarySchema = z.object({
   // Totais Derivados (Calculados e exibidos em Cards Dashboard)
-  computedLandValue: z.coerce.number().min(0).default(0),
-  computedImprovementsValue: z.coerce.number().min(0).default(0),
-  computedMachineryValue: z.coerce.number().min(0).default(0),
-  computedLivestockValue: z.coerce.number().min(0).default(0),
-  computedTotalAssets: z.coerce.number().min(0).default(0),
+  computedLandValue: z.coerce.number().min(0).default(0).optional(),
+  computedImprovementsValue: z.coerce.number().min(0).default(0).optional(),
+  computedMachineryValue: z.coerce.number().min(0).default(0).optional(),
+  computedLivestockValue: z.coerce.number().min(0).default(0).optional(),
+  computedTotalAssets: z.coerce.number().min(0).default(0).optional(),
 
   // Entradas Manuais de Fluxo Financeiro
-  effectiveAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
-  projectedAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
-  otherRevenues: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
-  operationalExpenses: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
-  existingDebtService: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
-  familyLivingCosts: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
+  effectiveAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+  projectedAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+  otherRevenues: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+  operationalExpenses: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+  existingDebtService: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+  familyLivingCosts: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
 })
 
 export type Step4FinancialSummaryValues = z.infer<typeof step4FinancialSummarySchema>

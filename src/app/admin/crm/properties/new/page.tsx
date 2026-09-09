@@ -49,6 +49,8 @@ export default async function NewPropertyPage() {
     orderBy: { name: 'asc' }
   }) : []
 
+  const hasFinancialModule = (dbUser.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -67,6 +69,7 @@ export default async function NewPropertyPage() {
         <PropertyMultiStepForm 
           branches={userBranches} 
           producers={initialProducers} 
+          hasFinancialModule={hasFinancialModule}
         />
       </div>
     </div>

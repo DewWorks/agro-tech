@@ -36,6 +36,47 @@ export async function toggleOrganizationModule(organizationId: string, moduleCod
 }
 
 /**
+ * Garante que os módulos fundamentais da plataforma estejam cadastrados no banco.
+ */
+export async function ensureDefaultSystemModules() {
+  const defaults = [
+    {
+      code: 'CRM',
+      name: 'CRM & Produtores Rurais',
+      description: 'Gestão completa de produtores, propriedades rurais e rebanho.',
+      isActive: true,
+    },
+    {
+      code: 'GED',
+      name: 'GED Agrícola & Documentos',
+      description: 'Gestão eletrônica de documentos, certidões e matrículas.',
+      isActive: true,
+    },
+    {
+      code: 'FINANCIAL_SUMMARY',
+      name: 'Resumo Financeiro & Limites',
+      description: 'Análise de fluxo de caixa, capacidade de pagamento e limites de crédito no levantamento patrimonial.',
+      isActive: true,
+    },
+  ]
+
+  for (const mod of defaults) {
+    try {
+      const exists = await prisma.systemModule.findUnique({
+        where: { code: mod.code },
+      })
+      if (!exists) {
+        await prisma.systemModule.create({
+          data: mod,
+        })
+      }
+    } catch (e) {
+      console.error(`Error ensuring module ${mod.code}:`, e)
+    }
+  }
+}
+
+/**
  * Retorna todos os módulos globais do sistema.
  */
 export async function getSystemModules() {
@@ -43,6 +84,8 @@ export async function getSystemModules() {
   if (!user || user.realRole !== 'SUPER_ADMIN') {
     throw new Error('Não autorizado.')
   }
+
+  await ensureDefaultSystemModules()
 
   return await prisma.systemModule.findMany({
     orderBy: { createdAt: 'desc' }

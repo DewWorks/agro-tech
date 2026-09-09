@@ -54,6 +54,7 @@ export interface LimiteCreditoDocumentData {
     annualRevenue?: number
     annualExpenses?: number
     existingDebts?: number
+    hasFinancialModule?: boolean
   }
 }
 
@@ -90,6 +91,7 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const annualExp = opt.annualExpenses || 0
   const debts = opt.existingDebts || 0
   const netCapacity = Math.max(0, annualRev - annualExp - debts)
+  const showFinancial = opt.hasFinancialModule !== false
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.4; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
@@ -236,14 +238,14 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
     </div>
 
     <!-- V. SÍNTESE PATRIMONIAL E CAPACIDADE DE PAGAMENTO -->
-    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+    <div style="display: grid; grid-template-columns: ${showFinancial ? '1fr 1fr' : '1fr'}; gap: 12px; margin-bottom: 16px;">
       
       <div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 10px; background: #f9fafb;">
         <h3 style="margin: 0 0 6px 0; font-size: 11px; color: #111827; font-weight: bold; text-transform: uppercase;">
-          Síntese do Patrimônio Agropecuário
+          Quadro Sintético de Bens Avaliados
         </h3>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>1. Terras (Uso Atual):</span>
+          <span>1. Terras (Valor da Terra Nua):</span>
           <strong>R$ ${totalLandValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
@@ -264,6 +266,7 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
         </div>
       </div>
 
+      ${showFinancial ? `
       <div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 10px; background: #f9fafb;">
         <h3 style="margin: 0 0 6px 0; font-size: 11px; color: #111827; font-weight: bold; text-transform: uppercase;">
           Demonstração da Capacidade de Pagamento
@@ -285,6 +288,7 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
           <span>R$ ${netCapacity.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
         </div>
       </div>
+      ` : ''}
 
     </div>
 

@@ -44,6 +44,10 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
     0
   )
 
+  React.useEffect(() => {
+    setValue('computedMachineryValue', totalMachineryValue)
+  }, [totalMachineryValue, setValue])
+
   const handleAddDefault = () => {
     append({
       category: 'Trator de Pneus',
@@ -195,7 +199,7 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                               max={new Date().getFullYear() + 1}
                               placeholder="2022"
                               className="h-9 text-xs font-mono text-center"
-                              {...register(`machineries.${index}.year`)}
+                              {...register(`machineries.${index}.year`, { valueAsNumber: true })}
                             />
                           </TableCell>
 
@@ -215,7 +219,7 @@ export function Step2Machinery({ form }: Step2MachineryProps) {
                               step="1000"
                               placeholder="R$ 0,00"
                               className="h-9 text-xs font-semibold text-emerald-700 dark:text-emerald-400"
-                              {...register(`machineries.${index}.value`)}
+                              {...register(`machineries.${index}.value`, { valueAsNumber: true })}
                             />
                           </TableCell>
 

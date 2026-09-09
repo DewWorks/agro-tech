@@ -37,6 +37,7 @@ interface PropertyWizardContainerProps {
   producers: Array<{ id: string; name: string; document?: string }>
   isEditMode?: boolean
   propertyId?: string
+  hasFinancialModule?: boolean
 }
 
 export function PropertyWizardContainer({
@@ -45,6 +46,7 @@ export function PropertyWizardContainer({
   producers,
   isEditMode = false,
   propertyId,
+  hasFinancialModule = false,
 }: PropertyWizardContainerProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<number>(1)
@@ -175,18 +177,29 @@ export function PropertyWizardContainer({
       }
     }
 
-    const next = Math.min(currentStep + 1, 5)
+    let next = Math.min(currentStep + 1, 5)
+    if (!hasFinancialModule && next === 4) {
+      next = 5
+    }
     setCurrentStep(next)
     setHighestVisitedStep((prev) => Math.max(prev, next))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handlePrevStep = () => {
-    setCurrentStep((prev) => Math.max(prev - 1, 1))
+    let prevStep = Math.max(currentStep - 1, 1)
+    if (!hasFinancialModule && prevStep === 4) {
+      prevStep = 3
+    }
+    setCurrentStep(prevStep)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleStepClick = async (targetStep: number) => {
+    if (!hasFinancialModule && targetStep === 4) {
+      return
+    }
+
     if (isEditMode || targetStep <= currentStep) {
       setCurrentStep(targetStep)
       setHighestVisitedStep((prev) => Math.max(prev, targetStep))
@@ -234,7 +247,7 @@ export function PropertyWizardContainer({
         preserveArea: values.preserveArea ?? 0,
         ruralModules: values.ruralModules ?? 0,
         vtnPerHectare: values.vtnPerHectare ?? 0,
-        totalLandValue: values.totalLandValue ?? 0,
+        totalLandValue: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || values.totalLandValue || 0,
 
         // Registros
         registrationNumber: values.registrationNumber || '',
@@ -268,10 +281,27 @@ export function PropertyWizardContainer({
           oeste: values.confrontantWest || '',
         },
 
-        // Arrays dinâmicos
-        machineries: values.machineries || [],
-        improvements: values.improvements || [],
-        livestocks: values.livestocks || [],
+        // Arrays dinâmicos com coerção numérica estrita
+        machineries: (values.machineries || []).map((m: any) => ({
+          ...m,
+          year: m.year ? Number(m.year) : null,
+          participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
+          value: Number(m.value) || 0,
+        })),
+        improvements: (values.improvements || []).map((imp: any) => ({
+          ...imp,
+          quantity: Number(imp.quantity) || 0,
+          unitValue: Number(imp.unitValue) || 0,
+          totalValue: Math.round((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0) * 100) / 100,
+        })),
+        livestocks: (values.livestocks || []).map((l: any) => ({
+          ...l,
+          quantity: Number(l.quantity) || 0,
+          ageMonths: Number(l.ageMonths) || 0,
+          avgWeightKg: Number(l.avgWeightKg) || 0,
+          unitValue: Number(l.unitValue) || 0,
+          totalValue: Math.round((Number(l.quantity) || 0) * (Number(l.unitValue) || 0) * 100) / 100,
+        })),
 
         // Financeiro
         effectiveAgroRevenue: values.effectiveAgroRevenue ?? 0,
@@ -400,12 +430,13 @@ export function PropertyWizardContainer({
         </div>
       </div>
 
-      {/* Header Stepper (5 Passos) */}
+      {/* Header Stepper */}
       <WizardStepperHeader
         currentStep={currentStep}
         onStepClick={handleStepClick}
         highestVisitedStep={highestVisitedStep}
         isEditMode={isEditMode}
+        hasFinancialModule={hasFinancialModule}
       />
 
       {/* Formulário Principal com Contexto RHF */}
@@ -424,7 +455,7 @@ export function PropertyWizardContainer({
 
           {currentStep === 3 && <Step3ImprovementsHerd form={form} />}
 
-          {currentStep === 4 && <Step4FinancialSummary form={form} />}
+          {hasFinancialModule && currentStep === 4 && <Step4FinancialSummary form={form} />}
 
           {currentStep === 5 && (
             <Step5ReviewDossier
@@ -433,6 +464,7 @@ export function PropertyWizardContainer({
               branchName={selectedBranch?.name}
               isSubmitting={isSubmitting}
               onSubmit={form.handleSubmit(onFinalSubmit, onFormError)}
+              hasFinancialModule={hasFinancialModule}
             />
           )}
 
@@ -454,7 +486,7 @@ export function PropertyWizardContainer({
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500 hidden md:inline mr-2">
-                Passo {currentStep} de 5
+                Passo {currentStep === 5 && !hasFinancialModule ? 4 : currentStep} de {hasFinancialModule ? 5 : 4}
               </span>
 
               {isEditMode && currentStep < 5 && (

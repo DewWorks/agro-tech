@@ -77,6 +77,11 @@ export function Step3ImprovementsHerd({ form }: Step3ImprovementsHerdProps) {
     0
   )
 
+  React.useEffect(() => {
+    setValue('computedImprovementsValue', totalImprovementsValue)
+    setValue('computedLivestockValue', totalLivestockValue)
+  }, [totalImprovementsValue, totalLivestockValue, setValue])
+
   const handleAddDefaultImprovement = () => {
     appendImprovement({
       specification: 'Curral em cordoalha',

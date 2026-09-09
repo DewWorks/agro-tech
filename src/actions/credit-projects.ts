@@ -234,6 +234,7 @@ export async function resolveCreditProjectDocument(
       } : undefined,
       options: {
         ...options,
+        hasFinancialModule: (org?.modules || []).includes('FINANCIAL_SUMMARY'),
         responsibleName: options.responsibleName
           ? options.responsibleName
           : ownerName,

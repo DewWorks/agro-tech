@@ -171,6 +171,16 @@ export async function createProperty(data: any) {
           brandLocation: brandLocation || null,
         } : {},
 
+        improvements: {
+          machineryValue: machineries && Array.isArray(machineries)
+            ? machineries.reduce((acc: number, m: any) => acc + (Number(m.value) || 0), 0)
+            : 0,
+          improvementsValue: improvements && Array.isArray(improvements)
+            ? improvements.reduce((acc: number, imp: any) => acc + ((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0)), 0)
+            : 0,
+          estimatedLandValuePerHa: vtnPerHectare ? Number(vtnPerHectare) : 0,
+        },
+
         possessionData: {
           possessionYears: possessionYears ? Number(possessionYears) : null,
           explorationActivity: explorationActivity || null,
@@ -385,6 +395,19 @@ export async function updateProperty(id: string, data: any) {
           brandDescription: brandDescription !== undefined ? (brandDescription || null) : ((existing.livestock as any)?.brandDescription || null),
           brandRegistrationAdapec: brandRegistrationAdapec !== undefined ? (brandRegistrationAdapec || null) : ((existing.livestock as any)?.brandRegistrationAdapec || null),
           brandLocation: brandLocation !== undefined ? (brandLocation || null) : ((existing.livestock as any)?.brandLocation || null),
+        },
+
+        improvements: {
+          ...(existing.improvements as any || {}),
+          machineryValue: machineries && Array.isArray(machineries)
+            ? machineries.reduce((acc: number, m: any) => acc + (Number(m.value) || 0), 0)
+            : ((existing.improvements as any)?.machineryValue || 0),
+          improvementsValue: improvements && Array.isArray(improvements)
+            ? improvements.reduce((acc: number, imp: any) => acc + ((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0)), 0)
+            : ((existing.improvements as any)?.improvementsValue || 0),
+          estimatedLandValuePerHa: vtnPerHectare !== undefined
+            ? (vtnPerHectare ? Number(vtnPerHectare) : 0)
+            : ((existing.improvements as any)?.estimatedLandValuePerHa || 0),
         },
 
         possessionData: {
