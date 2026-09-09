@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useRef } from 'react'
-import { UseFormReturn } from 'react-hook-form'
+import { UseFormReturn, useFormContext } from 'react-hook-form'
 import { PropertyWizardFormValues } from '@/lib/validations/property-wizard'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -19,7 +19,7 @@ import {
 } from 'lucide-react'
 
 interface Step5ReviewDossierProps {
-  form: UseFormReturn<any>
+  form?: UseFormReturn<any>
   producerName?: string
   branchName?: string
   isSubmitting?: boolean
@@ -35,8 +35,10 @@ export function Step5ReviewDossier({
   onSubmit,
   hasFinancialModule = false,
 }: Step5ReviewDossierProps) {
+  const context = useFormContext()
+  const activeForm: UseFormReturn<any> = (form || context) as any
   // Observa os valores em tempo real para atualizar o preview imediatamente sem precisar recarregar
-  const values = form.watch()
+  const values = activeForm.watch()
   const printRef = useRef<HTMLDivElement>(null)
 
   const formatBRL = (val: number | undefined) =>
@@ -68,18 +70,18 @@ export function Step5ReviewDossier({
 
   // Sempre que o preview é exibido ou itens mudam, sincroniza os totais no formulário
   React.useEffect(() => {
-    const curLand = form.getValues('computedLandValue')
-    const curMach = form.getValues('computedMachineryValue')
-    const curImp = form.getValues('computedImprovementsValue')
-    const curLive = form.getValues('computedLivestockValue')
-    const curTotal = form.getValues('computedTotalAssets')
+    const curLand = activeForm.getValues('computedLandValue')
+    const curMach = activeForm.getValues('computedMachineryValue')
+    const curImp = activeForm.getValues('computedImprovementsValue')
+    const curLive = activeForm.getValues('computedLivestockValue')
+    const curTotal = activeForm.getValues('computedTotalAssets')
 
-    if (curLand !== landTotal) form.setValue('computedLandValue', landTotal)
-    if (curMach !== machineriesTotal) form.setValue('computedMachineryValue', machineriesTotal)
-    if (curImp !== improvementsTotal) form.setValue('computedImprovementsValue', improvementsTotal)
-    if (curLive !== livestockTotal) form.setValue('computedLivestockValue', livestockTotal)
-    if (curTotal !== totalAssets) form.setValue('computedTotalAssets', totalAssets)
-  }, [landTotal, machineriesTotal, improvementsTotal, livestockTotal, totalAssets, form])
+    if (curLand !== landTotal) activeForm.setValue('computedLandValue', landTotal)
+    if (curMach !== machineriesTotal) activeForm.setValue('computedMachineryValue', machineriesTotal)
+    if (curImp !== improvementsTotal) activeForm.setValue('computedImprovementsValue', improvementsTotal)
+    if (curLive !== livestockTotal) activeForm.setValue('computedLivestockValue', livestockTotal)
+    if (curTotal !== totalAssets) activeForm.setValue('computedTotalAssets', totalAssets)
+  }, [landTotal, machineriesTotal, improvementsTotal, livestockTotal, totalAssets, activeForm])
 
   const handlePrint = () => {
     window.print()

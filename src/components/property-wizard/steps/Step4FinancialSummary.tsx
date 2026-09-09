@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import { UseFormReturn } from 'react-hook-form'
+import { UseFormReturn, useFormContext } from 'react-hook-form'
 import { PropertyWizardFormValues } from '@/lib/validations/property-wizard'
 import {
   FormField,
@@ -27,11 +27,13 @@ import {
 } from 'lucide-react'
 
 interface Step4FinancialSummaryProps {
-  form: UseFormReturn<any>
+  form?: UseFormReturn<any>
 }
 
 export function Step4FinancialSummary({ form }: Step4FinancialSummaryProps) {
-  const { control, watch, setValue } = form
+  const context = useFormContext()
+  const activeForm: UseFormReturn<any> = (form || context) as any
+  const { control, watch, setValue } = activeForm
 
   // Observa os ativos dos Steps anteriores
   const totalArea = watch('totalArea') || 0
