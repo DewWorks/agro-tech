@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft } from 'lucide-react'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
-import { toggleOrganizationModule } from '@/actions/modules'
+import { toggleOrganizationModule, ensureDefaultSystemModules } from '@/actions/modules'
 
 import { CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react'
 
@@ -18,6 +18,8 @@ export default async function EditOrganizationPage({ params }: { params: Promise
   if (!dbUser || dbUser.realRole !== 'SUPER_ADMIN') {
     redirect('/admin')
   }
+
+  await ensureDefaultSystemModules()
 
   const organization = await prisma.organization.findUnique({
     where: { id: resolvedParams.id },

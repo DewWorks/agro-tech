@@ -10,7 +10,7 @@ export default async function NewCreditProjectPage() {
 
   const [producers, templates, orgOwner] = await Promise.all([
     getProducersWithPropertiesForCredit(),
-    getCreditTemplatesList(),
+    getCreditTemplatesList().then(list => list.filter(t => t.type === 'CREDIT')),
     user.organizationId ? prisma.user.findFirst({
       where: {
         organizationId: user.organizationId,
@@ -31,6 +31,8 @@ export default async function NewCreditProjectPage() {
       defaultResponsibleName={defaultResponsibleName}
       defaultOrgName={defaultOrgName}
       defaultOrgCnpj={defaultOrgCnpj}
+      backUrl="/admin/documents/credit-projects"
+      pageTitle="Gerador de Documentos & Projetos BB"
     />
   )
 }

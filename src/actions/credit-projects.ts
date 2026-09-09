@@ -33,7 +33,12 @@ export async function getProducersWithPropertiesForCredit() {
       branch: true,
       properties: {
         include: {
-          property: true
+          property: {
+            include: {
+              machineries: true,
+              improvementsList: true,
+            }
+          }
         }
       }
     },
@@ -69,6 +74,24 @@ export async function getProducersWithPropertiesForCredit() {
         preserveArea: link.property.preserveArea ? Number(link.property.preserveArea) : 0,
         explorationActivity: link.property.explorationActivity || undefined,
         accessRoute: poss.accessRoute || undefined,
+        machineries: (link.property.machineries || []).map(m => ({
+          id: m.id,
+          type: m.specification || 'Trator de Pneus',
+          category: m.specification || 'Trator de Pneus',
+          brand: m.brand || '',
+          model: m.model || '',
+          year: m.year || new Date().getFullYear(),
+          chassi: m.chassisSerial || '',
+          value: Number(m.value) || 0,
+        })),
+        improvements: (link.property.improvementsList || []).map(imp => ({
+          id: imp.id,
+          specification: imp.specification || '',
+          unit: imp.unit || 'm²',
+          quantity: Number(imp.quantity) || 0,
+          unitValue: Number(imp.unitValue) || 0,
+          totalValue: (Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0),
+        })),
       }
     })
   }))
@@ -211,6 +234,7 @@ export async function resolveCreditProjectDocument(
       } : undefined,
       options: {
         ...options,
+        hasFinancialModule: (org?.modules || []).includes('FINANCIAL_SUMMARY'),
         responsibleName: options.responsibleName
           ? options.responsibleName
           : ownerName,
@@ -354,6 +378,47 @@ export async function saveCreditProjectData(
           where: { id: propertyId },
           data: propUpdate
         })
+      }
+
+      // Sincronizar Máquinas com o cadastro relacional da fazenda
+      if (payload.machineryItems && Array.isArray(payload.machineryItems)) {
+        await prisma.machinery.deleteMany({ where: { propertyId } })
+        if (payload.machineryItems.length > 0) {
+          await prisma.machinery.createMany({
+            data: payload.machineryItems.map((m: any) => ({
+              branchId,
+              propertyId,
+              specification: m.type || m.category || m.specification || 'Trator de Pneus',
+              brand: m.brand || null,
+              model: m.model || null,
+              powerCapacity: m.powerCapacity || null,
+              year: m.year ? Number(m.year) : null,
+              chassisSerial: m.chassi || m.chassisSerial || null,
+              participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
+              value: m.value ? Number(m.value) : 0,
+              hasLien: Boolean(m.hasLien),
+              lienInstitution: m.lienInstitution || null,
+            }))
+          })
+        }
+      }
+
+      // Sincronizar Benfeitorias com o cadastro relacional da fazenda
+      if (payload.improvementItems && Array.isArray(payload.improvementItems)) {
+        await prisma.improvement.deleteMany({ where: { propertyId } })
+        if (payload.improvementItems.length > 0) {
+          await prisma.improvement.createMany({
+            data: payload.improvementItems.map((imp: any) => ({
+              branchId,
+              propertyId,
+              specification: imp.specification || '',
+              unit: imp.unit || 'm²',
+              quantity: imp.quantity ? Number(imp.quantity) : 0,
+              unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
+              observation: imp.conservationState ? `Estado: ${imp.conservationState}` : null,
+            }))
+          })
+        }
       }
     } catch (e) {
       console.error('Error synchronizing property data from credit form:', e)

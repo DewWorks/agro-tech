@@ -5,20 +5,20 @@ import { CreditProjectWizardProps, CustomOptions, ProducerData, PropertyData } f
 import { CreditTemplateMeta } from '@/lib/document-templates'
 
 export function useCreditProjectWizard(props: CreditProjectWizardProps) {
-  const { producers, templates, defaultResponsibleName = '' } = props
+  const { producers, templates, defaultResponsibleName = '', initialTemplateCode } = props
   
   const activeProducers = useMemo(() => {
     return producers.filter(p => p.isActive !== false)
   }, [producers])
 
-  const initialTemplate = templates[0]?.code || 'CHECKLIST_PROFISSIONAL'
+  const initialTemplate = initialTemplateCode || templates[0]?.code || 'CHECKLIST_PROFISSIONAL'
 
   const [selectedProducerId, setSelectedProducerId] = useState<string>(activeProducers[0]?.id || '')
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(activeProducers[0]?.properties[0]?.id || '')
   const [selectedTemplateCode, setSelectedTemplateCode] = useState<string>(initialTemplate)
 
   const [customOptions, setCustomOptions] = useState<CustomOptions>({
-    responsibleName: defaultResponsibleName || '',
+    responsibleName: '',
     creaNumber: '',
     artNumber: '',
     targetBank: '',
@@ -82,23 +82,6 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
   const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
   const [saveModalStep, setSaveModalStep] = useState<number>(1)
 
-  // Recuperar CREA/ART reais do RT persistidos no navegador
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedCrea = localStorage.getItem('agrotech_rt_crea')
-      const savedArt = localStorage.getItem('agrotech_rt_art')
-      const savedRtName = localStorage.getItem('agrotech_rt_name')
-      if (savedCrea || savedArt || savedRtName) {
-        setCustomOptions(prev => ({
-          ...prev,
-          creaNumber: prev.creaNumber || savedCrea || '',
-          artNumber: prev.artNumber || savedArt || '',
-          responsibleName: prev.responsibleName || savedRtName || defaultResponsibleName
-        }))
-      }
-    }
-  }, [defaultResponsibleName])
-
   // Recuperar dados salvos no banco de dados para este produtor, propriedade e modelo
   useEffect(() => {
     if (!selectedProducerId || !selectedTemplateCode) return
@@ -114,6 +97,45 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
           }))
           toast.info('Dados salvos deste projeto foram carregados automaticamente!')
         }
+
+        // Se o rascunho não possuir maquinários ou benfeitorias, carrega da propriedade vinculada
+        const prod = activeProducers.find(p => p.id === selectedProducerId)
+        const prop = prod?.properties?.find(p => p.id === selectedPropertyId)
+
+        if (prop && (!saved?.machineryItems || saved.machineryItems.length === 0) && prop.machineries && prop.machineries.length > 0) {
+          const machs = prop.machineries.map(m => ({
+            id: m.id || Math.random().toString(),
+            type: m.type || 'Trator de Pneus',
+            brand: m.brand || '',
+            model: m.model || '',
+            year: m.year || new Date().getFullYear(),
+            chassi: m.chassi || '',
+            value: Number(m.value) || 0,
+          }))
+          const totalVal = machs.reduce((acc, m) => acc + (Number(m.value) || 0), 0)
+          setCustomOptions(prev => ({
+            ...prev,
+            machineryItems: machs,
+            machineryValue: prev.machineryValue || totalVal,
+          }))
+        }
+
+        if (prop && (!saved?.improvementItems || saved.improvementItems.length === 0) && prop.improvements && prop.improvements.length > 0) {
+          const imps = prop.improvements.map(imp => ({
+            id: imp.id || Math.random().toString(),
+            specification: imp.specification || '',
+            unit: imp.unit || 'm²',
+            quantity: Number(imp.quantity) || 0,
+            unitValue: Number(imp.unitValue) || 0,
+            totalValue: Number(imp.totalValue) || (Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0),
+          }))
+          const totalVal = imps.reduce((acc, imp) => acc + (Number(imp.totalValue) || 0), 0)
+          setCustomOptions(prev => ({
+            ...prev,
+            improvementItems: imps,
+            improvementsValue: prev.improvementsValue || totalVal,
+          }))
+        }
       } catch (e) {
         // Silencioso
       }
@@ -121,29 +143,16 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
 
     loadSaved()
     return () => { isMounted = false }
-  }, [selectedProducerId, selectedPropertyId, selectedTemplateCode])
+  }, [selectedProducerId, selectedPropertyId, selectedTemplateCode, activeProducers])
 
   const currentProducer = activeProducers.find(p => p.id === selectedProducerId)
   const availableProperties = currentProducer?.properties || []
   const currentProperty = availableProperties.find(p => p.id === selectedPropertyId)
   const currentTemplate = templates.find(t => t.code === selectedTemplateCode)
 
-  // Sincronizar dados fundiários do imóvel selecionado com o formulário
-  useEffect(() => {
-    if (currentProperty) {
-      setCustomOptions(prev => ({
-        ...prev,
-        propertyRegistrationNumber: prev.propertyRegistrationNumber || currentProperty.registrationNumber || '',
-        propertyRegistryOffice: prev.propertyRegistryOffice || currentProperty.registryOffice || '',
-        propertyCar: prev.propertyCar || currentProperty.car || '',
-        propertyCcir: prev.propertyCcir || currentProperty.ccir || '',
-        propertyItr: prev.propertyItr || currentProperty.itr || '',
-        propertyTotalArea: (prev.propertyTotalArea && prev.propertyTotalArea > 0) ? prev.propertyTotalArea : (currentProperty.totalArea || 0),
-        propertyAccessRoute: prev.propertyAccessRoute || currentProperty.accessRoute || '',
-        propertyActivity: prev.propertyActivity || currentProperty.explorationActivity || '',
-      }))
-    }
-  }, [selectedPropertyId, currentProperty])
+  // NOTE: Dados fundiários NÃO são pré-preenchidos automaticamente.
+  // O usuário deve preencher manualmente todos os campos do wizard.
+  // Os dados cadastrais da propriedade são usados apenas para a geração do preview.
 
   // Validation of mandatory fields by template
   const validationErrors = useMemo(() => {
@@ -152,21 +161,34 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
     if (!selectedPropertyId) errors.push('Selecione a Propriedade / Imóvel Beneficiado')
     if (!selectedTemplateCode) errors.push('Selecione o Modelo Oficial Banco do Brasil')
 
+    const isLegalTemplate = [
+      'AUTORIZACAO_COMPARTILHAMENTO',
+      'AUTORIZACAO_SCR',
+      'AUTORIZACAO_SICOR',
+      'DECLARACAO_POSSE_MANSA',
+      'DECLARACAO_REGULARIDADE_AMBIENTAL',
+      'DECLARACAO_FORA_BIOMA',
+      'ENQUADRAMENTO_CAF',
+      'IDENTIFICACAO_ANIMAIS'
+    ].includes(selectedTemplateCode)
+
     if (selectedPropertyId) {
-      if (!customOptions.propertyRegistrationNumber?.trim()) {
-        errors.push('Matrícula / Registro do Imóvel (CRI) é obrigatório')
-      }
-      if (!customOptions.propertyCar?.trim()) {
-        errors.push('Nº do CAR (Cadastro Ambiental Rural) é obrigatório')
-      }
-      if (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) {
-        errors.push('Área Total do Imóvel (ha) deve ser maior que 0')
-      }
-      if (!customOptions.propertyAccessRoute?.trim()) {
-        errors.push('Roteiro de Acesso ao Imóvel é obrigatório')
-      }
-      if (!customOptions.propertyActivity?.trim()) {
-        errors.push('Atividade Principal do Imóvel é obrigatória')
+      if (!isLegalTemplate) {
+        if (!customOptions.propertyRegistrationNumber?.trim()) {
+          errors.push('Matrícula / Registro do Imóvel (CRI) é obrigatório')
+        }
+        if (!customOptions.propertyCar?.trim()) {
+          errors.push('Nº do CAR (Cadastro Ambiental Rural) é obrigatório')
+        }
+        if (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) {
+          errors.push('Área Total do Imóvel (ha) deve ser maior que 0')
+        }
+        if (!customOptions.propertyAccessRoute?.trim()) {
+          errors.push('Roteiro de Acesso ao Imóvel é obrigatório')
+        }
+        if (!customOptions.propertyActivity?.trim()) {
+          errors.push('Atividade Principal do Imóvel é obrigatória')
+        }
       }
 
       if (selectedTemplateCode === 'PROJETO_RENOVAGRO') {
@@ -184,7 +206,7 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       }
     }
 
-    if (!customOptions.responsibleName?.trim()) {
+    if (!isLegalTemplate && !customOptions.responsibleName?.trim()) {
       errors.push('Nome do Responsável Técnico é obrigatório')
     }
 

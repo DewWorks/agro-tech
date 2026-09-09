@@ -16,6 +16,24 @@ export interface PropertyData {
   preserveArea?: number
   explorationActivity?: string | null
   accessRoute?: string | null
+  machineries?: Array<{
+    id?: string
+    type: string
+    category?: string
+    brand?: string
+    model?: string
+    year?: number
+    chassi?: string
+    value?: number
+  }>
+  improvements?: Array<{
+    id?: string
+    specification: string
+    unit: string
+    quantity: number
+    unitValue: number
+    totalValue: number
+  }>
 }
 
 export interface ProducerData {
@@ -39,6 +57,7 @@ export interface CreditProjectWizardProps {
   defaultResponsibleName?: string
   defaultOrgName?: string
   defaultOrgCnpj?: string
+  initialTemplateCode?: string
 }
 
 export interface CustomOptions {
@@ -99,6 +118,30 @@ export interface CustomOptions {
   propertyTotalArea: number
   propertyAccessRoute: string
   propertyActivity: string
+
+  // Máquinas, Benfeitorias & Semoventes
+  machineryItems?: Array<{
+    id?: string
+    type: string
+    brand: string
+    model: string
+    year: number
+    chassi?: string
+    value: number
+  }>
+  improvementItems?: Array<{
+    id?: string
+    specification: string
+    unit: string
+    quantity: number
+    unitValue: number
+    totalValue: number
+    conservationState?: string
+  }>
+  livestockCattleHeads?: number
+  livestockCattleHeadValue?: number
+  livestockBrandAdapec?: string
+  livestockBrandDescription?: string
   
   // Additional dynamic fields
   [key: string]: any

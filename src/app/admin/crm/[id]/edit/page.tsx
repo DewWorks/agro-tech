@@ -22,8 +22,14 @@ export default async function EditProducerPage({ params }: { params: Promise<{ i
     include: { 
       branch: true,
       properties: {
-        include: { property: true },
-        take: 1
+        include: { 
+          property: {
+            include: {
+              branch: true
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
       }
     }
   })
