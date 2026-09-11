@@ -544,3 +544,55 @@ export async function getSavedCreditProjectData(
 
   return (existing?.payloadSnapshot as Record<string, any>) || null
 }
+
+/**
+ * Registra formalmente um evento de emissão de documento (Projeto de Crédito / Declaração).
+ * Sempre cria um novo registro em generated_forms com timestamp atual e sincroniza dados cadastrais.
+ */
+export async function recordDocumentEmission({
+  producerId,
+  propertyId,
+  templateCode,
+  payload,
+  storagePdfPath,
+}: {
+  producerId: string
+  propertyId?: string
+  templateCode: string
+  payload: Record<string, any>
+  storagePdfPath?: string
+}) {
+  const user = await getUserContext()
+  if (!user) throw new Error('Não autorizado')
+
+  const producer = await prisma.producer.findUnique({
+    where: { id: producerId },
+    select: { branchId: true }
+  })
+  if (!producer) throw new Error('Produtor não encontrado')
+
+  const branchId = user.branchId || producer.branchId
+
+  // Sincronizar rascunho permanente se houver
+  if (propertyId) {
+    await saveCreditProjectData(producerId, propertyId, templateCode, payload).catch((err) => {
+      console.error('Warning: could not sync draft during emission:', err)
+    })
+  }
+
+  // Criar registro permanente de emissão para alimentar o painel SaaS de franquia e histórico
+  const emission = await prisma.generatedForm.create({
+    data: {
+      branchId,
+      producerId,
+      propertyId: propertyId || null,
+      templateCode,
+      templateVersion: 1,
+      payloadSnapshot: payload,
+      storagePdfPath: storagePdfPath || null,
+    }
+  })
+
+  return { success: true, id: emission.id }
+}
+

@@ -16,6 +16,8 @@ import { toast } from 'sonner'
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, formatFileSize } from '@/lib/ged/utils'
 import { DOCUMENT_TYPE_LABELS } from '@/lib/ged/semaphore'
 import { getSignedUrlForUpload, createDocumentRecord } from '@/actions/documents'
+import { compressDocumentFile, CompressionResult } from '@/lib/ged/compressor'
+import { Sparkles } from 'lucide-react'
 
 interface UploadDropzoneProps {
   producerId: string
@@ -30,6 +32,7 @@ interface FileUploadState {
   progress: number
   status: 'pending' | 'uploading' | 'success' | 'error'
   errorMessage?: string
+  compression?: CompressionResult
 }
 
 export default function UploadDropzone({
@@ -41,6 +44,7 @@ export default function UploadDropzone({
 }: UploadDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [selectedFile, setSelectedFile] = useState<FileUploadState | null>(null)
+  const [isCompressing, setIsCompressing] = useState(false)
   const [documentType, setDocumentType] = useState('')
   const [issueDate, setIssueDate] = useState('')
   const [expirationDate, setExpirationDate] = useState('')
@@ -57,13 +61,34 @@ export default function UploadDropzone({
     return null
   }, [])
 
-  const handleFileSelect = useCallback((file: File) => {
+  const handleFileSelect = useCallback(async (file: File) => {
     const error = validateFile(file)
     if (error) {
       toast.error(error)
       return
     }
-    setSelectedFile({ file, progress: 0, status: 'pending' })
+
+    setIsCompressing(true)
+    try {
+      const compressionResult = await compressDocumentFile(file)
+      setSelectedFile({
+        file: compressionResult.file,
+        progress: 0,
+        status: 'pending',
+        compression: compressionResult,
+      })
+      if (compressionResult.wasCompressed) {
+        toast.success(
+          `Arquivo otimizado! Economia de ${compressionResult.reductionPercentage}% (${formatFileSize(
+            compressionResult.savedBytes
+          )} economizados).`
+        )
+      }
+    } catch {
+      setSelectedFile({ file, progress: 0, status: 'pending' })
+    } finally {
+      setIsCompressing(false)
+    }
   }, [validateFile])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -207,7 +232,19 @@ export default function UploadDropzone({
           onChange={handleInputChange}
         />
 
-        {!selectedFile ? (
+        {isCompressing ? (
+          <div className="flex flex-col items-center gap-3 py-2">
+            <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center animate-pulse">
+              <Sparkles className="h-6 w-6 text-emerald-700 animate-spin" />
+            </div>
+            <div>
+              <p className="font-semibold text-emerald-900">Otimizando documento...</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Aplicando compressão inteligente para economizar espaço e acelerar o envio.
+              </p>
+            </div>
+          </div>
+        ) : !selectedFile ? (
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-[#1B4D3E]/10 flex items-center justify-center">
               <Upload className="h-6 w-6 text-[#1B4D3E]" />
@@ -217,7 +254,7 @@ export default function UploadDropzone({
                 Arraste um arquivo aqui ou <span className="text-[#1B4D3E] underline">clique para selecionar</span>
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                PDF, JPG, PNG ou TIFF — Máximo {formatFileSize(MAX_FILE_SIZE_BYTES)}
+                PDF, JPG, PNG ou TIFF — Compressão automática ativada (Máx {formatFileSize(MAX_FILE_SIZE_BYTES)})
               </p>
             </div>
           </div>
@@ -232,9 +269,17 @@ export default function UploadDropzone({
                 <p className="text-sm font-medium text-gray-800 truncate">
                   {selectedFile.file.name}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatFileSize(selectedFile.file.size)}
-                </p>
+                <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                  <span className="text-xs text-muted-foreground">
+                    {formatFileSize(selectedFile.file.size)}
+                  </span>
+                  {selectedFile.compression?.wasCompressed && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 border border-emerald-200">
+                      <Sparkles className="h-3 w-3" />
+                      Otimizado -{selectedFile.compression.reductionPercentage}% (de {formatFileSize(selectedFile.compression.originalSize)})
+                    </span>
+                  )}
+                </div>
               </div>
               {selectedFile.status === 'success' ? (
                 <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />

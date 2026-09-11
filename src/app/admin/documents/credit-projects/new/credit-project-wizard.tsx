@@ -51,7 +51,7 @@ import { CreditProjectWizardProps } from './types/wizard-types';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { saveCreditProjectData } from '@/actions/credit-projects';
+import { saveCreditProjectData, recordDocumentEmission } from '@/actions/credit-projects';
 
 export default function CreditProjectWizard({ 
   producers, 
@@ -209,9 +209,14 @@ export default function CreditProjectWizard({
 
       await html2pdf().set(opt).from(element).save()
 
-      // Auto-salvar no banco de dados para reutilização posterior
+      // Registrar evento de emissão formal no banco de dados e sincronizar rascunho
       if (selectedProducerId && selectedTemplateCode) {
-        saveCreditProjectData(selectedProducerId, selectedPropertyId, selectedTemplateCode, customOptions).catch(() => {})
+        recordDocumentEmission({
+          producerId: selectedProducerId,
+          propertyId: selectedPropertyId,
+          templateCode: selectedTemplateCode,
+          payload: customOptions,
+        }).catch((err) => console.error('Erro ao contabilizar emissão no banco:', err))
       }
 
       toast.dismiss(toastId)

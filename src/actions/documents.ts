@@ -445,3 +445,179 @@ export async function getDocumentAlertCount() {
     return { success: true, data: 0 }
   }
 }
+
+// ---------------------------------------------------------------
+// Otimização / Compressão de Documentos Existentes (Batch)
+// ---------------------------------------------------------------
+
+export interface CompressionResultItem {
+  id: string
+  fileName: string
+  originalSize: number
+  compressedSize: number
+  savedBytes: number
+  percentage: number
+}
+
+export async function compressExistingDocuments(branchId?: string) {
+  try {
+    const dbUser = await getUserContext()
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || (dbUser as any).realRole === 'SUPER_ADMIN'
+    if (!isSuperAdmin) {
+      return {
+        success: false,
+        error: 'Apenas Super Administradores possuem autorização para executar a otimização em lote.',
+      }
+    }
+
+    let organizationId = dbUser.organizationId
+    if (!organizationId) {
+      const firstOrg = await prisma.organization.findFirst({
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      organizationId = firstOrg?.id || null
+    }
+
+    if (!organizationId) {
+      throw new Error('Nenhuma organização vinculada para otimização.')
+    }
+
+    const { BUCKET_NAME } = await import('@/lib/ged/storage')
+    const { supabaseAdmin } = await import('@/lib/supabase/admin')
+
+    const where: Prisma.DocumentWhereInput = {
+      branch: { organizationId },
+      isArchived: false,
+      isSuperseded: false,
+      ...(branchId && branchId !== 'ALL' ? { branchId } : {}),
+    }
+
+    const documents = await prisma.document.findMany({
+      where,
+      select: {
+        id: true,
+        fileName: true,
+        fileSize: true,
+        mimeType: true,
+        storagePath: true,
+      },
+    })
+
+    let processedCount = 0
+    let optimizedCount = 0
+    let originalTotal = 0
+    let compressedTotal = 0
+    const details: CompressionResultItem[] = []
+
+    for (const doc of documents) {
+      processedCount++
+      const currentSize = Number(doc.fileSize)
+      originalTotal += currentSize
+
+      const { data, error } = await supabaseAdmin.storage
+        .from(BUCKET_NAME)
+        .download(doc.storagePath)
+
+      if (error || !data) {
+        compressedTotal += currentSize
+        continue
+      }
+
+      const arrayBuffer = await data.arrayBuffer()
+      const originalBuffer = Buffer.from(arrayBuffer)
+      let optimizedBuffer: Buffer | null = null
+
+      try {
+        if (doc.mimeType === 'application/pdf') {
+          const { PDFDocument } = await import('pdf-lib')
+          const pdfDoc = await PDFDocument.load(new Uint8Array(arrayBuffer), { ignoreEncryption: true })
+          const pdfBytes = await pdfDoc.save({ useObjectStreams: true })
+          optimizedBuffer = Buffer.from(pdfBytes)
+        } else if (doc.mimeType.startsWith('image/')) {
+          const sharp = (await import('sharp')).default
+          let transformer = sharp(originalBuffer).resize(2048, 2048, {
+            fit: 'inside',
+            withoutEnlargement: true,
+          })
+
+          if (doc.mimeType === 'image/jpeg') {
+            transformer = transformer.jpeg({ quality: 82, mozjpeg: true })
+          } else if (doc.mimeType === 'image/png') {
+            transformer = transformer.png({ quality: 82, compressionLevel: 8 })
+          } else if (doc.mimeType === 'image/webp') {
+            transformer = transformer.webp({ quality: 82 })
+          } else {
+            transformer = transformer.jpeg({ quality: 82 })
+          }
+          optimizedBuffer = await transformer.toBuffer()
+        }
+      } catch (err) {
+        console.warn(`[Compress] Erro ao comprimir documento ${doc.id}:`, err)
+      }
+
+      // Só substitui se houver redução real de tamanho
+      if (optimizedBuffer && optimizedBuffer.length < currentSize) {
+        const savedBytes = currentSize - optimizedBuffer.length
+        const percentage = Number(((savedBytes / currentSize) * 100).toFixed(1))
+
+        const { error: uploadErr } = await supabaseAdmin.storage
+          .from(BUCKET_NAME)
+          .upload(doc.storagePath, optimizedBuffer, {
+            contentType: doc.mimeType,
+            upsert: true,
+          })
+
+        if (!uploadErr) {
+          await prisma.document.update({
+            where: { id: doc.id },
+            data: { fileSize: optimizedBuffer.length },
+          })
+
+          optimizedCount++
+          compressedTotal += optimizedBuffer.length
+          details.push({
+            id: doc.id,
+            fileName: doc.fileName,
+            originalSize: currentSize,
+            compressedSize: optimizedBuffer.length,
+            savedBytes,
+            percentage,
+          })
+          continue
+        }
+      }
+
+      // Se não reduziu ou falhou, mantém tamanho atual
+      compressedTotal += currentSize
+    }
+
+    revalidatePath('/admin/dashboard/owner')
+    revalidatePath('/admin/ged/explorer')
+
+    const totalSavedBytes = originalTotal - compressedTotal
+    const totalSavedPercentage =
+      originalTotal > 0 ? Number(((totalSavedBytes / originalTotal) * 100).toFixed(1)) : 0
+
+    return {
+      success: true,
+      processedCount,
+      optimizedCount,
+      originalTotal,
+      compressedTotal,
+      totalSavedBytes,
+      totalSavedPercentage,
+      details,
+    }
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || 'Erro ao comprimir documentos existentes',
+    }
+  }
+}
+
