@@ -15,7 +15,8 @@ import {
   FolderTree,
   FileText,
   Tractor,
-  Settings2
+  Settings2,
+  Landmark
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -49,6 +50,14 @@ const getMenuItems = (
         subItems: [
           { title: 'Gestão de Módulos', href: '/admin/modules' },
           { title: 'Painel GED (Global)', href: '/admin/ged-global' }
+        ]
+      },
+      {
+        title: 'Limite de Crédito',
+        icon: Landmark,
+        badge: 'Super Admin',
+        subItems: [
+          { title: 'Visão Geral & Limites', href: '/admin/credit-limit' },
         ]
       },
       {
@@ -115,6 +124,18 @@ const getMenuItems = (
     })
   }
 
+  const financialStatus = checkModule('FINANCIAL_SUMMARY')
+  if (financialStatus.show) {
+    items.push({
+      title: 'Limite de Crédito',
+      icon: Landmark,
+      badge: financialStatus.badge,
+      subItems: [
+        { title: 'Visão Geral & Limites', href: '/admin/credit-limit' },
+      ]
+    })
+  }
+
   items.push(
     {
       title: 'Filiais',
@@ -166,6 +187,7 @@ export default function AdminSidebar({
     'Configurações': pathname.startsWith('/admin/settings'),
     'SaaS / Clientes': pathname.startsWith('/admin/organizations'),
     'Documentos (GED Inteligente)': pathname.startsWith('/admin/ged') || pathname.startsWith('/admin/documents'),
+    'Limite de Crédito': pathname.startsWith('/admin/credit-limit'),
     'Módulos do Sistema': pathname.startsWith('/admin/modules'),
   })
 
@@ -179,6 +201,7 @@ export default function AdminSidebar({
       'Configurações': prev['Configurações'] || pathname.startsWith('/admin/settings'),
       'SaaS / Clientes': prev['SaaS / Clientes'] || pathname.startsWith('/admin/organizations'),
       'Documentos (GED Inteligente)': prev['Documentos (GED Inteligente)'] || pathname.startsWith('/admin/ged') || pathname.startsWith('/admin/documents'),
+      'Limite de Crédito': prev['Limite de Crédito'] || pathname.startsWith('/admin/credit-limit'),
       'Módulos do Sistema': prev['Módulos do Sistema'] || pathname.startsWith('/admin/modules'),
     }))
   }, [pathname])
