@@ -33,6 +33,17 @@ export default async function CreditProjectsHubPage() {
     }
   }
 
+  const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
+  const isOrgFinancialEnabled = (user.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+  const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
+  const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
+
+  const availableTemplates = CREDIT_TEMPLATES_REGISTRY.filter(t => {
+    if (t.type !== 'CREDIT') return false
+    if (t.code === 'LIMITE_CREDITO_BB' && !hasFinancialModule) return false
+    return true
+  })
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       
@@ -68,11 +79,11 @@ export default async function CreditProjectsHubPage() {
             <ShieldCheck className="h-5 w-5 text-[#1B4D3E]" />
             Modelos de Documentos Oficiais (Padrão Banco do Brasil)
           </h2>
-          <span className="text-xs text-muted-foreground">{CREDIT_TEMPLATES_REGISTRY.length} modelos disponíveis</span>
+          <span className="text-xs text-muted-foreground">{availableTemplates.length} modelos disponíveis</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CREDIT_TEMPLATES_REGISTRY.filter(t => t.type === 'CREDIT').map((tmpl) => {
+          {availableTemplates.map((tmpl) => {
             const Icon = getIcon(tmpl.code)
             return (
               <div 
@@ -84,9 +95,16 @@ export default async function CreditProjectsHubPage() {
                     <div className="h-12 w-12 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center text-[#1B4D3E] group-hover:scale-105 transition-transform">
                       <Icon className="h-6 w-6" />
                     </div>
-                    <Badge variant="outline" className={`text-[10px] font-semibold ${tmpl.badgeColor}`}>
-                      {tmpl.bank}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {tmpl.code === 'LIMITE_CREDITO_BB' && isFinancialModuleDisabledForOrg && (
+                        <Badge variant="outline" className="text-[9px] font-bold uppercase tracking-wider bg-amber-50 text-amber-800 border-amber-300">
+                          Desligado no Cliente
+                        </Badge>
+                      )}
+                      <Badge variant="outline" className={`text-[10px] font-semibold ${tmpl.badgeColor}`}>
+                        {tmpl.bank}
+                      </Badge>
+                    </div>
                   </div>
 
                   <h3 className="font-bold text-gray-900 text-base mb-1 group-hover:text-[#1B4D3E] transition-colors">

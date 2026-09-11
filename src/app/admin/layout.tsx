@@ -7,6 +7,7 @@ import prisma from '@/lib/prisma'
 import ModuleWarningBanner from '@/components/admin/layout/ModuleWarningBanner'
 import NavigationProgress from '@/components/admin/layout/NavigationProgress'
 import AdminContentWrapper from '@/components/admin/layout/AdminContentWrapper'
+import { AlertTriangle } from 'lucide-react'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const userContext = await getUserContext()
@@ -31,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         {userContext.isSuperAdminImpersonating && (
           <div className="bg-yellow-400 text-yellow-900 px-6 py-2 text-sm font-medium flex items-center justify-between shadow-sm z-50">
             <div className="flex items-center gap-2">
-              <span className="text-xl">⚠️</span>
+              <AlertTriangle className="h-5 w-5 shrink-0 text-yellow-900" />
               <span>
                 Estás a aceder ao painel de <strong>{userContext.impersonatedOrgName}</strong>. Tudo o que fizeres aqui afeta os dados reais deste cliente.
               </span>

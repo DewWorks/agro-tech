@@ -1,6 +1,7 @@
 import React from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import { CustomOptions } from '../../../types/wizard-types'
 
 interface ParamsProps {
@@ -20,7 +21,7 @@ export function ChecklistParams({ customOptions, setCustomOptions }: ParamsProps
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div className="space-y-1">
           <Label className="text-[10.5px] text-gray-600">Instituição Financeira</Label>
           <Input
@@ -37,6 +38,15 @@ export function ChecklistParams({ customOptions, setCustomOptions }: ParamsProps
             onChange={(e) => setCustomOptions(prev => ({ ...prev, purpose: e.target.value }))}
             className="h-8 text-xs"
             placeholder="Custeio / Investimento"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[10.5px] text-gray-600">Data de Entrada / Protocolo</Label>
+          <DatePicker
+            value={customOptions.entryDate}
+            onChange={(val) => setCustomOptions(prev => ({ ...prev, entryDate: val }))}
+            placeholder="DD/MM/AAAA"
+            showPresets={true}
           />
         </div>
       </div>

@@ -31,6 +31,7 @@ export default function ProducerDocumentsSection({
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('TODOS')
   const [typeFilter, setTypeFilter] = useState('TODOS')
+  const [expirationDateFilter, setExpirationDateFilter] = useState('')
 
   const fetchDocuments = useCallback(async () => {
     setLoading(true)
@@ -60,8 +61,15 @@ export default function ProducerDocumentsSection({
     if (typeFilter !== 'TODOS') {
       filtered = filtered.filter(d => d.documentType === typeFilter)
     }
+    if (expirationDateFilter) {
+      const filterExp = new Date(`${expirationDateFilter}T23:59:59`)
+      filtered = filtered.filter(d => {
+        if (!d.expirationDate) return false
+        return new Date(d.expirationDate) <= filterExp
+      })
+    }
     return filtered
-  }, [documents, search, statusFilter, typeFilter])
+  }, [documents, search, statusFilter, typeFilter, expirationDateFilter])
 
   const handleView = async (doc: DocumentRow) => {
     setPreviewDoc(doc)
@@ -139,6 +147,8 @@ export default function ProducerDocumentsSection({
                 onStatusFilterChange={setStatusFilter}
                 typeFilter={typeFilter}
                 onTypeFilterChange={setTypeFilter}
+                expirationDateFilter={expirationDateFilter}
+                onExpirationDateFilterChange={setExpirationDateFilter}
                 selectedCount={0}
               />
 

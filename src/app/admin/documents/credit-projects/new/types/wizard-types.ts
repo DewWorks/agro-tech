@@ -43,6 +43,7 @@ export interface ProducerData {
   type: string
   spouseName?: string | null
   spouseCpf?: string | null
+  representativeCpf?: string | null
   phone?: string | null
   email?: string | null
   civilStatus?: string | null
@@ -58,6 +59,9 @@ export interface CreditProjectWizardProps {
   defaultOrgName?: string
   defaultOrgCnpj?: string
   initialTemplateCode?: string
+  initialSavedData?: CustomOptions | null
+  backUrl?: string
+  pageTitle?: string
 }
 
 export interface CustomOptions {
@@ -66,6 +70,10 @@ export interface CustomOptions {
   artNumber: string
   targetBank: string
   purpose: string
+
+  // Representante Legal (para PJ ou exigência de CPF)
+  representativeCpf?: string
+  representativeName?: string
   
   // Limite de Crédito BB
   estimatedLandValuePerHa: number

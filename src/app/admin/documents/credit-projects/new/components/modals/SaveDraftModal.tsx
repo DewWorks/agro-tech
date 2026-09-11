@@ -192,7 +192,11 @@ export function SaveDraftModal({
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <span className="text-gray-500 text-[11px] block font-medium">Matrícula / Registro:</span>
                       <p className="font-semibold text-gray-900 text-sm mt-0.5">
-                        {customOptions.propertyRegistrationNumber || <span className="text-red-600 font-bold">⚠️ Pendente</span>}
+                        {customOptions.propertyRegistrationNumber || (
+                          <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Pendente
+                          </span>
+                        )}
                       </p>
                     </div>
 
@@ -206,7 +210,11 @@ export function SaveDraftModal({
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <span className="text-gray-500 text-[11px] block font-medium">Nº do CAR (Recibo):</span>
                       <p className="font-semibold text-gray-900 text-sm mt-0.5">
-                        {customOptions.propertyCar || <span className="text-red-600 font-bold">⚠️ Pendente</span>}
+                        {customOptions.propertyCar || (
+                          <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Pendente
+                          </span>
+                        )}
                       </p>
                     </div>
 
@@ -216,7 +224,9 @@ export function SaveDraftModal({
                         {Number(customOptions.propertyTotalArea) > 0 ? (
                           `${customOptions.propertyTotalArea} ha`
                         ) : (
-                          <span className="text-red-600 font-bold">⚠️ 0.00 ha (Inválido)</span>
+                          <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" /> 0.00 ha (Inválido)
+                          </span>
                         )}
                       </p>
                     </div>
@@ -224,7 +234,11 @@ export function SaveDraftModal({
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <span className="text-gray-500 text-[11px] block font-medium">Atividade Principal do Imóvel:</span>
                       <p className="font-semibold text-gray-900 text-sm mt-0.5">
-                        {customOptions.propertyActivity || <span className="text-red-600 font-bold">⚠️ Não informada</span>}
+                        {customOptions.propertyActivity || (
+                          <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Não informada
+                          </span>
+                        )}
                       </p>
                     </div>
 
@@ -238,7 +252,11 @@ export function SaveDraftModal({
                     <div className="col-span-1 sm:col-span-2 lg:col-span-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
                       <span className="text-gray-500 text-[11px] block font-medium">Roteiro de Acesso à Propriedade:</span>
                       <p className="font-semibold text-gray-900 text-xs mt-0.5 leading-relaxed">
-                        {customOptions.propertyAccessRoute || <span className="text-red-600 font-bold">⚠️ Não informado (Obrigatório)</span>}
+                        {customOptions.propertyAccessRoute || (
+                          <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                            <AlertTriangle className="w-3.5 h-3.5" /> Não informado (Obrigatório)
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -395,7 +413,11 @@ export function SaveDraftModal({
                         <div className="col-span-1 sm:col-span-2 lg:col-span-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
                           <span className="text-gray-500 text-[11px] block font-medium">Sublinha do Programa:</span>
                           <p className="font-semibold text-gray-900 text-sm mt-0.5">
-                            {customOptions.renovagroSubline || <span className="text-red-600 font-bold">⚠️ Não informada</span>}
+                            {customOptions.renovagroSubline || (
+                              <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" /> Não informada
+                              </span>
+                            )}
                           </p>
                         </div>
                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
@@ -428,7 +450,11 @@ export function SaveDraftModal({
                         <div className="col-span-1 sm:col-span-2 lg:col-span-3 bg-slate-50 p-3 rounded-lg border border-slate-100">
                           <span className="text-gray-500 text-[11px] block font-medium">Equipamento / Inovação:</span>
                           <p className="font-semibold text-gray-900 text-sm mt-0.5">
-                            {customOptions.inovagroEquipment || <span className="text-red-600 font-bold">⚠️ Não informado</span>}
+                            {customOptions.inovagroEquipment || (
+                              <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                                <AlertTriangle className="w-3.5 h-3.5" /> Não informado
+                              </span>
+                            )}
                           </p>
                         </div>
                         <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
@@ -510,7 +536,11 @@ export function SaveDraftModal({
                       <div>
                         <span className="text-gray-500 text-[11px] block font-medium">Responsável Técnico (RT):</span>
                         <p className="font-bold text-gray-900 text-sm mt-0.5">
-                          {customOptions.responsibleName || <span className="text-red-600 font-bold">⚠️ Não informado</span>}
+                          {customOptions.responsibleName || (
+                            <span className="text-red-600 font-bold inline-flex items-center gap-1">
+                              <AlertTriangle className="w-3.5 h-3.5" /> Não informado
+                            </span>
+                          )}
                         </p>
                       </div>
                       <div>

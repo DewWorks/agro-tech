@@ -15,7 +15,16 @@ import {
 export async function getCreditTemplatesList(): Promise<CreditTemplateMeta[]> {
   const user = await getUserContext()
   if (!user) throw new Error('Unauthorized')
-  return CREDIT_TEMPLATES_REGISTRY
+
+  const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
+  const hasFinancial = isSuperAdmin || (user.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+
+  if (hasFinancial) {
+    return CREDIT_TEMPLATES_REGISTRY
+  }
+
+  // Se o módulo financeiro estiver desativado para o cliente, oculta a Ficha de Limite de Crédito
+  return CREDIT_TEMPLATES_REGISTRY.filter(t => t.code !== 'LIMITE_CREDITO_BB')
 }
 
 export async function getProducersWithPropertiesForCredit() {
@@ -39,6 +48,7 @@ export async function getProducersWithPropertiesForCredit() {
       phone: true,
       email: true,
       civilStatus: true,
+      representativeCpf: true,
       branch: {
         select: {
           name: true,
@@ -102,6 +112,7 @@ export async function getProducersWithPropertiesForCredit() {
     phone: p.phone || undefined,
     email: p.email || undefined,
     civilStatus: p.civilStatus || undefined,
+    representativeCpf: p.representativeCpf || undefined,
     branchName: p.branch?.name || 'Matriz',
     properties: p.properties.map(link => {
       const poss = (link.property.possessionData as any) || {}
@@ -182,6 +193,13 @@ export async function resolveCreditProjectDocument(
   const templateMeta = CREDIT_TEMPLATES_REGISTRY.find(t => t.code === templateCode)
   if (!templateMeta) throw new Error('Modelo de crédito não encontrado.')
 
+  const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
+  const hasFinancialModule = isSuperAdmin || (org?.modules || []).includes('FINANCIAL_SUMMARY')
+
+  if (templateCode === 'LIMITE_CREDITO_BB' && !hasFinancialModule) {
+    throw new Error('Acesso não autorizado: o módulo Resumo Financeiro & Limites não está ativo para a sua organização.')
+  }
+
   // Parse JSON fields
   const livestock = (property.livestock as any) || {}
   const possessionData = (property.possessionData as any) || {}
@@ -234,6 +252,7 @@ export async function resolveCreditProjectDocument(
         type: producer.type as 'PF' | 'PJ',
         spouseName: producer.spouseName || undefined,
         spouseCpf: producer.spouseCpf || undefined,
+        representativeCpf: options.representativeCpf || producer.representativeCpf || undefined,
         phone: producer.phone || undefined,
         civilStatus: producer.civilStatus || undefined,
         profession: producer.profession || undefined,
@@ -281,7 +300,7 @@ export async function resolveCreditProjectDocument(
       } : undefined,
       options: {
         ...options,
-        hasFinancialModule: (org?.modules || []).includes('FINANCIAL_SUMMARY'),
+        hasFinancialModule: hasFinancialModule,
         responsibleName: options.responsibleName
           ? options.responsibleName
           : ownerName,
@@ -541,3 +560,55 @@ export async function getSavedCreditProjectData(
 
   return (existing?.payloadSnapshot as Record<string, any>) || null
 }
+
+/**
+ * Registra formalmente um evento de emissão de documento (Projeto de Crédito / Declaração).
+ * Sempre cria um novo registro em generated_forms com timestamp atual e sincroniza dados cadastrais.
+ */
+export async function recordDocumentEmission({
+  producerId,
+  propertyId,
+  templateCode,
+  payload,
+  storagePdfPath,
+}: {
+  producerId: string
+  propertyId?: string
+  templateCode: string
+  payload: Record<string, any>
+  storagePdfPath?: string
+}) {
+  const user = await getUserContext()
+  if (!user) throw new Error('Não autorizado')
+
+  const producer = await prisma.producer.findUnique({
+    where: { id: producerId },
+    select: { branchId: true }
+  })
+  if (!producer) throw new Error('Produtor não encontrado')
+
+  const branchId = user.branchId || producer.branchId
+
+  // Sincronizar rascunho permanente se houver
+  if (propertyId) {
+    await saveCreditProjectData(producerId, propertyId, templateCode, payload).catch((err) => {
+      console.error('Warning: could not sync draft during emission:', err)
+    })
+  }
+
+  // Criar registro permanente de emissão para alimentar o painel SaaS de franquia e histórico
+  const emission = await prisma.generatedForm.create({
+    data: {
+      branchId,
+      producerId,
+      propertyId: propertyId || null,
+      templateCode,
+      templateVersion: 1,
+      payloadSnapshot: payload,
+      storagePdfPath: storagePdfPath || null,
+    }
+  })
+
+  return { success: true, id: emission.id }
+}
+

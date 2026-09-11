@@ -4,6 +4,13 @@ import ProfileForm from './ProfileForm'
 import { getUserContext } from '@/lib/auth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Administrador',
+  OWNER: 'Administrador (Proprietário)',
+  ADMIN: 'Gerente',
+  OPERATOR: 'Usuário',
+}
+
 export default async function ProfilePage() {
   const dbUser = await getUserContext()
 
@@ -11,6 +18,7 @@ export default async function ProfilePage() {
     redirect('/login')
   }
 
+  // Buscar filiais que o utilizador tem acesso
   const userBranchesData = await prisma.userBranch.findMany({
     where: { userId: dbUser.id },
     include: { branch: true }
@@ -41,7 +49,7 @@ export default async function ProfilePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-gray-50 p-4 rounded-md">
               <span className="text-xs font-semibold text-gray-500 uppercase">Função Global</span>
-              <p className="mt-1 font-medium">{dbUser.role}</p>
+              <p className="mt-1 font-medium">{ROLE_LABELS[dbUser.role] || dbUser.role}</p>
             </div>
             <div className="bg-gray-50 p-4 rounded-md">
               <span className="text-xs font-semibold text-gray-500 uppercase">Filiais Vinculadas</span>
@@ -50,7 +58,7 @@ export default async function ProfilePage() {
                   userBranchesData.map(ub => (
                     <li key={ub.branchId} className="flex justify-between items-center">
                       <span>{ub.branch.name}</span>
-                      <span className="text-xs bg-[#1B4D3E]/10 text-[#1B4D3E] px-2 py-0.5 rounded-full">{ub.role}</span>
+                      <span className="text-xs bg-[#1B4D3E]/10 text-[#1B4D3E] px-2 py-0.5 rounded-full">{ROLE_LABELS[ub.role] || ub.role}</span>
                     </li>
                   ))
                 ) : (

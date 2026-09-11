@@ -323,9 +323,9 @@ export default async function AdminDashboardPage({
             <FolderTree className="h-6 w-6" />
             <span className="text-sm font-medium">GED Explorador</span>
           </Link>
-          <Link href="/admin/ged/semaphore" prefetch={true} className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
-            <ShieldAlert className="h-6 w-6" />
-            <span className="text-sm font-medium">Semáforo</span>
+          <Link href="/admin/dashboard/owner" prefetch={true} className="flex flex-col items-center justify-center p-4 bg-[#1B4D3E] text-white rounded-lg hover:bg-[#1B4D3E]/90 transition-colors shadow-sm gap-2">
+            <FolderTree className="h-6 w-6" />
+            <span className="text-sm font-medium">Dashboard GED</span>
           </Link>
         </div>
       </div>
@@ -364,7 +364,7 @@ export default async function AdminDashboardPage({
           </Link>
 
           {/* GED Card */}
-          <Link href="/admin/ged/semaphore" prefetch={true} className="block transition-transform hover:-translate-y-1">
+          <Link href="/admin/dashboard/owner" prefetch={true} className="block transition-transform hover:-translate-y-1">
             <Card className="h-full border hover:border-[#1B4D3E] shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">

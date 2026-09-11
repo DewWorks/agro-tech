@@ -44,8 +44,9 @@ export function PropertyDataForm({ customOptions, setCustomOptions }: PropertyDa
       </div>
 
       {isPending && (
-        <p className="text-[10px] text-amber-800 bg-amber-50/90 p-2 rounded border border-amber-200 leading-tight">
-          ⚠️ Preencha os dados fundiários pendentes abaixo para regularizar e emitir o documento oficial:
+        <p className="text-[10px] text-amber-800 bg-amber-50/90 p-2 rounded border border-amber-200 leading-tight flex items-center gap-1.5">
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-700" />
+          <span>Preencha os dados fundiários pendentes abaixo para regularizar e emitir o documento oficial:</span>
         </p>
       )}
 

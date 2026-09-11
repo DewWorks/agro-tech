@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Command,
   CommandEmpty,
@@ -296,6 +297,13 @@ export function MissingFieldsForm({ missingFields, onSave, isSubmitting }: Missi
                             </span>
                           )}
                         </div>
+                      ) : field.type === 'date' ? (
+                        <DatePicker
+                          value={values[field.key] || ''}
+                          onChange={(val) => handleChange(field.key, val)}
+                          placeholder={`Selecione ${field.label.toLowerCase()}...`}
+                          showPresets={false}
+                        />
                       ) : (
                         <Input
                           id={field.key}

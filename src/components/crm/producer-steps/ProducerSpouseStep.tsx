@@ -35,7 +35,15 @@ export function ProducerSpouseStep({
           onValueChange={(val) => handleChange('marriageRegime', val)}
         >
           <SelectTrigger className={`w-full ${errors.marriageRegime ? 'border-red-500' : ''}`}>
-            <SelectValue placeholder="Selecione o regime" />
+            <SelectValue placeholder="Selecione o regime">
+              {{
+                COMUNHAO_PARCIAL: 'Comunhão Parcial de Bens',
+                COMUNHAO_UNIVERSAL: 'Comunhão Universal de Bens',
+                SEPARACAO_TOTAL: 'Separação Total (Convencional)',
+                SEPARACAO_OBRIGATORIA: 'Separação Obrigatória (Legal)',
+                PARTICIPACAO_FINAL: 'Participação Final nos Aquestos',
+              }[formData.marriageRegime as string] || formData.marriageRegime}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="COMUNHAO_PARCIAL">Comunhão Parcial de Bens</SelectItem>

@@ -1,10 +1,13 @@
 import { formatCPF, formatCNPJ } from '@/lib/validations'
+import { getDocumentTypeAndLabel } from '@/lib/utils/masks'
 
 export interface CusteioSafraDocumentData {
   producer: {
     name: string
     document: string
     type: 'PF' | 'PJ'
+    representativeCpf?: string
+    representativeName?: string
     spouseName?: string
     phone?: string
     city?: string
@@ -54,7 +57,7 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
   const orgOwnerName = data.organization?.ownerName || opt.responsibleName || opt.agronomistName || 'Responsável Técnico'
 
-  const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
+  const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(p.document, p.type)
   const safra = opt.safraYear || ''
   const crop = opt.cropName || prop.explorationActivity || ''
   const areaHa = opt.cropAreaHa && opt.cropAreaHa > 0 ? opt.cropAreaHa : 0
@@ -94,11 +97,15 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
     <!-- 01. IDENTIFICAÇÃO -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        01 - Identificação do Produtor e Imóvel Beneficiado
+        ${isCnpj ? '01 - Identificação da Empresa Proponente & Representante Legal' : '01 - Identificação do Produtor e Imóvel Beneficiado'}
       </div>
-      <div style="padding: 6px 10px; display: grid; grid-template-columns: 2fr 1fr; gap: 6px;">
-        <div><strong>Produtor:</strong> ${p.name || '-'}</div>
-        <div><strong>CPF / CNPJ:</strong> ${docFormatted || '-'}</div>
+      <div style="padding: 6px 12px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px 16px; font-size: 11px; line-height: 1.5;">
+        <div><strong>${isCnpj ? 'Razão Social:' : 'Produtor:'}</strong> ${p.name || '-'}</div>
+        <div style="white-space: nowrap;"><strong>${docLabel}:</strong> ${docFormatted || '-'}</div>
+        ${isCnpj ? `
+          <div><strong>Representante Legal:</strong> ${p.representativeName || 'Administrador(a) / Titular'}</div>
+          <div style="white-space: nowrap;"><strong>CPF Representante:</strong> ${p.representativeCpf ? formatCPF(p.representativeCpf) : '-'}</div>
+        ` : ''}
         <div><strong>Propriedade Rural:</strong> ${prop.name || 'Fazenda'} (${prop.city || ''}/${prop.state || ''})</div>
         <div><strong>Matrícula:</strong> ${prop.registrationNumber || 'Pendente'}</div>
       </div>
@@ -172,7 +179,7 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
           ` : `
           <tr>
             <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
-              ⚠️ Aguardando preenchimento da cultura, área de plantio e custos por hectare no formulário lateral.
+              Aguardando preenchimento da cultura, área de plantio e custos por hectare no formulário lateral.
             </td>
           </tr>
           `}
@@ -215,7 +222,8 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Proponente'}</strong>
         </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">${docLabel}: ${docFormatted || p.document || '-'}</div>
+        ${isCnpj && p.representativeCpf ? `<div style="color: #4b5563; font-size: 10px; white-space: nowrap;">Rep. Legal CPF: ${formatCPF(p.representativeCpf)}</div>` : ''}
         <div style="color: #6b7280; font-size: 10px;">Proponente / Tomador</div>
       </div>
       <div>

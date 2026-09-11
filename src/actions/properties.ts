@@ -111,13 +111,18 @@ export async function createProperty(data: any) {
       brandRegistrationAdapec,
       brandLocation,
 
-      // Dados Financeiros
+      // Dados Financeiros & Limite de Crédito
       effectiveAgroRevenue,
       projectedAgroRevenue,
       otherRevenues,
       operationalExpenses,
       existingDebtService,
       familyLivingCosts,
+      creditLimitRequested,
+      creditLimitPurpose,
+      creditLimitTargetBank,
+      creditLimitTermMonths,
+      creditLimitNotes,
     } = data
 
     if (!name && !propertyName) {
@@ -192,6 +197,11 @@ export async function createProperty(data: any) {
           operationalExpenses: operationalExpenses ? Number(operationalExpenses) : null,
           existingDebtService: existingDebtService ? Number(existingDebtService) : null,
           familyLivingCosts: familyLivingCosts ? Number(familyLivingCosts) : null,
+          creditLimitRequested: creditLimitRequested ? Number(creditLimitRequested) : null,
+          creditLimitPurpose: creditLimitPurpose || null,
+          creditLimitTargetBank: creditLimitTargetBank || null,
+          creditLimitTermMonths: creditLimitTermMonths ? Number(creditLimitTermMonths) : null,
+          creditLimitNotes: creditLimitNotes || null,
         },
 
         createdBy: dbUser.id,
@@ -338,13 +348,18 @@ export async function updateProperty(id: string, data: any) {
       brandRegistrationAdapec,
       brandLocation,
 
-      // Financeiro
+      // Financeiro & Limite de Crédito
       effectiveAgroRevenue,
       projectedAgroRevenue,
       otherRevenues,
       operationalExpenses,
       existingDebtService,
       familyLivingCosts,
+      creditLimitRequested,
+      creditLimitPurpose,
+      creditLimitTargetBank,
+      creditLimitTermMonths,
+      creditLimitNotes,
     } = data
 
     const propName = propertyName || name || existing.name
@@ -423,6 +438,11 @@ export async function updateProperty(id: string, data: any) {
             operationalExpenses: operationalExpenses !== undefined ? (operationalExpenses ? Number(operationalExpenses) : null) : ((existing.possessionData as any)?.operationalExpenses || null),
             existingDebtService: existingDebtService !== undefined ? (existingDebtService ? Number(existingDebtService) : null) : ((existing.possessionData as any)?.existingDebtService || null),
             familyLivingCosts: familyLivingCosts !== undefined ? (familyLivingCosts ? Number(familyLivingCosts) : null) : ((existing.possessionData as any)?.familyLivingCosts || null),
+            creditLimitRequested: creditLimitRequested !== undefined ? (creditLimitRequested ? Number(creditLimitRequested) : null) : ((existing.possessionData as any)?.creditLimitRequested || null),
+            creditLimitPurpose: creditLimitPurpose !== undefined ? (creditLimitPurpose || null) : ((existing.possessionData as any)?.creditLimitPurpose || null),
+            creditLimitTargetBank: creditLimitTargetBank !== undefined ? (creditLimitTargetBank || null) : ((existing.possessionData as any)?.creditLimitTargetBank || null),
+            creditLimitTermMonths: creditLimitTermMonths !== undefined ? (creditLimitTermMonths ? Number(creditLimitTermMonths) : null) : ((existing.possessionData as any)?.creditLimitTermMonths || null),
+            creditLimitNotes: creditLimitNotes !== undefined ? (creditLimitNotes || null) : ((existing.possessionData as any)?.creditLimitNotes || null),
           },
 
           updatedBy: dbUser.id,

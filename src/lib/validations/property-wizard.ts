@@ -44,7 +44,7 @@ export function normalizeTitleCase(text: string): string {
 // STEP 1: IDENTIFICAÇÃO E DADOS FUNDIÁRIOS
 // ============================================================================
 
-export const step1LandSchema = z.object({
+export const step1LandBaseSchema = z.object({
   // Identificação e Vínculo
   name: z.string().min(2, 'O nome da fazenda é obrigatório'),
   branchId: z.string().min(1, 'Filial obrigatória'),
@@ -95,6 +95,18 @@ export const step1LandSchema = z.object({
   isBorderProperty: z.boolean().default(false),
   conservationState: z.string().default('BOM'),
 })
+
+export const step1LandSchema = step1LandBaseSchema.refine(
+  (data) => {
+    if (!data.totalArea || data.totalArea <= 0) return true
+    const sum = (Number(data.productiveArea) || 0) + (Number(data.pastureArea) || 0) + (Number(data.preserveArea) || 0)
+    return sum <= Number(data.totalArea)
+  },
+  {
+    message: 'A soma das áreas (produtiva, pastagem e preservação) não pode ultrapassar a área total da propriedade (balanço de áreas fundiárias).',
+    path: ['totalArea'],
+  }
+)
 
 export type Step1LandValues = z.infer<typeof step1LandSchema>
 
@@ -185,6 +197,13 @@ export const step4FinancialSummarySchema = z.object({
   operationalExpenses: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
   existingDebtService: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
   familyLivingCosts: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+
+  // Base do Limite de Crédito Rural (MCR / Bancos Agro)
+  creditLimitRequested: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+  creditLimitPurpose: z.string().default('CUSTEIO_AGRICOLA').optional(),
+  creditLimitTargetBank: z.string().default('BANCO_DO_BRASIL').optional(),
+  creditLimitTermMonths: z.coerce.number().min(1, 'Prazo mínimo de 1 mês').default(12).optional(),
+  creditLimitNotes: z.string().optional(),
 })
 
 export type Step4FinancialSummaryValues = z.infer<typeof step4FinancialSummarySchema>
@@ -194,7 +213,7 @@ export type Step4FinancialSummaryValues = z.infer<typeof step4FinancialSummarySc
 // ============================================================================
 
 export const propertyWizardSchema = z.object({
-  ...step1LandSchema.shape,
+  ...step1LandBaseSchema.shape,
   ...step2MachinerySchema.shape,
   ...step3ImprovementsAndHerdSchema.shape,
   ...step4FinancialSummarySchema.shape,
@@ -246,6 +265,11 @@ export const STEP_FIELDS_MAP: Record<number, (keyof PropertyWizardFormValues)[]>
     'operationalExpenses',
     'existingDebtService',
     'familyLivingCosts',
+    'creditLimitRequested',
+    'creditLimitPurpose',
+    'creditLimitTargetBank',
+    'creditLimitTermMonths',
+    'creditLimitNotes',
   ],
   5: [], // Step 5: Dossiê e Submissão Final
 }
@@ -305,4 +329,9 @@ export const defaultPropertyWizardValues: Partial<PropertyWizardFormValues> = {
   operationalExpenses: 0,
   existingDebtService: 0,
   familyLivingCosts: 0,
+  creditLimitRequested: 0,
+  creditLimitPurpose: 'CUSTEIO_AGRICOLA',
+  creditLimitTargetBank: 'BANCO_DO_BRASIL',
+  creditLimitTermMonths: 12,
+  creditLimitNotes: '',
 }

@@ -1,10 +1,13 @@
 import { formatCPF, formatCNPJ } from '@/lib/validations'
+import { getDocumentTypeAndLabel } from '@/lib/utils/masks'
 
 export interface ChecklistDocumentData {
   producer: {
     name: string
     document: string
     type: 'PF' | 'PJ'
+    representativeCpf?: string
+    representativeName?: string
     spouseName?: string
     spouseCpf?: string
     phone?: string
@@ -58,11 +61,19 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
   const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Responsável Técnico'
 
-  const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
+  const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(p.document, p.type)
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
   const bank = opt.targetBank || 'Não informada'
   const purpose = opt.purpose || 'Não informada'
-  const entryDate = opt.entryDate || new Date().toLocaleDateString('pt-BR')
+  const formatEntryDate = (d?: string) => {
+    if (!d) return new Date().toLocaleDateString('pt-BR')
+    if (d.includes('-')) {
+      const [year, month, day] = d.split('-')
+      if (year && month && day) return `${day}/${month}/${year}`
+    }
+    return d
+  }
+  const entryDate = formatEntryDate(opt.entryDate)
   const responsible = orgOwnerName
 
   const items = opt.itemsState || {}
@@ -98,10 +109,16 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
 
     <!-- QUADRO DE IDENTIFICAÇÃO -->
     <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px;">
-      <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px; margin-bottom: 6px;">
-        <div><strong>Cliente / Proponente:</strong> ${p.name || '________________________________________'}</div>
-        <div><strong>CPF / CNPJ:</strong> ${docFormatted || '______________________'}</div>
+      <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px 16px; margin-bottom: 6px;">
+        <div><strong>${isCnpj ? 'Razão Social / Proponente:' : 'Cliente / Proponente:'}</strong> ${p.name || '________________________________________'}</div>
+        <div style="white-space: nowrap;"><strong>${docLabel}:</strong> ${docFormatted || '______________________'}</div>
       </div>
+      ${isCnpj && (p.representativeName || p.representativeCpf) ? `
+      <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px 16px; background: #fff; padding: 6px 10px; border-radius: 4px; border: 1px solid #e5e7eb; font-size: 11.5px; margin-bottom: 6px;">
+        <div><strong>Representante Legal:</strong> ${p.representativeName || '-'}</div>
+        <div style="white-space: nowrap;"><strong>CPF Representante:</strong> ${p.representativeCpf ? formatCPF(p.representativeCpf) : 'Pendente'}</div>
+      </div>
+      ` : ''}
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
         <div><strong>Instituição Financeira:</strong> ${bank}</div>
         <div><strong>Data de Entrada:</strong> ${entryDate}</div>
@@ -307,7 +324,8 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Produtor Rural Proponente'}</strong>
         </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">${docLabel}: ${docFormatted || p.document || '-'}</div>
+        ${isCnpj && p.representativeCpf ? `<div style="color: #4b5563; font-size: 10px; white-space: nowrap;">Rep. Legal CPF: ${formatCPF(p.representativeCpf)}</div>` : ''}
         <div style="color: #6b7280; font-size: 10px;">Assinatura do Proponente</div>
       </div>
       <div>

@@ -68,7 +68,9 @@ export default function VirtualFolderSidebar({
         </div>
         <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'todos')}>
           <SelectTrigger className="h-8 text-xs bg-gray-50/50">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Status">
+              {{ todos: 'Todos', ativos: 'Ativos', inativos: 'Inativos' }[statusFilter] || statusFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos" className="text-xs">

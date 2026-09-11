@@ -2,6 +2,7 @@
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface ProducerLegalDataStepProps {
   formData: any
@@ -51,6 +52,17 @@ export function ProducerLegalDataStep({
               placeholder="Ex: SSP/TO"
             />
           </div>
+          {formData.type === 'PF' && (
+            <div className="space-y-2">
+              <Label>Data de Nascimento</Label>
+              <DatePicker
+                value={formData.birthDate}
+                onChange={(val) => handleChange('birthDate', val)}
+                placeholder="DD/MM/AAAA"
+                showPresets={false}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

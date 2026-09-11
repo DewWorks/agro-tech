@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form'
+import { UseFormRegister, UseFormSetValue, UseFormWatch, useWatch, useFormContext, Control } from 'react-hook-form'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,8 @@ interface MachineryTableRowProps {
   fieldItem: any
   register: UseFormRegister<any>
   setValue: UseFormSetValue<any>
-  watch: UseFormWatch<any>
+  watch?: UseFormWatch<any>
+  control?: any
   remove: (index: number) => void
 }
 
@@ -30,11 +31,22 @@ export const MachineryTableRow = React.memo(function MachineryTableRow({
   fieldItem,
   register,
   setValue,
-  watch,
+  control: propControl,
   remove,
 }: MachineryTableRowProps) {
-  const hasLien = watch(`machineries.${index}.hasLien`)
-  const currentCategory = watch(`machineries.${index}.category`) || fieldItem.category
+  const context = useFormContext()
+  const control = propControl || context?.control
+
+  const currentCategory = useWatch({
+    control,
+    name: `machineries.${index}.category`,
+    defaultValue: fieldItem.category || '',
+  })
+  const hasLien = useWatch({
+    control,
+    name: `machineries.${index}.hasLien`,
+    defaultValue: fieldItem.hasLien || false,
+  })
 
   return (
     <TableRow className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800">

@@ -11,6 +11,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DOCUMENT_TYPE_LABELS } from '@/lib/ged/semaphore'
+import { DatePicker } from '@/components/ui/date-picker'
+
+const STATUS_FILTER_LABELS: Record<string, string> = {
+  TODOS: 'Todos os Status',
+  VALIDO: 'Válidos',
+  ALERTA: 'Em Alerta',
+  VENCIDO: 'Vencidos',
+  INDEFINIDO: 'Sem Validade',
+}
 
 interface DocumentToolbarProps {
   search: string
@@ -19,6 +28,8 @@ interface DocumentToolbarProps {
   onStatusFilterChange: (value: string) => void
   typeFilter: string
   onTypeFilterChange: (value: string) => void
+  expirationDateFilter?: string
+  onExpirationDateFilterChange?: (value: string) => void
   onNewDocument?: () => void
   selectedCount: number
   onBatchDownload?: () => void
@@ -31,6 +42,8 @@ export default function DocumentToolbar({
   onStatusFilterChange,
   typeFilter,
   onTypeFilterChange,
+  expirationDateFilter,
+  onExpirationDateFilterChange,
   onNewDocument,
   selectedCount,
   onBatchDownload,
@@ -54,7 +67,9 @@ export default function DocumentToolbar({
         <Select value={statusFilter} onValueChange={(val) => onStatusFilterChange(val ?? 'TODOS')}>
           <SelectTrigger className="h-9 w-[180px] text-sm">
             <Filter className="h-3.5 w-3.5 mr-1 text-gray-400" />
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Status">
+              {STATUS_FILTER_LABELS[statusFilter] || statusFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="TODOS">
@@ -92,8 +107,10 @@ export default function DocumentToolbar({
 
         {/* Type Filter */}
         <Select value={typeFilter} onValueChange={(val) => onTypeFilterChange(val ?? 'TODOS')}>
-          <SelectTrigger className="h-9 w-[220px] text-sm">
-            <SelectValue placeholder="Categoria" />
+          <SelectTrigger className="h-9 w-[200px] text-sm">
+            <SelectValue placeholder="Categoria">
+              {typeFilter === 'TODOS' ? 'Todas as Categorias' : DOCUMENT_TYPE_LABELS[typeFilter] || typeFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
             <SelectItem value="TODOS">Todas as Categorias</SelectItem>
@@ -102,6 +119,19 @@ export default function DocumentToolbar({
             ))}
           </SelectContent>
         </Select>
+
+        {/* Expiration Date Filter */}
+        {onExpirationDateFilterChange && (
+          <div className="w-[185px]">
+            <DatePicker
+              value={expirationDateFilter || ''}
+              onChange={onExpirationDateFilterChange}
+              placeholder="Vencendo até..."
+              showPresets={true}
+              className="h-9 text-xs"
+            />
+          </div>
+        )}
       </div>
 
       {/* Right: Actions */}

@@ -38,6 +38,7 @@ interface PropertyWizardContainerProps {
   isEditMode?: boolean
   propertyId?: string
   hasFinancialModule?: boolean
+  isFinancialModuleDisabledForOrg?: boolean
 }
 
 export function PropertyWizardContainer({
@@ -47,6 +48,7 @@ export function PropertyWizardContainer({
   isEditMode = false,
   propertyId,
   hasFinancialModule = false,
+  isFinancialModuleDisabledForOrg = false,
 }: PropertyWizardContainerProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<number>(1)
@@ -154,6 +156,19 @@ export function PropertyWizardContainer({
         markingType: 'Ferro Quente',
         markingLocation: 'Perna Traseira Direita',
       })) || [],
+
+      // Dados Financeiros e Base de Limite de Crédito
+      effectiveAgroRevenue: Number(initialData.possessionData?.effectiveAgroRevenue) || 0,
+      projectedAgroRevenue: Number(initialData.possessionData?.projectedAgroRevenue) || 0,
+      otherRevenues: Number(initialData.possessionData?.otherRevenues) || 0,
+      operationalExpenses: Number(initialData.possessionData?.operationalExpenses) || 0,
+      existingDebtService: Number(initialData.possessionData?.existingDebtService) || 0,
+      familyLivingCosts: Number(initialData.possessionData?.familyLivingCosts) || 0,
+      creditLimitRequested: Number(initialData.possessionData?.creditLimitRequested) || 0,
+      creditLimitPurpose: initialData.possessionData?.creditLimitPurpose || 'CUSTEIO_AGRICOLA',
+      creditLimitTargetBank: initialData.possessionData?.creditLimitTargetBank || 'BANCO_DO_BRASIL',
+      creditLimitTermMonths: Number(initialData.possessionData?.creditLimitTermMonths) || 12,
+      creditLimitNotes: initialData.possessionData?.creditLimitNotes || '',
     }
   }, [initialData, branches, producers])
 
@@ -163,6 +178,14 @@ export function PropertyWizardContainer({
     defaultValues: mappedInitialValues as PropertyWizardFormValues,
     mode: 'onBlur',
   })
+
+  const scrollToTop = () => {
+    const mainEl = document.querySelector('main')
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // Validação Parcial (Partial Triggering) para Avançar
   const handleNextStep = async () => {
@@ -183,7 +206,7 @@ export function PropertyWizardContainer({
     }
     setCurrentStep(next)
     setHighestVisitedStep((prev) => Math.max(prev, next))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToTop()
   }
 
   const handlePrevStep = () => {
@@ -192,7 +215,7 @@ export function PropertyWizardContainer({
       prevStep = 3
     }
     setCurrentStep(prevStep)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToTop()
   }
 
   const handleStepClick = async (targetStep: number) => {
@@ -203,7 +226,7 @@ export function PropertyWizardContainer({
     if (isEditMode || targetStep <= currentStep) {
       setCurrentStep(targetStep)
       setHighestVisitedStep((prev) => Math.max(prev, targetStep))
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      scrollToTop()
       return
     }
 
@@ -219,7 +242,7 @@ export function PropertyWizardContainer({
 
     setCurrentStep(targetStep)
     setHighestVisitedStep((prev) => Math.max(prev, targetStep))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToTop()
   }
 
   // Salvamento unificado no banco (Parcial ao salvar no passo, ou Final no passo 5)
@@ -303,13 +326,18 @@ export function PropertyWizardContainer({
           totalValue: Math.round((Number(l.quantity) || 0) * (Number(l.unitValue) || 0) * 100) / 100,
         })),
 
-        // Financeiro
+        // Financeiro & Base de Limite de Crédito
         effectiveAgroRevenue: values.effectiveAgroRevenue ?? 0,
         projectedAgroRevenue: values.projectedAgroRevenue ?? 0,
         otherRevenues: values.otherRevenues ?? 0,
         operationalExpenses: values.operationalExpenses ?? 0,
         existingDebtService: values.existingDebtService ?? 0,
         familyLivingCosts: values.familyLivingCosts ?? 0,
+        creditLimitRequested: values.creditLimitRequested ?? 0,
+        creditLimitPurpose: values.creditLimitPurpose || 'CUSTEIO_AGRICOLA',
+        creditLimitTargetBank: values.creditLimitTargetBank || 'BANCO_DO_BRASIL',
+        creditLimitTermMonths: values.creditLimitTermMonths ?? 12,
+        creditLimitNotes: values.creditLimitNotes || '',
       }
 
       let res
@@ -420,8 +448,34 @@ export function PropertyWizardContainer({
               Salvar Alterações
             </Button>
           )}
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-            Estado do Formulário:
+
+          {currentStep < 5 ? (
+            <Button
+              type="button"
+              onClick={handleNextStep}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-3.5 shadow-xs cursor-pointer flex items-center gap-1"
+            >
+              Avançar
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={form.handleSubmit(onFinalSubmit, onFormError)}
+              disabled={isSubmitting}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-3.5 shadow-xs cursor-pointer flex items-center gap-1"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              Concluir
+            </Button>
+          )}
+
+          <span className="text-xs text-slate-500 font-medium hidden sm:inline ml-1">
+            Estado:
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -437,6 +491,7 @@ export function PropertyWizardContainer({
         highestVisitedStep={highestVisitedStep}
         isEditMode={isEditMode}
         hasFinancialModule={hasFinancialModule}
+        isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
       />
 
       {/* Formulário Principal com Contexto RHF */}
@@ -455,7 +510,12 @@ export function PropertyWizardContainer({
 
           {currentStep === 3 && <Step3ImprovementsHerd form={form} />}
 
-          {hasFinancialModule && currentStep === 4 && <Step4FinancialSummary form={form} />}
+          {hasFinancialModule && currentStep === 4 && (
+            <Step4FinancialSummary 
+              form={form} 
+              isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+            />
+          )}
 
           {currentStep === 5 && (
             <Step5ReviewDossier
@@ -465,11 +525,12 @@ export function PropertyWizardContainer({
               isSubmitting={isSubmitting}
               onSubmit={form.handleSubmit(onFinalSubmit, onFormError)}
               hasFinancialModule={hasFinancialModule}
+              isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
             />
           )}
 
-          {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD */}
-          <div className="sticky bottom-4 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+          {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD (FLUXO NATURAL - NÃO COBRE OS CAMPOS AO ROLAR) */}
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between mt-8">
             <div>
               {currentStep > 1 && (
                 <Button

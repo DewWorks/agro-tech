@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from 'react'
+import 'leaflet/dist/leaflet.css'
+import type * as LType from 'leaflet'
 import {
   Dialog,
   DialogContent,
@@ -31,6 +33,9 @@ interface FarmMapModalProps {
 }
 
 export function toDMS(coordinate: number, isLat: boolean): string {
+  if (coordinate === undefined || coordinate === null || isNaN(coordinate)) {
+    return isLat ? '00°00\'00.00"S' : '00°00\'00.00"O'
+  }
   const absolute = Math.abs(coordinate)
   const degrees = Math.floor(absolute)
   const minutesNotTruncated = (absolute - degrees) * 60
@@ -66,7 +71,7 @@ export function parseCoordinate(
     if (dir === 'S' || dir === 'O' || dir === 'W') {
       dec = -dec
     }
-    return dec
+    return isNaN(dec) ? null : dec
   }
   return null
 }
@@ -75,10 +80,35 @@ const QUICK_CITIES = [
   { name: 'Palmas - TO', lat: -10.1838, lng: -48.3336, city: 'Palmas', state: 'TO' },
   { name: 'Taguatinga - TO', lat: -12.4047, lng: -46.5714, city: 'Taguatinga', state: 'TO' },
   { name: 'Porto Nacional - TO', lat: -10.7081, lng: -48.4172, city: 'Porto Nacional', state: 'TO' },
-  { name: 'Araguaína - TO', lat: -7.1911, lng: -48.2078, city: 'Araguaína', state: 'TO' },
-  { name: 'Gurupi - TO', lat: -11.7297, lng: -49.0686, city: 'Gurupi', state: 'TO' },
   { name: 'Dianópolis - TO', lat: -11.6247, lng: -46.8222, city: 'Dianópolis', state: 'TO' },
+  { name: 'Gurupi - TO', lat: -11.7297, lng: -49.0686, city: 'Gurupi', state: 'TO' },
+  { name: 'Araguaína - TO', lat: -7.1911, lng: -48.2078, city: 'Araguaína', state: 'TO' },
+  { name: 'Paraíso - TO', lat: -10.1753, lng: -48.8819, city: 'Paraíso do Tocantins', state: 'TO' },
+  { name: 'Luís Eduardo - BA', lat: -12.0958, lng: -45.7958, city: 'Luís Eduardo Magalhães', state: 'BA' },
+  { name: 'Formosa do Rio Preto - BA', lat: -11.0478, lng: -45.1931, city: 'Formosa do Rio Preto', state: 'BA' },
 ]
+
+function resolveInitialCoords(initialLat?: string | number, initialLng?: string | number, initialCity?: string) {
+  const pLat = parseCoordinate(initialLat)
+  const pLng = parseCoordinate(initialLng)
+  if (pLat !== null && pLng !== null) {
+    return { lat: pLat, lng: pLng }
+  }
+
+  // Se não há coordenadas preenchidas, busca correspondência com o município selecionado
+  if (initialCity && initialCity.trim()) {
+    const norm = initialCity.trim().toLowerCase()
+    const found = QUICK_CITIES.find(
+      (c) => c.city.toLowerCase().includes(norm) || norm.includes(c.city.toLowerCase())
+    )
+    if (found) {
+      return { lat: found.lat, lng: found.lng }
+    }
+  }
+
+  // Padrão Tocantins (Palmas / Centro do Estado)
+  return { lat: -10.1838, lng: -48.3336 }
+}
 
 export function FarmMapModal({
   isOpen,
@@ -89,36 +119,194 @@ export function FarmMapModal({
   initialState = 'TO',
   onConfirm,
 }: FarmMapModalProps) {
-  const parsedLat = parseCoordinate(initialLat) ?? -10.184
-  const parsedLng = parseCoordinate(initialLng) ?? -48.333
+  const initialResolved = resolveInitialCoords(initialLat, initialLng, initialCity)
 
-  const [currentLat, setCurrentLat] = useState<number>(parsedLat)
-  const [currentLng, setCurrentLng] = useState<number>(parsedLng)
+  const [currentLat, setCurrentLat] = useState<number>(initialResolved.lat)
+  const [currentLng, setCurrentLng] = useState<number>(initialResolved.lng)
   const [selectedCity, setSelectedCity] = useState<string>(initialCity)
   const [selectedState, setSelectedState] = useState<string>(initialState)
-  const [hasMarker, setHasMarker] = useState<boolean>(
-    Boolean(initialLat && initialLng)
-  )
+  const [mapLoading, setMapLoading] = useState<boolean>(true)
 
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [suggestions, setSuggestions] = useState<Array<any>>([])
   const [isSearching, setIsSearching] = useState<boolean>(false)
   const [showDropdown, setShowDropdown] = useState<boolean>(false)
 
-  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const mapInstanceRef = useRef<LType.Map | null>(null)
+  const markerRef = useRef<LType.Marker | null>(null)
 
+  // Inicializa o mapa Leaflet nativamente no React ao abrir o diálogo
   useEffect(() => {
-    if (isOpen) {
-      const lat = parseCoordinate(initialLat) ?? -10.184
-      const lng = parseCoordinate(initialLng) ?? -48.333
-      setCurrentLat(lat)
-      setCurrentLng(lng)
-      setSelectedCity(initialCity)
-      setSelectedState(initialState)
-      setHasMarker(Boolean(initialLat && initialLng))
-      setSearchQuery('')
-      setSuggestions([])
-      setShowDropdown(false)
+    if (!isOpen) return
+
+    let isMounted = true
+    const resolved = resolveInitialCoords(initialLat, initialLng, initialCity)
+    setCurrentLat(resolved.lat)
+    setCurrentLng(resolved.lng)
+    setSelectedCity(initialCity)
+    setSelectedState(initialState)
+    setSearchQuery('')
+    setSuggestions([])
+    setShowDropdown(false)
+    setMapLoading(true)
+
+    const resizeTimers: NodeJS.Timeout[] = []
+    let resizeListener: (() => void) | null = null
+
+    async function initLeafletMap() {
+      try {
+        const L = (await import('leaflet')).default
+
+        if (!isMounted || !mapContainerRef.current) return
+
+        // Destrói instância anterior se houver para evitar conflitos de _leaflet_id
+        if (mapInstanceRef.current) {
+          try {
+            mapInstanceRef.current.remove()
+          } catch {}
+          mapInstanceRef.current = null
+        }
+
+        if (mapContainerRef.current) {
+          try {
+            delete (mapContainerRef.current as any)._leaflet_id
+          } catch {}
+        }
+
+        // Camadas de Satélite e Ruas
+        const satellite = L.tileLayer(
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+          {
+            maxZoom: 19,
+            attribution: '© Esri Satellite',
+          }
+        )
+
+        const osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '© OpenStreetMap contributors',
+        })
+
+        const googleHybrid = L.tileLayer(
+          'https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+          {
+            maxZoom: 20,
+            attribution: '© Google',
+          }
+        )
+
+        if (!isMounted || !mapContainerRef.current) return
+
+        const map = L.map(mapContainerRef.current, {
+          center: [resolved.lat, resolved.lng],
+          zoom: 13,
+          layers: [satellite],
+          zoomControl: true,
+        })
+
+        const baseMaps = {
+          '🛰️ Satélite Esri': satellite,
+          '🌍 Google Híbrido': googleHybrid,
+          '🗺️ Ruas & Rodovias': osm,
+        }
+
+        L.control.layers(baseMaps, undefined, { position: 'topright' }).addTo(map)
+
+        // Marcador visual (Pin) arrastável
+        const pinIcon = L.divIcon({
+          className: 'custom-pin-marker',
+          html: `
+            <div style="
+              background: #10b981;
+              color: white;
+              border: 3px solid white;
+              border-radius: 50%;
+              box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              width: 38px;
+              height: 38px;
+              font-size: 20px;
+              font-weight: bold;
+              cursor: grab;
+              user-select: none;
+            ">📍</div>
+          `,
+          iconSize: [38, 38],
+          iconAnchor: [19, 36],
+        })
+
+        const marker = L.marker([resolved.lat, resolved.lng], {
+          icon: pinIcon,
+          draggable: true,
+        }).addTo(map)
+
+        // Ao arrastar o pin, atualiza as coordenadas no estado React
+        marker.on('dragend', (e) => {
+          if (!isMounted) return
+          const pos = e.target.getLatLng()
+          setCurrentLat(pos.lat)
+          setCurrentLng(pos.lng)
+        })
+
+        // Ao clicar em qualquer local do mapa, move o pin
+        map.on('click', (e) => {
+          if (!isMounted) return
+          marker.setLatLng(e.latlng)
+          setCurrentLat(e.latlng.lat)
+          setCurrentLng(e.latlng.lng)
+        })
+
+        mapInstanceRef.current = map
+        markerRef.current = marker
+        setMapLoading(false)
+
+        // Redimensionamentos protegidos para sincronizar com as animações de abertura do Radix Dialog
+        const safeForceResize = () => {
+          if (!isMounted) return
+          const currentMap = mapInstanceRef.current as any
+          if (currentMap && currentMap._mapPane && currentMap._loaded) {
+            try {
+              currentMap.invalidateSize(true)
+            } catch (e) {
+              // Silencia erros transitórios durante animação de desmontagem
+            }
+          }
+        }
+
+        resizeListener = safeForceResize
+        window.addEventListener('resize', safeForceResize)
+
+        resizeTimers.push(setTimeout(safeForceResize, 60))
+        resizeTimers.push(setTimeout(safeForceResize, 180))
+        resizeTimers.push(setTimeout(safeForceResize, 380))
+        resizeTimers.push(setTimeout(safeForceResize, 750))
+        resizeTimers.push(setTimeout(safeForceResize, 1300))
+      } catch (err) {
+        console.error('[FarmMapModal] Erro ao instanciar Leaflet:', err)
+        setMapLoading(false)
+      }
+    }
+
+    // Pequeno atraso para garantir que o container DOM já possui dimensões no Dialog
+    const initTimer = setTimeout(initLeafletMap, 30)
+
+    return () => {
+      isMounted = false
+      clearTimeout(initTimer)
+      resizeTimers.forEach(clearTimeout)
+      if (resizeListener) {
+        window.removeEventListener('resize', resizeListener)
+      }
+      if (mapInstanceRef.current) {
+        try {
+          mapInstanceRef.current.remove()
+        } catch {}
+        mapInstanceRef.current = null
+      }
+      markerRef.current = null
     }
   }, [isOpen, initialLat, initialLng, initialCity, initialState])
 
@@ -141,54 +329,49 @@ export function FarmMapModal({
         setSuggestions(results)
         setShowDropdown(results.length > 0)
       } catch (err) {
-        console.error('Error fetching suggestions in map modal:', err)
+        console.warn('Erro ao buscar sugestões no mapa:', err)
       } finally {
         setIsSearching(false)
       }
-    }, 300)
+    }, 250)
 
     return () => clearTimeout(timer)
   }, [searchQuery])
 
-  // Escutar mensagens do iframe quando o usuário clica ou arrasta o pin no mapa
-  useEffect(() => {
-    const handleMessage = (e: MessageEvent) => {
-      if (e.data && e.data.type === 'MAP_CLICKED') {
-        const lat = Number(e.data.lat)
-        const lng = Number(e.data.lng)
-        if (!isNaN(lat) && !isNaN(lng)) {
-          setCurrentLat(lat)
-          setCurrentLng(lng)
-          setHasMarker(true)
-        }
-      }
-    }
+  const selectPlace = (item: {
+    lat: number
+    lon?: number
+    lng?: number
+    city?: string
+    state?: string
+    displayName?: string
+    name?: string
+  }) => {
+    const lat = Number(item.lat)
+    const lng = Number(item.lon ?? item.lng ?? currentLng)
+    if (isNaN(lat) || isNaN(lng)) return
 
-    window.addEventListener('message', handleMessage)
-    return () => window.removeEventListener('message', handleMessage)
-  }, [])
-
-  const selectPlace = (item: { lat: number; lon?: number; lng?: number; city?: string; state?: string; displayName?: string; name?: string }) => {
-    const lat = item.lat
-    const lng = item.lon ?? item.lng ?? currentLng
     setCurrentLat(lat)
     setCurrentLng(lng)
-    setHasMarker(true)
     if (item.city) setSelectedCity(item.city)
     if (item.state) setSelectedState(item.state)
-    setSearchQuery(item.displayName || item.name || '')
+    setSearchQuery(item.displayName || item.name || item.city || '')
     setShowDropdown(false)
 
-    // Enviar mensagem para o iframe reposicionar o mapa e o pin
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        {
-          type: 'SET_MAP_CENTER',
-          lat,
-          lng,
-        },
-        '*'
-      )
+    // Reposiciona mapa e pin instantaneamente de forma segura
+    const map = mapInstanceRef.current as any
+    if (map && map._mapPane && map._loaded) {
+      try {
+        map.invalidateSize(true)
+        map.flyTo([lat, lng], 14, { duration: 1.0 })
+      } catch (e) {
+        // Silencia exceções transitórias de renderização do Leaflet
+      }
+    }
+    if (markerRef.current) {
+      try {
+        markerRef.current.setLatLng([lat, lng])
+      } catch (e) {}
     }
   }
 
@@ -204,122 +387,6 @@ export function FarmMapModal({
     onClose()
   }
 
-  // HTML auto-contido do Leaflet para o iframe
-  const mapHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    html, body, #map { height: 100%; width: 100%; margin: 0; padding: 0; background: #e5e7eb; }
-    .custom-pin {
-      background: #1B4D3E;
-      color: white;
-      border: 3px solid white;
-      border-radius: 50%;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.45);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px !important;
-      height: 36px !important;
-      font-size: 18px;
-      font-weight: bold;
-      animation: bounce 0.4s ease;
-      cursor: grab;
-    }
-    .custom-pin:active {
-      cursor: grabbing;
-    }
-    @keyframes bounce {
-      0% { transform: translateY(-16px); }
-      100% { transform: translateY(0); }
-    }
-    .leaflet-control-layers {
-      border-radius: 10px !important;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.25) !important;
-      font-family: system-ui, sans-serif !important;
-      font-size: 13px !important;
-      font-weight: 600 !important;
-      padding: 6px 10px !important;
-    }
-  </style>
-</head>
-<body>
-  <div id="map"></div>
-  <script>
-    var initialLat = ${currentLat};
-    var initialLng = ${currentLng};
-    var hasMarker = ${hasMarker};
-
-    // Camadas de Mapa (Ruas e Satélite de Alta Resolução)
-    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution: '© OpenStreetMap'
-    });
-
-    var satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom: 19,
-      attribution: '© Esri Satellite'
-    });
-
-    var map = L.map('map', {
-      center: [initialLat, initialLng],
-      zoom: hasMarker ? 14 : 9,
-      layers: [satellite] // Começar em Satélite
-    });
-
-    var baseMaps = {
-      "Satélite (Fotografia Aérea)": satellite,
-      "Mapa de Ruas & Estradas": osm
-    };
-
-    L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
-
-    var pinIcon = L.divIcon({
-      className: 'custom-pin',
-      html: '📍',
-      iconSize: [36, 36],
-      iconAnchor: [18, 34]
-    });
-
-    var marker = null;
-
-    function setPin(lat, lng) {
-      if (marker) {
-        marker.setLatLng([lat, lng]);
-      } else {
-        marker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(map);
-        marker.on('dragend', function(e) {
-          var pos = e.target.getLatLng();
-          window.parent.postMessage({ type: 'MAP_CLICKED', lat: pos.lat, lng: pos.lng }, '*');
-        });
-      }
-      window.parent.postMessage({ type: 'MAP_CLICKED', lat: lat, lng: lng }, '*');
-    }
-
-    if (hasMarker) {
-      setPin(initialLat, initialLng);
-    }
-
-    map.on('click', function(e) {
-      setPin(e.latlng.lat, e.latlng.lng);
-    });
-
-    window.addEventListener('message', function(e) {
-      if (e.data && e.data.type === 'SET_MAP_CENTER') {
-        map.flyTo([e.data.lat, e.data.lng], 14, { duration: 1.2 });
-        setPin(e.data.lat, e.data.lng);
-      }
-    });
-  </script>
-</body>
-</html>
-  `
-
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[95vw] sm:max-w-5xl md:max-w-6xl lg:max-w-7xl h-[90vh] max-h-[850px] p-0 flex flex-col overflow-hidden rounded-2xl border border-emerald-900/20 shadow-2xl bg-white dark:bg-slate-900">
@@ -331,7 +398,7 @@ export function FarmMapModal({
                 Localização Geodésica da Fazenda no Mapa
               </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground mt-0.5">
-                Pesquise por cidade/rodovia ou clique em qualquer ponto do mapa (Satélite) para posicionar o pin na sede da fazenda.
+                O pin já está posicionado. Arraste-o ou clique no mapa para definir a sede da fazenda com precisão.
               </DialogDescription>
             </div>
 
@@ -365,7 +432,7 @@ export function FarmMapModal({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span className="font-bold text-gray-800 dark:text-gray-100 truncate">
-                            {item.city || item.displayName.split(',')[0]}
+                            {item.city || (typeof item.displayName === 'string' ? item.displayName.split(',')[0] : '') || item.name || 'Local'}
                           </span>
                           {item.state && (
                             <span className="text-[10px] font-bold px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded border border-emerald-200">
@@ -374,7 +441,7 @@ export function FarmMapModal({
                           )}
                         </div>
                         <span className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">
-                          {item.displayName}
+                          {item.displayName || item.city || ''}
                         </span>
                       </div>
                     </button>
@@ -388,7 +455,7 @@ export function FarmMapModal({
           <div className="flex flex-wrap items-center gap-1.5 pt-2">
             <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1">
               <Navigation className="w-3 h-3 text-emerald-600" />
-              Cidades Sugeridas:
+              Polos Sugeridos:
             </span>
             {QUICK_CITIES.map((c) => (
               <button
@@ -403,17 +470,23 @@ export function FarmMapModal({
           </div>
         </DialogHeader>
 
-        {/* Visualizador do Mapa (Ocupa todo o espaço vertical disponível) */}
-        <div className="relative flex-1 w-full min-h-[420px] bg-slate-100">
-          <iframe
-            ref={iframeRef}
-            srcDoc={mapHtml}
-            className="w-full h-full border-0 block"
-            title="Farm Location Map"
+        {/* Visualizador Nativo do Mapa Leaflet */}
+        <div className="relative flex-1 w-full min-h-[420px] bg-slate-900 overflow-hidden">
+          {mapLoading && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/80 text-white gap-2">
+              <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+              <span className="text-xs text-slate-300">Carregando mapa e camadas de satélite...</span>
+            </div>
+          )}
+
+          {/* Container DOM do Leaflet */}
+          <div
+            ref={mapContainerRef}
+            className="w-full h-full min-h-[420px] z-0 [&_.leaflet-control-layers]:rounded-xl [&_.leaflet-control-layers]:shadow-lg [&_.leaflet-control-layers]:border [&_.leaflet-control-layers]:border-slate-200 [&_.custom-pin-marker]:!border-0 [&_.custom-pin-marker]:!bg-transparent"
           />
 
           {/* Badge Informativo Flutuante com as Coordenadas Atuais */}
-          <div className="absolute bottom-4 left-4 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border border-emerald-400/80 dark:border-emerald-700 px-4 py-2.5 rounded-2xl shadow-xl flex flex-wrap items-center gap-3 text-xs">
+          <div className="absolute bottom-4 left-4 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs border border-emerald-400/80 dark:border-emerald-700 px-4 py-2.5 rounded-2xl shadow-xl flex flex-wrap items-center gap-3 text-xs pointer-events-auto">
             <div className="flex items-center gap-1.5 text-emerald-800 dark:text-emerald-400 font-bold">
               <Compass className="w-4 h-4 text-emerald-600 animate-pulse" />
               <span>Sede da Fazenda:</span>

@@ -60,8 +60,8 @@ export function StepFinanceAndResponsible({
           </div>
           <p className="text-xs opacity-80 leading-relaxed">
             {netCapacity > 0 
-              ? "✓ Viabilidade Financeira Aprovada: Margem líquida positiva suficiente para amortização de novos financiamentos e limites."
-              : "⚠️ Atenção: As despesas operacionais e amortizações de dívidas superam a receita declarada."}
+              ? "Viabilidade Financeira Aprovada: Margem líquida positiva suficiente para amortização de novos financiamentos e limites."
+              : "Atenção: As despesas operacionais e amortizações de dívidas superam a receita declarada."}
           </p>
         </div>
 

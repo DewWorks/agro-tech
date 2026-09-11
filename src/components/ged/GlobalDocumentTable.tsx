@@ -25,6 +25,7 @@ export function GlobalDocumentTable({ initialDocuments }: { initialDocuments: Do
   const search = searchParams.get('q') || ''
   const statusFilter = searchParams.get('status') || 'TODOS'
   const typeFilter = searchParams.get('type') || 'TODOS'
+  const [expirationDateFilter, setExpirationDateFilter] = useState('')
 
   const updateFilters = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams)
@@ -54,9 +55,17 @@ export function GlobalDocumentTable({ initialDocuments }: { initialDocuments: Do
         if (!matchName && !matchProducer) return false
       }
 
+      // 4. Expiration date limit filter
+      if (expirationDateFilter) {
+        if (!doc.expirationDate) return false
+        const docExp = new Date(doc.expirationDate)
+        const filterExp = new Date(`${expirationDateFilter}T23:59:59`)
+        if (docExp > filterExp) return false
+      }
+
       return true
     })
-  }, [initialDocuments, search, statusFilter, typeFilter])
+  }, [initialDocuments, search, statusFilter, typeFilter, expirationDateFilter])
 
   const handlePreview = (doc: DocumentRow) => {
     setPreviewDoc(doc)
@@ -85,6 +94,8 @@ export function GlobalDocumentTable({ initialDocuments }: { initialDocuments: Do
           onStatusFilterChange={(v) => updateFilters('status', v)}
           typeFilter={typeFilter}
           onTypeFilterChange={(v) => updateFilters('type', v)}
+          expirationDateFilter={expirationDateFilter}
+          onExpirationDateFilterChange={setExpirationDateFilter}
           selectedCount={0}
         />
       </div>

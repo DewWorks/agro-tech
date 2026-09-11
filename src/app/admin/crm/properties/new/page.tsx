@@ -11,20 +11,36 @@ export default async function NewPropertyPage() {
     redirect('/login')
   }
 
-  if (!dbUser.organizationId) {
+  let effectiveUser = dbUser
+  const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || (dbUser as any).realRole === 'SUPER_ADMIN'
+
+  if (isSuperAdmin && !effectiveUser.organizationId) {
+    const defaultOrg = await prisma.organization.findFirst({
+      orderBy: { createdAt: 'asc' },
+    })
+    if (defaultOrg) {
+      effectiveUser = {
+        ...dbUser,
+        organizationId: defaultOrg.id,
+        organization: defaultOrg,
+      }
+    }
+  }
+
+  if (!effectiveUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }
 
   let userBranches: any[] = []
 
-  if (dbUser.role === 'OWNER' || dbUser.role === 'ADMIN' || dbUser.realRole === 'SUPER_ADMIN') {
+  if (effectiveUser.role === 'OWNER' || effectiveUser.role === 'ADMIN' || isSuperAdmin) {
     userBranches = await prisma.branch.findMany({
-      where: { organizationId: dbUser.organizationId },
+      where: { organizationId: effectiveUser.organizationId },
       orderBy: { name: 'asc' }
     })
   } else {
     const userBranchesData = await prisma.userBranch.findMany({
-      where: { userId: dbUser.id },
+      where: { userId: effectiveUser.id },
       include: { branch: true }
     })
     userBranches = userBranchesData.map(ub => ub.branch)
@@ -37,7 +53,7 @@ export default async function NewPropertyPage() {
       branchId: initialBranchId,
       isActive: true,
       branch: {
-        organizationId: dbUser.organizationId
+        organizationId: effectiveUser.organizationId
       }
     },
     select: {
@@ -49,7 +65,11 @@ export default async function NewPropertyPage() {
     orderBy: { name: 'asc' }
   }) : []
 
-  const hasFinancialModule = (dbUser.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+  // Super Admin sempre tem acesso ao módulo financeiro, mesmo que desativado no cliente.
+  // Para os demais usuários, respeita estritamente a lista de módulos da organização.
+  const isOrgFinancialEnabled = (effectiveUser.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+  const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
+  const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -70,6 +90,7 @@ export default async function NewPropertyPage() {
           branches={userBranches} 
           producers={initialProducers} 
           hasFinancialModule={hasFinancialModule}
+          isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
         />
       </div>
     </div>

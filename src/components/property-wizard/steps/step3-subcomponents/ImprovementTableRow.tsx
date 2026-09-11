@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form'
+import { UseFormRegister, UseFormSetValue, UseFormWatch, useWatch, useFormContext, Control } from 'react-hook-form'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -18,12 +18,21 @@ import {
   IMPROVEMENT_UNITS,
 } from '@/lib/validations/property-wizard'
 
+const CONSERVATION_LABELS: Record<string, string> = {
+  OTIMO: 'Ótimo',
+  BOM: 'Bom',
+  REGULAR: 'Regular',
+  RUIM: 'Ruim',
+  NOVO: 'Novo',
+}
+
 interface ImprovementTableRowProps {
   index: number
   fieldItem: any
   register: UseFormRegister<any>
   setValue: UseFormSetValue<any>
-  watch: UseFormWatch<any>
+  watch?: UseFormWatch<any>
+  control?: any
   remove: (index: number) => void
 }
 
@@ -32,14 +41,37 @@ export const ImprovementTableRow = React.memo(function ImprovementTableRow({
   fieldItem,
   register,
   setValue,
-  watch,
+  control: propControl,
   remove,
 }: ImprovementTableRowProps) {
-  const currentSpec = watch(`improvements.${index}.specification`) || fieldItem.specification || ''
-  const currentUnit = watch(`improvements.${index}.unit`) || fieldItem.unit || ''
-  const currentConservation = watch(`improvements.${index}.conservationState`) || 'BOM'
-  const qty = Number(watch(`improvements.${index}.quantity`)) || 0
-  const unitVal = Number(watch(`improvements.${index}.unitValue`)) || 0
+  const context = useFormContext()
+  const control = propControl || context?.control
+
+  const currentSpec = useWatch({
+    control,
+    name: `improvements.${index}.specification`,
+    defaultValue: fieldItem.specification || '',
+  })
+  const currentUnit = useWatch({
+    control,
+    name: `improvements.${index}.unit`,
+    defaultValue: fieldItem.unit || 'm²',
+  })
+  const currentConservation = useWatch({
+    control,
+    name: `improvements.${index}.conservationState`,
+    defaultValue: fieldItem.conservationState || 'BOM',
+  })
+  const qty = Number(useWatch({
+    control,
+    name: `improvements.${index}.quantity`,
+    defaultValue: fieldItem.quantity || 0,
+  })) || 0
+  const unitVal = Number(useWatch({
+    control,
+    name: `improvements.${index}.unitValue`,
+    defaultValue: fieldItem.unitValue || 0,
+  })) || 0
   const subtotal = Math.round(qty * unitVal * 100) / 100
 
   return (
@@ -49,6 +81,7 @@ export const ImprovementTableRow = React.memo(function ImprovementTableRow({
         <Select
           value={currentSpec}
           onValueChange={(val) => {
+            if (!val) return
             setValue(`improvements.${index}.specification`, val, { shouldValidate: true })
             const cat = BB_IMPROVEMENTS_CATALOG.find((c) => c.specification === val)
             if (cat) {
@@ -58,7 +91,9 @@ export const ImprovementTableRow = React.memo(function ImprovementTableRow({
           }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-full">
-            <SelectValue placeholder="Selecione a benfeitoria" />
+            <SelectValue placeholder="Selecione a benfeitoria">
+              {currentSpec}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-60">
             {BB_IMPROVEMENTS_CATALOG.map((cat) => (
@@ -74,10 +109,15 @@ export const ImprovementTableRow = React.memo(function ImprovementTableRow({
       <TableCell className="p-2 align-middle">
         <Select
           value={currentUnit}
-          onValueChange={(val) => setValue(`improvements.${index}.unit`, val, { shouldValidate: true })}
+          onValueChange={(val) => {
+            if (!val) return
+            setValue(`improvements.${index}.unit`, val, { shouldValidate: true })
+          }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-full">
-            <SelectValue placeholder="Un." />
+            <SelectValue placeholder="Un.">
+              {currentUnit}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {IMPROVEMENT_UNITS.map((u) => (
@@ -120,10 +160,15 @@ export const ImprovementTableRow = React.memo(function ImprovementTableRow({
       <TableCell className="p-2 align-middle">
         <Select
           value={currentConservation}
-          onValueChange={(val) => setValue(`improvements.${index}.conservationState`, val, { shouldValidate: true })}
+          onValueChange={(val) => {
+            if (!val) return
+            setValue(`improvements.${index}.conservationState`, val, { shouldValidate: true })
+          }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-            <SelectValue />
+            <SelectValue placeholder="Conservação">
+              {CONSERVATION_LABELS[currentConservation] || currentConservation}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="OTIMO">Ótimo</SelectItem>

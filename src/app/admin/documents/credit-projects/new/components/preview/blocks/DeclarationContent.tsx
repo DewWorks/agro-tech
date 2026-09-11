@@ -1,4 +1,5 @@
 import React from 'react'
+import { getDocumentTypeAndLabel, formatCPF } from '@/lib/utils/masks'
 
 interface DeclarationContentProps {
   templateCode: string
@@ -24,6 +25,19 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
   const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
   const location = property?.city && property?.state ? `${property.city} - ${property.state}` : 'Local não informado'
 
+  const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(producer?.document, producer?.type)
+  const repCpfFormatted = producer?.representativeCpf ? formatCPF(producer.representativeCpf) : ''
+
+  const qualification = isCnpj ? (
+    <>
+      Eu, <strong>{producer?.name || '_________________________'}</strong>, pessoa jurídica inscrita no CNPJ sob o nº <strong style={{ whiteSpace: 'nowrap' }}>{docFormatted || '_________________________'}</strong>, neste ato representada por seu titular/representante legal{producer?.representativeName ? <> <strong>{producer.representativeName}</strong></> : ''}, inscrito(a) no CPF sob o nº <strong style={{ whiteSpace: 'nowrap' }}>{repCpfFormatted || '_________________________'}</strong>
+    </>
+  ) : (
+    <>
+      Eu, <strong>{producer?.name || '_________________________'}</strong>, inscrito(a) no CPF sob o nº <strong style={{ whiteSpace: 'nowrap' }}>{docFormatted || '_________________________'}</strong>
+    </>
+  )
+
   const contentStyle = {
     padding: '20px 10px',
     fontSize: '12px',
@@ -39,7 +53,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           <div style={contentStyle}>
             <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>AUTORIZAÇÃO DE COMPARTILHAMENTO DE DADOS E INFORMAÇÕES</h3>
             <p>
-              Eu, <strong>{producer?.name || '_________________________'}</strong>, inscrito(a) no CPF/CNPJ sob o nº <strong>{producer?.document || '_________________________'}</strong>, 
+              {qualification}, 
               residente e domiciliado(a) no endereço da propriedade <strong>{property?.name || '_________________________'}</strong>, Município de <strong>{location}</strong>, 
               venho por meio desta, de forma livre, expressa e informada, AUTORIZAR o Banco do Brasil S.A. a realizar o compartilhamento dos meus dados cadastrais, financeiros e de 
               operações de crédito com entidades governamentais e instituições parceiras estritamente para a finalidade de análise e contratação de crédito rural, conforme diretrizes da Lei Geral de Proteção de Dados (LGPD).
@@ -55,7 +69,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           <div style={contentStyle}>
             <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>AUTORIZAÇÃO PARA CONSULTA AO SCR</h3>
             <p>
-              Autorizo o Banco do Brasil S.A. a consultar, a qualquer tempo, as informações consolidadas a meu respeito constantes do Sistema de Informações de Crédito (SCR), mantido pelo Banco Central do Brasil (Bacen).
+              {qualification}, autorizo o Banco do Brasil S.A. a consultar, a qualquer tempo, as informações consolidadas a meu respeito constantes do Sistema de Informações de Crédito (SCR), mantido pelo Banco Central do Brasil (Bacen).
             </p>
             <p style={{ marginTop: '15px' }}>
               Declaro estar ciente de que:
@@ -71,7 +85,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           <div style={contentStyle}>
             <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>AUTORIZAÇÃO PARA CONSULTA AO SICOR</h3>
             <p>
-              Eu, <strong>{producer?.name || '_________________________'}</strong>, inscrito(a) no CPF/CNPJ sob o nº <strong>{producer?.document || '_________________________'}</strong>, 
+              {qualification}, 
               autorizo o Banco do Brasil S.A. a consultar e registrar no Sistema de Operações do Crédito Rural e do Proagro (SICOR), administrado pelo Banco Central do Brasil, todas as informações 
               necessárias à estruturação, concessão e acompanhamento das minhas operações de crédito rural, vinculadas à propriedade <strong>{property?.name}</strong> (CAR: {property?.car || '_______'}).
             </p>
@@ -83,7 +97,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           <div style={contentStyle}>
             <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>DECLARAÇÃO DE POSSE MANSA E PACÍFICA</h3>
             <p>
-              Eu, <strong>{producer?.name || '_________________________'}</strong>, inscrito(a) no CPF/CNPJ sob o nº <strong>{producer?.document || '_________________________'}</strong>, 
+              {qualification}, 
               DECLARO para os devidos fins, sob as penas da lei, que detenho a posse mansa, pacífica, ininterrupta e sem oposição do imóvel rural denominado <strong>{property?.name || '_________________________'}</strong>, 
               com área total de <strong>{property?.totalAreaHa || '___'} hectares</strong>, localizado no município de <strong>{location}</strong>.
             </p>

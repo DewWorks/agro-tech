@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { getSavedCreditProjectData, saveCreditProjectData } from '@/actions/credit-projects'
 import { CreditProjectWizardProps, CustomOptions, ProducerData, PropertyData } from '../types/wizard-types'
 import { CreditTemplateMeta } from '@/lib/document-templates'
+import { validateCPF, validateCNPJ } from '@/lib/utils/masks'
 
 export function useCreditProjectWizard(props: CreditProjectWizardProps) {
-  const { producers, templates, defaultResponsibleName = '', initialTemplateCode } = props
+  const { producers, templates, defaultResponsibleName = '', initialTemplateCode, initialSavedData } = props
   
   const activeProducers = useMemo(() => {
     return producers.filter(p => p.isActive !== false)
@@ -17,66 +18,81 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(activeProducers[0]?.properties[0]?.id || '')
   const [selectedTemplateCode, setSelectedTemplateCode] = useState<string>(initialTemplate)
 
-  const [customOptions, setCustomOptions] = useState<CustomOptions>({
-    responsibleName: '',
-    creaNumber: '',
-    artNumber: '',
-    targetBank: '',
-    purpose: '',
-    
-    // Limite de Crédito BB
-    estimatedLandValuePerHa: 0,
-    improvementsValue: 0,
-    machineryValue: 0,
-    annualRevenue: 0,
-    annualExpenses: 0,
-    existingDebts: 0,
+  const [customOptions, setCustomOptions] = useState<CustomOptions>(() => {
+    const defaults: CustomOptions = {
+      responsibleName: defaultResponsibleName || '',
+      creaNumber: '',
+      artNumber: '',
+      targetBank: '',
+      purpose: '',
+      representativeCpf: '',
+      representativeName: '',
+      
+      // Limite de Crédito BB
+      estimatedLandValuePerHa: 0,
+      improvementsValue: 0,
+      machineryValue: 0,
+      annualRevenue: 0,
+      annualExpenses: 0,
+      existingDebts: 0,
 
-    // InovAgro
-    inovagroEquipment: '',
-    inovagroSpec: '',
-    inovagroPower: 0,
-    inovagroCapacity: '',
-    inovagroCnae: '',
-    inovagroTotalInvestment: 0,
-    inovagroFinanced: 0,
-    inovagroOwnResources: 0,
-    inovagroTermYears: 0,
-    inovagroGraceMonths: 0,
-    inovagroInterestRate: 0,
-    inovagroMonthlySavings: 0,
+      // InovAgro
+      inovagroEquipment: '',
+      inovagroSpec: '',
+      inovagroPower: 0,
+      inovagroCapacity: '',
+      inovagroCnae: '',
+      inovagroTotalInvestment: 0,
+      inovagroFinanced: 0,
+      inovagroOwnResources: 0,
+      inovagroTermYears: 0,
+      inovagroGraceMonths: 0,
+      inovagroInterestRate: 0,
+      inovagroMonthlySavings: 0,
 
-    // RenovAgro
-    renovagroSubline: '',
-    renovagroAreaHa: 0,
-    renovagroCostPerHa: 0,
-    renovagroTotalInvestment: 0,
-    renovagroFinanced: 0,
-    renovagroOwnResources: 0,
-    renovagroTermYears: 0,
-    renovagroGraceMonths: 0,
-    renovagroInterestRate: 0,
+      // RenovAgro
+      renovagroSubline: '',
+      renovagroAreaHa: 0,
+      renovagroCostPerHa: 0,
+      renovagroTotalInvestment: 0,
+      renovagroFinanced: 0,
+      renovagroOwnResources: 0,
+      renovagroTermYears: 0,
+      renovagroGraceMonths: 0,
+      renovagroInterestRate: 0,
 
-    // Custeio Safra
-    custeioSafraYear: '',
-    custeioCropName: '',
-    custeioAreaHa: 0,
-    custeioExpectedYield: 0,
-    custeioPricePerUnit: 0,
-    custeioCostPerHa: 0,
-    custeioInterestRate: 0,
+      // Custeio Safra
+      custeioSafraYear: '',
+      custeioCropName: '',
+      custeioAreaHa: 0,
+      custeioExpectedYield: 0,
+      custeioPricePerUnit: 0,
+      custeioCostPerHa: 0,
+      custeioInterestRate: 0,
 
-    // Dados Fundiários do Imóvel Beneficiado
-    propertyRegistrationNumber: '',
-    propertyRegistryOffice: '',
-    propertyCar: '',
-    propertyCcir: '',
-    propertyItr: '',
-    propertyTotalArea: 0,
-    propertyAccessRoute: '',
-    propertyActivity: '',
+      // Dados Fundiários do Imóvel Beneficiado
+      propertyRegistrationNumber: '',
+      propertyRegistryOffice: '',
+      propertyCar: '',
+      propertyCcir: '',
+      propertyItr: '',
+      propertyTotalArea: 0,
+      propertyAccessRoute: '',
+      propertyActivity: '',
+    }
+
+    if (initialSavedData && Object.keys(initialSavedData).length > 0) {
+      return {
+        ...defaults,
+        ...initialSavedData,
+        responsibleName: initialSavedData.responsibleName || defaultResponsibleName || '',
+      }
+    }
+    return defaults
   })
 
+  const [isLoadingSavedData, setIsLoadingSavedData] = useState<boolean>(false)
+  const isFirstMount = useRef<boolean>(true)
   const [isSavingDraft, setIsSavingDraft] = useState(false)
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
   const [isSaveDraftModalOpen, setIsSaveDraftModalOpen] = useState(false)
@@ -84,16 +100,28 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
 
   // Recuperar dados salvos no banco de dados para este produtor, propriedade e modelo
   useEffect(() => {
+    if (isFirstMount.current) {
+      isFirstMount.current = false
+      if (initialSavedData && Object.keys(initialSavedData).length > 0) {
+        return
+      }
+    }
+
     if (!selectedProducerId || !selectedTemplateCode) return
 
     let isMounted = true
+    setIsLoadingSavedData(true)
+
     const loadSaved = async () => {
       try {
         const saved = await getSavedCreditProjectData(selectedProducerId, selectedPropertyId, selectedTemplateCode)
-        if (saved && isMounted && Object.keys(saved).length > 0) {
+        if (!isMounted) return
+
+        if (saved && Object.keys(saved).length > 0) {
           setCustomOptions(prev => ({
             ...prev,
-            ...saved
+            ...saved,
+            responsibleName: saved.responsibleName || prev.responsibleName || defaultResponsibleName || '',
           }))
           toast.info('Dados salvos deste projeto foram carregados automaticamente!')
         }
@@ -138,24 +166,26 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         }
       } catch (e) {
         // Silencioso
+      } finally {
+        if (isMounted) {
+          setIsLoadingSavedData(false)
+        }
       }
     }
 
     loadSaved()
     return () => { isMounted = false }
-  }, [selectedProducerId, selectedPropertyId, selectedTemplateCode, activeProducers])
+  }, [selectedProducerId, selectedPropertyId, selectedTemplateCode, activeProducers, defaultResponsibleName, initialSavedData])
 
   const currentProducer = activeProducers.find(p => p.id === selectedProducerId)
   const availableProperties = currentProducer?.properties || []
   const currentProperty = availableProperties.find(p => p.id === selectedPropertyId)
   const currentTemplate = templates.find(t => t.code === selectedTemplateCode)
 
-  // NOTE: Dados fundiários NÃO são pré-preenchidos automaticamente.
-  // O usuário deve preencher manualmente todos os campos do wizard.
-  // Os dados cadastrais da propriedade são usados apenas para a geração do preview.
-
   // Validation of mandatory fields by template
   const validationErrors = useMemo(() => {
+    if (isLoadingSavedData) return []
+
     const errors: string[] = []
     if (!selectedProducerId) errors.push('Selecione o Produtor Rural (Proponente)')
     if (!selectedPropertyId) errors.push('Selecione a Propriedade / Imóvel Beneficiado')
@@ -171,6 +201,36 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       'ENQUADRAMENTO_CAF',
       'IDENTIFICACAO_ANIMAIS'
     ].includes(selectedTemplateCode)
+
+    // Validação estrita de CPF vs CNPJ
+    if (currentProducer) {
+      if (currentProducer.type === 'PF') {
+        if (!currentProducer.document?.trim()) {
+          errors.push('CPF do produtor rural (proponente) é obrigatório')
+        } else if (!validateCPF(currentProducer.document)) {
+          errors.push('CPF do produtor rural proponente é inválido')
+        }
+      } else if (currentProducer.type === 'PJ') {
+        if (!currentProducer.document?.trim()) {
+          errors.push('CNPJ da empresa proponente é obrigatório')
+        } else if (!validateCNPJ(currentProducer.document)) {
+          errors.push('CNPJ da empresa proponente é inválido')
+        }
+
+        // Se o documento exigir CPF pessoal (todas as declarações legais ou enquadramento CAF exigem pessoa física / rep legal)
+        const templateRequiresPersonalCpf = isLegalTemplate || selectedTemplateCode === 'ENQUADRAMENTO_CAF'
+        const repCpf = customOptions.representativeCpf || currentProducer.representativeCpf
+        if (templateRequiresPersonalCpf) {
+          if (!repCpf?.trim()) {
+            errors.push('Este documento exige identificação por CPF. Preencha o CPF do Representante Legal.')
+          } else if (!validateCPF(repCpf)) {
+            errors.push('O CPF do Representante Legal informado é matematicamente inválido.')
+          }
+        } else if (customOptions.representativeCpf?.trim() && !validateCPF(customOptions.representativeCpf)) {
+          errors.push('O CPF do Representante Legal informado é matematicamente inválido.')
+        }
+      }
+    }
 
     if (selectedPropertyId) {
       if (!isLegalTemplate) {
@@ -355,6 +415,8 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         type: currentProducer.type as 'PF' | 'PJ',
         spouseName: currentProducer.spouseName,
         spouseCpf: currentProducer.spouseCpf,
+        representativeCpf: customOptions.representativeCpf || currentProducer.representativeCpf || undefined,
+        representativeName: customOptions.representativeName || undefined,
         phone: currentProducer.phone,
         civilStatus: currentProducer.civilStatus,
         branchName: currentProducer.branchName,
@@ -437,6 +499,7 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       selectedPropertyId,
       selectedTemplateCode,
       customOptions,
+      isLoadingSavedData,
       isSavingDraft,
       isConfirmModalOpen,
       isSaveDraftModalOpen,

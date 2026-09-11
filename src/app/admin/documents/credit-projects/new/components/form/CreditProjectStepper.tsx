@@ -20,6 +20,7 @@ import { Step2CreditMachinery } from './steps/Step2CreditMachinery'
 import { Step3CreditImprovements } from './steps/Step3CreditImprovements'
 import { StepFinanceAndResponsible } from './steps/StepFinanceAndResponsible'
 import { StepPreviewEmission } from './steps/StepPreviewEmission'
+import { validateCPF } from '@/lib/utils/masks'
 
 interface CreditProjectStepperProps {
   selectedTemplateCode: string
@@ -95,13 +96,38 @@ export function CreditProjectStepper({
   // Step 1 validation
   const step1Pending = useMemo(() => {
     const p: string[] = []
+    if (currentProducer?.type === 'PJ') {
+      const isLegal = [
+        'AUTORIZACAO_COMPARTILHAMENTO',
+        'AUTORIZACAO_SCR',
+        'AUTORIZACAO_SICOR',
+        'DECLARACAO_POSSE_MANSA',
+        'DECLARACAO_REGULARIDADE_AMBIENTAL',
+        'DECLARACAO_FORA_BIOMA',
+        'ENQUADRAMENTO_CAF',
+        'IDENTIFICACAO_ANIMAIS'
+      ].includes(selectedTemplateCode)
+      const repCpf = customOptions.representativeCpf || currentProducer.representativeCpf
+      if (isLegal || selectedTemplateCode === 'ENQUADRAMENTO_CAF') {
+        if (!repCpf?.trim() || !validateCPF(repCpf)) {
+          p.push('CPF do Representante Legal')
+        }
+      } else if (customOptions.representativeCpf?.trim() && !validateCPF(customOptions.representativeCpf)) {
+        p.push('CPF do Representante Legal (Válido)')
+      }
+    } else if (currentProducer?.type === 'PF') {
+      if (!currentProducer.document?.trim() || !validateCPF(currentProducer.document)) {
+        p.push('CPF do Proponente Válido')
+      }
+    }
+
     if (!customOptions.propertyRegistrationNumber?.trim()) p.push('Matrícula do Imóvel')
     if (!customOptions.propertyCar?.trim()) p.push('Nº do CAR')
     if (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) p.push('Área Total (ha)')
     if (!customOptions.propertyActivity?.trim()) p.push('Atividade Principal')
     if (!customOptions.propertyAccessRoute?.trim()) p.push('Roteiro de Acesso')
     return p
-  }, [customOptions])
+  }, [customOptions, currentProducer, selectedTemplateCode])
 
   // Step 2 validation (Params) — only for non-LIMITE_CREDITO templates with params
   const step2Pending = useMemo(() => {
@@ -188,6 +214,8 @@ export function CreditProjectStepper({
             onAdvance={() => validateAndAdvance(2)}
             isLimiteCredito={isLimiteCredito}
             hasParamsStep={hasParamsStep}
+            currentProducer={currentProducer}
+            selectedTemplateCode={selectedTemplateCode}
           />
         )}
 

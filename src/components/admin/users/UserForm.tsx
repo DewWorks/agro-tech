@@ -13,6 +13,13 @@ import { createUser, updateUser } from '@/actions/users'
 import { toast } from 'sonner'
 import { Branch, Role } from '@prisma/client'
 
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Administrador',
+  OWNER: 'Administrador (Proprietário)',
+  ADMIN: 'Gerente',
+  OPERATOR: 'Usuário',
+}
+
 // Tipos baseados no que o Prisma e nossa API retornam
 interface UserBranchData {
   branchId: string
@@ -204,7 +211,9 @@ export function UserForm({ initialData, branches }: UserFormProps) {
             <Label>Cargo Global</Label>
             <Select value={globalRole} onValueChange={(val) => setGlobalRole(val as Role)}>
               <SelectTrigger>
-                <SelectValue placeholder="Selecione um cargo global" />
+                <SelectValue placeholder="Selecione um cargo global">
+                  {ROLE_LABELS[globalRole] || globalRole}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="OWNER">Administrador (Proprietário)</SelectItem>
@@ -273,7 +282,9 @@ export function UserForm({ initialData, branches }: UserFormProps) {
                               onValueChange={(val) => handleBranchRoleChange(branch.id, val as Role)}
                             >
                               <SelectTrigger className="h-8 text-xs">
-                                <SelectValue />
+                                <SelectValue placeholder="Cargo">
+                                  {ROLE_LABELS[selectedBranches[branch.id]] || selectedBranches[branch.id]}
+                                </SelectValue>
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="ADMIN">Gerente</SelectItem>
