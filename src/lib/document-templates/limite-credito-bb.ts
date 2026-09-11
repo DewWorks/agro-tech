@@ -1,4 +1,5 @@
 import { formatCPF, formatCNPJ } from '@/lib/validations'
+import { getDocumentTypeAndLabel } from '@/lib/utils/masks'
 
 export interface LimiteCreditoDocumentData {
   producer: {
@@ -7,6 +8,8 @@ export interface LimiteCreditoDocumentData {
     type: 'PF' | 'PJ'
     spouseName?: string
     spouseCpf?: string
+    representativeCpf?: string
+    representativeName?: string
     phone?: string
     civilStatus?: string
     profession?: string
@@ -67,8 +70,9 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
   const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Responsável Técnico'
   
-  const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
+  const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(p.document, p.type)
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
+  const repCpfFormatted = p.representativeCpf ? formatCPF(p.representativeCpf) : ''
   
   const pastArea = prop.pastureAreaHa || 0
   const agricArea = prop.agricultureAreaHa || 0
@@ -109,16 +113,23 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
     <!-- I. IDENTIFICAÇÃO DO PROPONENTE -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 12px; overflow: hidden;">
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        I - Identificação do Proponente e Cônjuge
+        ${isCnpj ? 'I - Identificação da Empresa Proponente & Representante Legal' : 'I - Identificação do Proponente e Cônjuge'}
       </div>
-      <div style="padding: 8px 10px; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px;">
-        <div><strong>Nome / Razão Social:</strong> ${p.name || '-'}</div>
-        <div><strong>CPF / CNPJ:</strong> ${docFormatted || '-'}</div>
-        <div><strong>Estado Civil:</strong> ${p.civilStatus || 'Casado(a)'}</div>
-        <div style="grid-column: span 2;"><strong>Cônjuge:</strong> ${p.spouseName || 'Não informado / Não aplicável'}</div>
-        <div><strong>CPF Cônjuge:</strong> ${spouseDocFormatted || '-'}</div>
+      <div style="padding: 8px 12px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px 16px; font-size: 11px; line-height: 1.5;">
+        <div><strong>${isCnpj ? 'Razão Social:' : 'Nome:'}</strong> ${p.name || '-'}</div>
+        <div style="white-space: nowrap;"><strong>${docLabel}:</strong> ${docFormatted || '-'}</div>
+        ${isCnpj ? `
+          <div><strong>Representante Legal:</strong> ${p.representativeName || 'Administrador(a) / Titular'}</div>
+          <div style="white-space: nowrap;"><strong>CPF Representante:</strong> ${repCpfFormatted || '-'}</div>
+          <div><strong>Natureza:</strong> Pessoa Jurídica (PJ)</div>
+          <div style="white-space: nowrap;"><strong>Telefone:</strong> ${p.phone || '-'}</div>
+        ` : `
+          <div><strong>Cônjuge:</strong> ${p.spouseName || 'Não informado / Não aplicável'}</div>
+          <div style="white-space: nowrap;"><strong>CPF Cônjuge:</strong> ${spouseDocFormatted || '-'}</div>
+          <div><strong>Estado Civil:</strong> ${p.civilStatus || 'Solteiro(a)'}</div>
+          <div style="white-space: nowrap;"><strong>Telefone:</strong> ${p.phone || '-'}</div>
+        `}
         <div style="grid-column: span 2;"><strong>Endereço / Município:</strong> ${p.street ? p.street + ', ' : ''}${p.city || ''} - ${p.state || ''}</div>
-        <div><strong>Telefone:</strong> ${p.phone || '-'}</div>
       </div>
     </div>
 
@@ -303,7 +314,8 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Proponente'}</strong>
         </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">${docLabel}: ${docFormatted || '-'}</div>
+        ${isCnpj && p.representativeCpf ? `<div style="color: #374151; font-size: 9.5px; white-space: nowrap;">Rep. Legal CPF: ${formatCPF(p.representativeCpf)}</div>` : ''}
         <div style="color: #6b7280; font-size: 10px;">Assinatura do Proponente</div>
       </div>
 
@@ -313,7 +325,7 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.spouseName}</strong>
         </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">CPF: ${spouseDocFormatted || '-'}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">CPF: ${spouseDocFormatted || '-'}</div>
         <div style="color: #6b7280; font-size: 10px;">Assinatura do Cônjuge</div>
       </div>
       ` : ''}

@@ -1,10 +1,13 @@
 import { formatCPF, formatCNPJ } from '@/lib/validations'
+import { getDocumentTypeAndLabel } from '@/lib/utils/masks'
 
 export interface RenovAgroDocumentData {
   producer: {
     name: string
     document: string
     type: 'PF' | 'PJ'
+    representativeCpf?: string
+    representativeName?: string
     spouseName?: string
     phone?: string
     city?: string
@@ -58,7 +61,7 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
   const orgOwnerName = data.organization?.ownerName || opt.responsibleName || opt.agronomistName || 'Responsável Técnico'
 
-  const docFormatted = p.type === 'PF' ? formatCPF(p.document) : formatCNPJ(p.document)
+  const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(p.document, p.type)
   const projectDate = opt.projectDate || new Date().toLocaleDateString('pt-BR')
   const subline = opt.subline || ''
   
@@ -99,13 +102,21 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
     <!-- 01. PROPONENTE -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        01 - Identificação do Proponente
+        ${isCnpj ? '01 - Identificação da Empresa Proponente & Representante Legal' : '01 - Identificação do Proponente'}
       </div>
-      <div style="padding: 6px 10px; display: grid; grid-template-columns: 2fr 1fr; gap: 6px;">
-        <div><strong>Nome / Razão Social:</strong> ${p.name || '-'}</div>
-        <div><strong>CPF / CNPJ:</strong> ${docFormatted || '-'}</div>
-        <div><strong>Endereço / Município:</strong> ${p.city || ''} - ${p.state || ''}</div>
-        <div><strong>Telefone:</strong> ${p.phone || '-'}</div>
+      <div style="padding: 6px 12px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px 16px; font-size: 11px; line-height: 1.5;">
+        <div><strong>${isCnpj ? 'Razão Social:' : 'Nome:'}</strong> ${p.name || '-'}</div>
+        <div style="white-space: nowrap;"><strong>${docLabel}:</strong> ${docFormatted || '-'}</div>
+        ${isCnpj ? `
+          <div><strong>Representante Legal:</strong> ${p.representativeName || 'Administrador(a) / Titular'}</div>
+          <div style="white-space: nowrap;"><strong>CPF Representante:</strong> ${p.representativeCpf ? formatCPF(p.representativeCpf) : '-'}</div>
+          <div><strong>Natureza:</strong> Pessoa Jurídica (PJ)</div>
+          <div style="white-space: nowrap;"><strong>Telefone:</strong> ${p.phone || '-'}</div>
+        ` : `
+          <div><strong>Telefone:</strong> <span style="white-space: nowrap;">${p.phone || '-'}</span></div>
+          <div></div>
+        `}
+        <div style="grid-column: span 2;"><strong>Endereço / Município:</strong> ${p.city || ''} - ${p.state || ''}</div>
       </div>
     </div>
 
@@ -223,7 +234,8 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.name || 'Proponente'}</strong>
         </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${p.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${docFormatted || p.document || '-'}</div>
+        <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">${docLabel}: ${docFormatted || p.document || '-'}</div>
+        ${isCnpj && p.representativeCpf ? `<div style="color: #4b5563; font-size: 10px; white-space: nowrap;">Rep. Legal CPF: ${formatCPF(p.representativeCpf)}</div>` : ''}
         <div style="color: #6b7280; font-size: 10px;">Proponente / Beneficiário</div>
       </div>
       <div>

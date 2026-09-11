@@ -204,7 +204,9 @@ export function LandLocationCard({ control, setValue, watch }: LandLocationCardP
                 <Select onValueChange={field.onChange} value={field.value || 'TO'}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="UF" />
+                      <SelectValue placeholder="UF">
+                        {BRAZILIAN_STATES.find((uf) => uf.value === (field.value || 'TO'))?.label || field.value || 'TO'}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="max-h-60">

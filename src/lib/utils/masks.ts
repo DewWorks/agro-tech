@@ -61,3 +61,16 @@ export function formatPhone(value: string): string {
     .replace(/(\d{5})(\d)/, '$1-$2')
     .replace(/(-\d{4})\d+?$/, '$1')
 }
+
+export function getDocumentTypeAndLabel(doc?: string | null, type?: string | null): {
+  isCnpj: boolean
+  label: 'CPF' | 'CNPJ'
+  formatted: string
+  digits: string
+} {
+  const digits = (doc || '').replace(/\D/g, '')
+  const isCnpj = type === 'PJ' || digits.length > 11
+  const label = isCnpj ? 'CNPJ' : 'CPF'
+  const formatted = isCnpj ? formatCNPJ(digits) : formatCPF(digits)
+  return { isCnpj, label, formatted, digits }
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form'
+import { UseFormRegister, UseFormSetValue, UseFormWatch, useWatch, useFormContext, Control } from 'react-hook-form'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,8 @@ interface LivestockTableRowProps {
   fieldItem: any
   register: UseFormRegister<any>
   setValue: UseFormSetValue<any>
-  watch: UseFormWatch<any>
+  watch?: UseFormWatch<any>
+  control?: any
   remove: (index: number) => void
 }
 
@@ -35,17 +36,48 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
   fieldItem,
   register,
   setValue,
-  watch,
+  control: propControl,
   remove,
 }: LivestockTableRowProps) {
-  const currentCategory = watch(`livestocks.${index}.category`) || fieldItem.category || 'Matrizes (Vacas)'
-  const currentPurpose = watch(`livestocks.${index}.purpose`) || fieldItem.purpose || 'Cria'
-  const currentBreed = watch(`livestocks.${index}.breed`) || fieldItem.breed || 'Nelore'
-  const currentMarking = watch(`livestocks.${index}.markingType`) || fieldItem.markingType || 'Ferro Quente'
-  const currentMarkingLocation = watch(`livestocks.${index}.markingLocation`) || fieldItem.markingLocation || 'Perna Traseira Direita'
+  const context = useFormContext()
+  const control = propControl || context?.control
 
-  const qty = Number(watch(`livestocks.${index}.quantity`)) || 0
-  const unitVal = Number(watch(`livestocks.${index}.unitValue`)) || 0
+  const currentCategory = useWatch({
+    control,
+    name: `livestocks.${index}.category`,
+    defaultValue: fieldItem.category || 'Matrizes (Vacas)',
+  })
+  const currentPurpose = useWatch({
+    control,
+    name: `livestocks.${index}.purpose`,
+    defaultValue: fieldItem.purpose || 'Cria',
+  })
+  const currentBreed = useWatch({
+    control,
+    name: `livestocks.${index}.breed`,
+    defaultValue: fieldItem.breed || 'Nelore',
+  })
+  const currentMarking = useWatch({
+    control,
+    name: `livestocks.${index}.markingType`,
+    defaultValue: fieldItem.markingType || 'Ferro Quente',
+  })
+  const currentMarkingLocation = useWatch({
+    control,
+    name: `livestocks.${index}.markingLocation`,
+    defaultValue: fieldItem.markingLocation || 'Perna Traseira Direita',
+  })
+
+  const qty = Number(useWatch({
+    control,
+    name: `livestocks.${index}.quantity`,
+    defaultValue: fieldItem.quantity || 0,
+  })) || 0
+  const unitVal = Number(useWatch({
+    control,
+    name: `livestocks.${index}.unitValue`,
+    defaultValue: fieldItem.unitValue || 0,
+  })) || 0
   const rowTotal = Math.round(qty * unitVal * 100) / 100
 
   return (
@@ -54,10 +86,15 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
       <TableCell className="p-2 align-middle">
         <Select
           value={currentCategory}
-          onValueChange={(val) => setValue(`livestocks.${index}.category`, val, { shouldValidate: true })}
+          onValueChange={(val) => {
+            if (!val) return
+            setValue(`livestocks.${index}.category`, val, { shouldValidate: true })
+          }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-full">
-            <SelectValue placeholder="Selecione" />
+            <SelectValue placeholder="Selecione">
+              {currentCategory}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {LIVESTOCK_CATEGORIES.map((c) => (
@@ -73,10 +110,15 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
       <TableCell className="p-2 align-middle">
         <Select
           value={currentPurpose}
-          onValueChange={(val) => setValue(`livestocks.${index}.purpose`, val, { shouldValidate: true })}
+          onValueChange={(val) => {
+            if (!val) return
+            setValue(`livestocks.${index}.purpose`, val, { shouldValidate: true })
+          }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-full">
-            <SelectValue placeholder="Finalidade" />
+            <SelectValue placeholder="Finalidade">
+              {currentPurpose}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {LIVESTOCK_PURPOSES.map((p) => (
@@ -92,10 +134,15 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
       <TableCell className="p-2 align-middle">
         <Select
           value={currentBreed}
-          onValueChange={(val) => setValue(`livestocks.${index}.breed`, val, { shouldValidate: true })}
+          onValueChange={(val) => {
+            if (!val) return
+            setValue(`livestocks.${index}.breed`, val, { shouldValidate: true })
+          }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-full">
-            <SelectValue placeholder="Raça" />
+            <SelectValue placeholder="Raça">
+              {currentBreed}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {LIVESTOCK_BREEDS.map((b) => (
@@ -160,10 +207,15 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
       <TableCell className="p-2 align-middle">
         <Select
           value={currentMarking}
-          onValueChange={(val) => setValue(`livestocks.${index}.markingType`, val, { shouldValidate: true })}
+          onValueChange={(val) => {
+            if (!val) return
+            setValue(`livestocks.${index}.markingType`, val, { shouldValidate: true })
+          }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-full">
-            <SelectValue placeholder="Marcação" />
+            <SelectValue placeholder="Marcação">
+              {currentMarking}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {LIVESTOCK_MARKINGS.map((m) => (
@@ -179,10 +231,15 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
       <TableCell className="p-2 align-middle">
         <Select
           value={currentMarkingLocation}
-          onValueChange={(val) => setValue(`livestocks.${index}.markingLocation`, val, { shouldValidate: true })}
+          onValueChange={(val) => {
+            if (!val) return
+            setValue(`livestocks.${index}.markingLocation`, val, { shouldValidate: true })
+          }}
         >
           <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 w-full">
-            <SelectValue placeholder="Local" />
+            <SelectValue placeholder="Local">
+              {currentMarkingLocation}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {LIVESTOCK_MARKING_LOCATIONS.map((loc) => (

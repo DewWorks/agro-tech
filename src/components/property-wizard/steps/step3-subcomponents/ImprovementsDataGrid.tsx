@@ -132,6 +132,7 @@ export function ImprovementsDataGrid({ form }: ImprovementsDataGridProps) {
                       key={fieldItem.id}
                       index={index}
                       fieldItem={fieldItem}
+                      control={control}
                       register={register}
                       setValue={setValue}
                       watch={watch}

@@ -47,87 +47,11 @@ const SaveDraftModal = dynamic(
   { ssr: false }
 );
 import { useCreditProjectWizard } from './hooks/useCreditProjectWizard';
-
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { cn } from '@/lib/utils'
-import { toast } from 'sonner'
-import { 
-  resolveCreditProjectDocument, 
-  saveCreditProjectData, 
-  getSavedCreditProjectData 
-} from '@/actions/credit-projects'
-import { CreditTemplateMeta } from '@/lib/document-templates'
-
-function formatCPF(v?: string) {
-  if (!v) return ''
-  const c = v.replace(/\D/g, '')
-  if (c.length !== 11) return v
-  return c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4')
-}
-
-function formatCNPJ(v?: string) {
-  if (!v) return ''
-  const c = v.replace(/\D/g, '')
-  if (c.length !== 14) return v
-  return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
-}
-
-interface CreditProjectWizardProps {
-  producers: Array<{
-    id: string
-    name: string
-    document: string
-    type: string
-    spouseName?: string | null
-    spouseCpf?: string | null
-    phone?: string | null
-    email?: string | null
-    civilStatus?: string | null
-    branchName?: string | null
-    properties: Array<{
-      id: string
-      name: string
-      city?: string | null
-      state?: string | null
-      registrationNumber?: string | null
-      registryOffice?: string | null
-      car?: string | null
-      ccir?: string | null
-      itr?: string | null
-      totalArea?: number
-      productiveArea?: number
-      pastureArea?: number
-      preserveArea?: number
-      explorationActivity?: string | null
-      accessRoute?: string | null
-    }>
-  }>
-  templates: CreditTemplateMeta[]
-  defaultResponsibleName?: string
-  defaultOrgName?: string
-  defaultOrgCnpj?: string
-  backUrl?: string
-  pageTitle?: string
-}
+import { CreditProjectWizardProps } from './types/wizard-types';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import { saveCreditProjectData } from '@/actions/credit-projects';
 
 export default function CreditProjectWizard({ 
   producers, 
@@ -135,6 +59,8 @@ export default function CreditProjectWizard({
   defaultResponsibleName = '',
   defaultOrgName = '',
   defaultOrgCnpj = '',
+  initialTemplateCode,
+  initialSavedData,
   backUrl,
   pageTitle
 }: CreditProjectWizardProps) {
@@ -149,7 +75,8 @@ export default function CreditProjectWizard({
     defaultResponsibleName,
     defaultOrgName,
     defaultOrgCnpj,
-    initialTemplateCode: initialTemplate,
+    initialTemplateCode: initialTemplateCode || initialTemplate,
+    initialSavedData,
   })
 
   const {
@@ -162,6 +89,7 @@ export default function CreditProjectWizard({
     selectedPropertyId,
     selectedTemplateCode,
     customOptions,
+    isLoadingSavedData,
     isSavingDraft,
     isConfirmModalOpen,
     isSaveDraftModalOpen,
@@ -343,14 +271,14 @@ export default function CreditProjectWizard({
               type="button"
               variant="outline"
               onClick={handleOpenSaveModal}
-              disabled={isSavingDraft || !selectedProducerId}
+              disabled={isSavingDraft || isLoadingSavedData || !selectedProducerId}
               className={cn(
                 "border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-1.5 text-xs font-semibold cursor-pointer",
-                !isFormValid && "border-amber-300 text-amber-800 bg-amber-50/50 hover:bg-amber-100/50"
+                (!isFormValid || isLoadingSavedData) && "border-amber-300 text-amber-800 bg-amber-50/50 hover:bg-amber-100/50"
               )}
-              title={!isFormValid ? "Revisar dados e pendências para gravação" : "Conferir e salvar dados deste projeto"}
+              title={isLoadingSavedData ? "Carregando dados salvos..." : !isFormValid ? "Revisar dados e pendências para gravação" : "Conferir e salvar dados deste projeto"}
             >
-              {isSavingDraft ? (
+              {isSavingDraft || isLoadingSavedData ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-700" />
               ) : !isFormValid ? (
                 <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
@@ -358,7 +286,7 @@ export default function CreditProjectWizard({
                 <Save className="h-3.5 w-3.5 text-blue-700" />
               )}
               Salvar Dados
-              {!isFormValid && (
+              {!isLoadingSavedData && !isFormValid && (
                 <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-1.5 py-0.2 rounded-full ml-0.5">
                   {validationErrors.length}
                 </span>
@@ -389,20 +317,21 @@ export default function CreditProjectWizard({
             <Button
               type="button"
               onClick={() => {
+                if (isLoadingSavedData) return
                 if (!isFormValid) {
                   toast.error(`Atenção: ${validationErrors[0]}`)
                   return
                 }
                 setIsConfirmModalOpen(true)
               }}
-              disabled={isGeneratingPdf || !isFormValid}
+              disabled={isGeneratingPdf || isLoadingSavedData || !isFormValid}
               className={cn(
                 "flex items-center gap-2 text-xs font-bold shadow-xs px-4 transition-all",
-                isFormValid 
+                isFormValid && !isLoadingSavedData
                   ? "bg-[#1B4D3E] hover:bg-[#13382D] text-white cursor-pointer" 
                   : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
               )}
-              title={!isFormValid ? `Preencha todos os campos obrigatórios (${validationErrors.length} pendente(s))` : 'Emitir Documento Oficial'}
+              title={isLoadingSavedData ? "Carregando dados..." : !isFormValid ? `Preencha todos os campos obrigatórios (${validationErrors.length} pendente(s))` : 'Emitir Documento Oficial'}
             >
               {isGeneratingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
               {isGeneratingPdf ? 'Gerando PDF...' : 'Conferir e Emitir PDF'}
@@ -450,8 +379,32 @@ export default function CreditProjectWizard({
         </div>
       </div>
 
-      {/* Stepper Multi-Passos (Ocupa 100% da Largura, com Preview A4 no Último Passo) */}
-      {selectedPropertyId ? (
+      {/* Stepper Multi-Passos ou Skeleton de Carregamento */}
+      {isLoadingSavedData ? (
+        <div className="bg-white p-8 sm:p-12 rounded-2xl border border-gray-200 shadow-2xs text-center space-y-5 animate-in fade-in duration-300">
+          <div className="flex items-center justify-center">
+            <div className="h-16 w-16 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shadow-xs">
+              <Loader2 className="h-8 w-8 text-[#1B4D3E] animate-spin" />
+            </div>
+          </div>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h3 className="text-base font-bold text-gray-900">Carregando dados cadastrais e parâmetros...</h3>
+            <p className="text-xs text-muted-foreground">
+              Buscando dados salvos no banco de dados e sincronizando patrimônio, terras e histórico oficial.
+            </p>
+          </div>
+
+          <div className="max-w-xl mx-auto pt-4 space-y-3">
+            <div className="h-9 bg-gray-100 rounded-lg animate-pulse" />
+            <div className="grid grid-cols-3 gap-3">
+              <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+              <div className="h-16 bg-gray-100 rounded-lg animate-pulse" />
+            </div>
+            <div className="h-28 bg-gray-50 rounded-xl border border-dashed border-gray-200 animate-pulse" />
+          </div>
+        </div>
+      ) : selectedPropertyId ? (
         <CreditProjectStepper
           selectedTemplateCode={selectedTemplateCode}
           currentProducer={currentProducer}

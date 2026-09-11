@@ -52,7 +52,9 @@ export function LandLegalRiskCard({ control }: LandLegalRiskCardProps) {
                 <Select onValueChange={field.onChange} value={field.value || 'PENHORAVEL'}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Penhorabilidade" />
+                      <SelectValue placeholder="Penhorabilidade">
+                        {IMPENHORABILIDADE_OPTIONS.find((opt) => opt.value === (field.value || 'PENHORAVEL'))?.label}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -77,7 +79,9 @@ export function LandLegalRiskCard({ control }: LandLegalRiskCardProps) {
                 <Select onValueChange={field.onChange} value={field.value || 'BOM'}>
                   <FormControl>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Conservação" />
+                      <SelectValue placeholder="Conservação">
+                        {CONSERVATION_STATES.find((state) => state.value === (field.value || 'BOM'))?.label}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -96,25 +100,35 @@ export function LandLegalRiskCard({ control }: LandLegalRiskCardProps) {
           <FormField
             control={control}
             name="condominiumType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tipo de Condomínio</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || 'INEXISTENTE'}>
-                  <FormControl>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Condomínio" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="INEXISTENTE">Inexistente (Individual)</SelectItem>
-                    <SelectItem value="PRO_DIVISO">Pró-Diviso (Área demarcada)</SelectItem>
-                    <SelectItem value="PRO_INDIVISO">Pró-Indiviso (Comum)</SelectItem>
-                    <SelectItem value="BEM_COMUM">Bem Comum</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              const CONDOMINIUM_LABELS: Record<string, string> = {
+                INEXISTENTE: 'Inexistente (Individual)',
+                PRO_DIVISO: 'Pró-Diviso (Área demarcada)',
+                PRO_INDIVISO: 'Pró-Indiviso (Comum)',
+                BEM_COMUM: 'Bem Comum',
+              }
+              return (
+                <FormItem>
+                  <FormLabel>Tipo de Condomínio</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || 'INEXISTENTE'}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Condomínio">
+                          {CONDOMINIUM_LABELS[field.value || 'INEXISTENTE'] || field.value}
+                        </SelectValue>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="INEXISTENTE">Inexistente (Individual)</SelectItem>
+                      <SelectItem value="PRO_DIVISO">Pró-Diviso (Área demarcada)</SelectItem>
+                      <SelectItem value="PRO_INDIVISO">Pró-Indiviso (Comum)</SelectItem>
+                      <SelectItem value="BEM_COMUM">Bem Comum</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )
+            }}
           />
 
           <div className="col-span-1 md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">

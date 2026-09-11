@@ -1,12 +1,13 @@
 import React from 'react'
-import { MapPin, Check, AlertTriangle, ArrowRight } from 'lucide-react'
+import { MapPin, Check, AlertTriangle, ArrowRight, Building2, User } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { SmartCreatableCombobox } from '@/components/property-wizard/subcomponents/SmartCreatableCombobox'
 import { RURAL_ACTIVITIES } from '@/lib/validations/reference-data'
-import { CustomOptions } from '../../../types/wizard-types'
+import { CustomOptions, ProducerData } from '../../../types/wizard-types'
+import { formatCPF, formatCNPJ, validateCPF } from '@/lib/utils/masks'
 
 interface Step1CreditIdentificationProps {
   customOptions: CustomOptions
@@ -15,6 +16,8 @@ interface Step1CreditIdentificationProps {
   onAdvance: () => void
   isLimiteCredito: boolean
   hasParamsStep: boolean
+  currentProducer?: ProducerData
+  selectedTemplateCode?: string
 }
 
 export function Step1CreditIdentification({
@@ -23,7 +26,9 @@ export function Step1CreditIdentification({
   step1Pending,
   onAdvance,
   isLimiteCredito,
-  hasParamsStep
+  hasParamsStep,
+  currentProducer,
+  selectedTemplateCode,
 }: Step1CreditIdentificationProps) {
   const landTotalHa = Number(customOptions.propertyTotalArea) || 0
   const landPricePerHa = Number(customOptions.estimatedLandValuePerHa) || 0
@@ -57,6 +62,70 @@ export function Step1CreditIdentification({
           <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
           <div>
             <strong>Atenção às pendências obrigatórias da etapa:</strong> Preencha {step1Pending.join(', ')} para prosseguir à esteira do projeto.
+          </div>
+        </div>
+      )}
+
+      {/* Seção Proponente PJ & Representante Legal */}
+      {currentProducer?.type === 'PJ' && (
+        <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-[#1B4D3E]" />
+              <span className="text-xs font-bold text-gray-900">
+                Proponente PJ: {currentProducer.name} (CNPJ: {formatCNPJ(currentProducer.document)})
+              </span>
+            </div>
+            <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+              Exigência Bancária: Identificação por CPF
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700">Nome do Titular / Representante Legal</Label>
+              <Input
+                value={customOptions.representativeName || ''}
+                onChange={(e) => setCustomOptions(prev => ({ ...prev, representativeName: e.target.value }))}
+                className="h-10 text-xs bg-white"
+                placeholder="Ex: Nome Completo do Sócio Administrador"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-gray-700">
+                  CPF do Titular / Representante Legal *
+                </Label>
+                {customOptions.representativeCpf ? (
+                  validateCPF(customOptions.representativeCpf) ? (
+                    <span className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1">
+                      <Check className="h-3 w-3" /> CPF Válido
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-red-600 font-semibold flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> CPF Inválido
+                    </span>
+                  )
+                ) : null}
+              </div>
+              <Input
+                value={customOptions.representativeCpf || ''}
+                onChange={(e) => {
+                  const masked = formatCPF(e.target.value)
+                  setCustomOptions(prev => ({ ...prev, representativeCpf: masked }))
+                }}
+                className={cn(
+                  "h-10 text-xs bg-white",
+                  customOptions.representativeCpf && !validateCPF(customOptions.representativeCpf) && "border-red-500 focus-visible:ring-red-400"
+                )}
+                placeholder="000.000.000-00"
+                maxLength={14}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                O Banco do Brasil exige o CPF do titular/representante legal para emissão, assinatura e gravação oficial.
+              </p>
+            </div>
           </div>
         </div>
       )}

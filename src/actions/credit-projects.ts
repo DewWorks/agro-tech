@@ -39,6 +39,7 @@ export async function getProducersWithPropertiesForCredit() {
       phone: true,
       email: true,
       civilStatus: true,
+      representativeCpf: true,
       branch: {
         select: {
           name: true,
@@ -102,6 +103,7 @@ export async function getProducersWithPropertiesForCredit() {
     phone: p.phone || undefined,
     email: p.email || undefined,
     civilStatus: p.civilStatus || undefined,
+    representativeCpf: p.representativeCpf || undefined,
     branchName: p.branch?.name || 'Matriz',
     properties: p.properties.map(link => {
       const poss = (link.property.possessionData as any) || {}
@@ -234,6 +236,7 @@ export async function resolveCreditProjectDocument(
         type: producer.type as 'PF' | 'PJ',
         spouseName: producer.spouseName || undefined,
         spouseCpf: producer.spouseCpf || undefined,
+        representativeCpf: options.representativeCpf || producer.representativeCpf || undefined,
         phone: producer.phone || undefined,
         civilStatus: producer.civilStatus || undefined,
         profession: producer.profession || undefined,
