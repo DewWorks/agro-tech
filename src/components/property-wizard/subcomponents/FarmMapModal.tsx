@@ -151,16 +151,27 @@ export function FarmMapModal({
     setShowDropdown(false)
     setMapLoading(true)
 
+    const resizeTimers: NodeJS.Timeout[] = []
+    let resizeListener: (() => void) | null = null
+
     async function initLeafletMap() {
       try {
         const L = (await import('leaflet')).default
 
         if (!isMounted || !mapContainerRef.current) return
 
-        // Destrói instância anterior se houver
+        // Destrói instância anterior se houver para evitar conflitos de _leaflet_id
         if (mapInstanceRef.current) {
-          mapInstanceRef.current.remove()
+          try {
+            mapInstanceRef.current.remove()
+          } catch {}
           mapInstanceRef.current = null
+        }
+
+        if (mapContainerRef.current) {
+          try {
+            delete (mapContainerRef.current as any)._leaflet_id
+          } catch {}
         }
 
         // Camadas de Satélite e Ruas
@@ -184,6 +195,8 @@ export function FarmMapModal({
             attribution: '© Google',
           }
         )
+
+        if (!isMounted || !mapContainerRef.current) return
 
         const map = L.map(mapContainerRef.current, {
           center: [resolved.lat, resolved.lng],
@@ -232,6 +245,7 @@ export function FarmMapModal({
 
         // Ao arrastar o pin, atualiza as coordenadas no estado React
         marker.on('dragend', (e) => {
+          if (!isMounted) return
           const pos = e.target.getLatLng()
           setCurrentLat(pos.lat)
           setCurrentLng(pos.lng)
@@ -239,6 +253,7 @@ export function FarmMapModal({
 
         // Ao clicar em qualquer local do mapa, move o pin
         map.on('click', (e) => {
+          if (!isMounted) return
           marker.setLatLng(e.latlng)
           setCurrentLat(e.latlng.lat)
           setCurrentLng(e.latlng.lng)
@@ -248,20 +263,27 @@ export function FarmMapModal({
         markerRef.current = marker
         setMapLoading(false)
 
-        // Redimensionamentos sucessivos para sincronizar com as animações de abertura do Radix Dialog
-        const forceResize = () => {
-          if (map) {
-            map.invalidateSize(true)
+        // Redimensionamentos protegidos para sincronizar com as animações de abertura do Radix Dialog
+        const safeForceResize = () => {
+          if (!isMounted) return
+          const currentMap = mapInstanceRef.current as any
+          if (currentMap && currentMap._mapPane && currentMap._loaded) {
+            try {
+              currentMap.invalidateSize(true)
+            } catch (e) {
+              // Silencia erros transitórios durante animação de desmontagem
+            }
           }
         }
 
-        setTimeout(forceResize, 50)
-        setTimeout(forceResize, 150)
-        setTimeout(forceResize, 350)
-        setTimeout(forceResize, 700)
-        setTimeout(forceResize, 1200)
+        resizeListener = safeForceResize
+        window.addEventListener('resize', safeForceResize)
 
-        window.addEventListener('resize', forceResize)
+        resizeTimers.push(setTimeout(safeForceResize, 60))
+        resizeTimers.push(setTimeout(safeForceResize, 180))
+        resizeTimers.push(setTimeout(safeForceResize, 380))
+        resizeTimers.push(setTimeout(safeForceResize, 750))
+        resizeTimers.push(setTimeout(safeForceResize, 1300))
       } catch (err) {
         console.error('[FarmMapModal] Erro ao instanciar Leaflet:', err)
         setMapLoading(false)
@@ -269,15 +291,22 @@ export function FarmMapModal({
     }
 
     // Pequeno atraso para garantir que o container DOM já possui dimensões no Dialog
-    const timer = setTimeout(initLeafletMap, 30)
+    const initTimer = setTimeout(initLeafletMap, 30)
 
     return () => {
       isMounted = false
-      clearTimeout(timer)
+      clearTimeout(initTimer)
+      resizeTimers.forEach(clearTimeout)
+      if (resizeListener) {
+        window.removeEventListener('resize', resizeListener)
+      }
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove()
+        try {
+          mapInstanceRef.current.remove()
+        } catch {}
         mapInstanceRef.current = null
       }
+      markerRef.current = null
     }
   }, [isOpen, initialLat, initialLng, initialCity, initialState])
 
@@ -329,13 +358,20 @@ export function FarmMapModal({
     setSearchQuery(item.displayName || item.name || item.city || '')
     setShowDropdown(false)
 
-    // Reposiciona mapa e pin instantaneamente
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.invalidateSize(true)
-      mapInstanceRef.current.flyTo([lat, lng], 14, { duration: 1.0 })
+    // Reposiciona mapa e pin instantaneamente de forma segura
+    const map = mapInstanceRef.current as any
+    if (map && map._mapPane && map._loaded) {
+      try {
+        map.invalidateSize(true)
+        map.flyTo([lat, lng], 14, { duration: 1.0 })
+      } catch (e) {
+        // Silencia exceções transitórias de renderização do Leaflet
+      }
     }
     if (markerRef.current) {
-      markerRef.current.setLatLng([lat, lng])
+      try {
+        markerRef.current.setLatLng([lat, lng])
+      } catch (e) {}
     }
   }
 
