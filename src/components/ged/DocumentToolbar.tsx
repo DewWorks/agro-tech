@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DOCUMENT_TYPE_LABELS } from '@/lib/ged/semaphore'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface DocumentToolbarProps {
   search: string
@@ -19,6 +20,8 @@ interface DocumentToolbarProps {
   onStatusFilterChange: (value: string) => void
   typeFilter: string
   onTypeFilterChange: (value: string) => void
+  expirationDateFilter?: string
+  onExpirationDateFilterChange?: (value: string) => void
   onNewDocument?: () => void
   selectedCount: number
   onBatchDownload?: () => void
@@ -31,6 +34,8 @@ export default function DocumentToolbar({
   onStatusFilterChange,
   typeFilter,
   onTypeFilterChange,
+  expirationDateFilter,
+  onExpirationDateFilterChange,
   onNewDocument,
   selectedCount,
   onBatchDownload,
@@ -92,7 +97,7 @@ export default function DocumentToolbar({
 
         {/* Type Filter */}
         <Select value={typeFilter} onValueChange={(val) => onTypeFilterChange(val ?? 'TODOS')}>
-          <SelectTrigger className="h-9 w-[220px] text-sm">
+          <SelectTrigger className="h-9 w-[200px] text-sm">
             <SelectValue placeholder="Categoria" />
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
@@ -102,6 +107,19 @@ export default function DocumentToolbar({
             ))}
           </SelectContent>
         </Select>
+
+        {/* Expiration Date Filter */}
+        {onExpirationDateFilterChange && (
+          <div className="w-[185px]">
+            <DatePicker
+              value={expirationDateFilter || ''}
+              onChange={onExpirationDateFilterChange}
+              placeholder="Vencendo até..."
+              showPresets={true}
+              className="h-9 text-xs"
+            />
+          </div>
+        )}
       </div>
 
       {/* Right: Actions */}

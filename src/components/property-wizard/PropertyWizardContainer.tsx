@@ -164,6 +164,14 @@ export function PropertyWizardContainer({
     mode: 'onBlur',
   })
 
+  const scrollToTop = () => {
+    const mainEl = document.querySelector('main')
+    if (mainEl) {
+      mainEl.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   // Validação Parcial (Partial Triggering) para Avançar
   const handleNextStep = async () => {
     if (!isEditMode) {
@@ -183,7 +191,7 @@ export function PropertyWizardContainer({
     }
     setCurrentStep(next)
     setHighestVisitedStep((prev) => Math.max(prev, next))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToTop()
   }
 
   const handlePrevStep = () => {
@@ -192,7 +200,7 @@ export function PropertyWizardContainer({
       prevStep = 3
     }
     setCurrentStep(prevStep)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToTop()
   }
 
   const handleStepClick = async (targetStep: number) => {
@@ -203,7 +211,7 @@ export function PropertyWizardContainer({
     if (isEditMode || targetStep <= currentStep) {
       setCurrentStep(targetStep)
       setHighestVisitedStep((prev) => Math.max(prev, targetStep))
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+      scrollToTop()
       return
     }
 
@@ -219,7 +227,7 @@ export function PropertyWizardContainer({
 
     setCurrentStep(targetStep)
     setHighestVisitedStep((prev) => Math.max(prev, targetStep))
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    scrollToTop()
   }
 
   // Salvamento unificado no banco (Parcial ao salvar no passo, ou Final no passo 5)
@@ -420,8 +428,34 @@ export function PropertyWizardContainer({
               Salvar Alterações
             </Button>
           )}
-          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
-            Estado do Formulário:
+
+          {currentStep < 5 ? (
+            <Button
+              type="button"
+              onClick={handleNextStep}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-3.5 shadow-xs cursor-pointer flex items-center gap-1"
+            >
+              Avançar
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={form.handleSubmit(onFinalSubmit, onFormError)}
+              disabled={isSubmitting}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-9 px-3.5 shadow-xs cursor-pointer flex items-center gap-1"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-3.5 h-3.5" />
+              )}
+              Concluir
+            </Button>
+          )}
+
+          <span className="text-xs text-slate-500 font-medium hidden sm:inline ml-1">
+            Estado:
           </span>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -468,8 +502,8 @@ export function PropertyWizardContainer({
             />
           )}
 
-          {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD */}
-          <div className="sticky bottom-4 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-lg flex items-center justify-between">
+          {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD (FLUXO NATURAL - NÃO COBRE OS CAMPOS AO ROLAR) */}
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between mt-8">
             <div>
               {currentStep > 1 && (
                 <Button

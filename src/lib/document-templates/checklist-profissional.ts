@@ -65,7 +65,15 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
   const bank = opt.targetBank || 'Não informada'
   const purpose = opt.purpose || 'Não informada'
-  const entryDate = opt.entryDate || new Date().toLocaleDateString('pt-BR')
+  const formatEntryDate = (d?: string) => {
+    if (!d) return new Date().toLocaleDateString('pt-BR')
+    if (d.includes('-')) {
+      const [year, month, day] = d.split('-')
+      if (year && month && day) return `${day}/${month}/${year}`
+    }
+    return d
+  }
+  const entryDate = formatEntryDate(opt.entryDate)
   const responsible = orgOwnerName
 
   const items = opt.itemsState || {}

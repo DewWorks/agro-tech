@@ -5,6 +5,7 @@ import { Upload, X, FileText, CheckCircle2, Loader2, AlertTriangle } from 'lucid
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Select,
   SelectContent,
@@ -330,21 +331,21 @@ export default function UploadDropzone({
 
           <div className="space-y-2">
             <Label className="text-xs font-medium">Data de Emissão</Label>
-            <Input
-              type="date"
+            <DatePicker
               value={issueDate}
-              onChange={(e) => setIssueDate(e.target.value)}
-              className="h-9 text-sm"
+              onChange={setIssueDate}
+              placeholder="DD/MM/AAAA"
+              showPresets={false}
             />
           </div>
 
           <div className="space-y-2">
             <Label className="text-xs font-medium">Data de Validade</Label>
-            <Input
-              type="date"
+            <DatePicker
               value={expirationDate}
-              onChange={(e) => setExpirationDate(e.target.value)}
-              className="h-9 text-sm"
+              onChange={setExpirationDate}
+              placeholder="DD/MM/AAAA"
+              showPresets={true}
             />
           </div>
         </div>

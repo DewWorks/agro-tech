@@ -80,8 +80,10 @@ export function LandLocationCard({ control, setValue, watch }: LandLocationCardP
   const handleSelectAddress = (item: any) => {
     if (item.city) setValue('city', item.city)
     if (item.state) setValue('state', item.state)
-    setValue('latitude', toDMS(item.lat, true))
-    setValue('longitude', toDMS(item.lon, false))
+    const lat = Number(item.lat)
+    const lon = Number(item.lon)
+    if (!isNaN(lat)) setValue('latitude', toDMS(lat, true))
+    if (!isNaN(lon)) setValue('longitude', toDMS(lon, false))
     setSearchResults([])
     setSearchAddressQuery('')
   }
@@ -147,10 +149,10 @@ export function LandLocationCard({ control, setValue, watch }: LandLocationCardP
                     <MapPin className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <div>
                       <span className="font-semibold text-gray-800 dark:text-gray-100 block">
-                        {item.city || item.displayName.split(',')[0]} {item.state ? `- ${item.state}` : ''}
+                        {item.city || (typeof item.displayName === 'string' ? item.displayName.split(',')[0] : '') || item.name || 'Local'} {item.state ? `- ${item.state}` : ''}
                       </span>
                       <span className="text-[11px] text-muted-foreground line-clamp-1">
-                        {item.displayName}
+                        {item.displayName || item.city || ''}
                       </span>
                     </div>
                   </button>

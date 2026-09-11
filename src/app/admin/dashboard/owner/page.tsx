@@ -6,6 +6,7 @@ import BranchFilterSelect from './components/BranchFilterSelect';
 import OptimizeExistingDocsButton from './components/OptimizeExistingDocsButton';
 import RankingsSection from './components/RankingsSection';
 import RecentEmissionsTable from './components/RecentEmissionsTable';
+import { GlobalDocumentTable } from '@/components/ged/GlobalDocumentTable';
 import {
   FileCheck2,
   HardDrive,
@@ -13,7 +14,7 @@ import {
   ClockAlert,
   ShieldCheck,
   Building2,
-  Sparkles,
+  CheckCircle2,
 } from 'lucide-react';
 
 interface OwnerDashboardPageProps {
@@ -41,6 +42,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
     recentEmissions,
     storage,
     semaphores,
+    semaphoreData,
     effectiveOrgName,
   } = await getAllOwnerDashboardData(branchId);
 
@@ -158,18 +160,18 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                A Vencer em 30d
+                A Vencer (Atenção)
               </span>
               <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600">
                 <ClockAlert className="h-4 w-4" />
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-amber-600">{semaphores.expiring30}</span>
+              <span className="text-3xl font-black text-amber-600">{semaphoreData?.alertCount ?? semaphores.expiring30}</span>
               <span className="text-xs font-medium text-gray-400">documentos</span>
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Licenças e certidões que expirarão nas próximas semanas.
+              Licenças e certidões que expirarão nos próximos 30 dias.
             </p>
           </div>
           <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
@@ -190,7 +192,7 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-3xl font-black text-rose-600">{semaphores.expired}</span>
+              <span className="text-3xl font-black text-rose-600">{semaphoreData?.expiredCount ?? semaphores.expired}</span>
               <span className="text-xs font-medium text-gray-400">irregulares</span>
             </div>
             <p className="text-xs text-gray-500 mt-2">
@@ -198,13 +200,9 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
             </p>
           </div>
           <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-            <span>Status da carteira:</span>
-            <span
-              className={`font-semibold ${
-                semaphores.expired > 0 ? 'text-rose-600' : 'text-emerald-700'
-              }`}
-            >
-              {semaphores.expired > 0 ? 'Requer Regularização' : '100% Em Dia'}
+            <span>Documentos em dia:</span>
+            <span className="font-semibold text-emerald-700">
+              {semaphoreData?.validCount ?? 0} válidos
             </span>
           </div>
         </div>
@@ -219,6 +217,40 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
         producers={producersRanking}
         properties={propertiesRanking}
       />
+
+      {/* CONTROLE DE VALIDADES & SEMÁFORO GLOBAL DE DOCUMENTOS */}
+      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h2 className="text-xl font-bold tracking-tight text-gray-900">
+                Controle de Validades & Semáforo
+              </h2>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-800 border border-emerald-200">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                  {semaphoreData?.validCount ?? 0} Válidos
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800 border border-amber-200">
+                  <span className="w-2 h-2 rounded-full bg-amber-500" />
+                  {semaphoreData?.alertCount ?? 0} A Vencer
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-0.5 text-xs font-semibold text-rose-800 border border-rose-200">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  {semaphoreData?.expiredCount ?? 0} Vencidos
+                </span>
+              </div>
+            </div>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+              Monitoramento global de conformidade documental, certidões e prazos de todos os produtores vinculados
+            </p>
+          </div>
+        </div>
+
+        <div className="p-0">
+          <GlobalDocumentTable initialDocuments={semaphoreData?.documents ?? []} />
+        </div>
+      </div>
 
       {/* HISTÓRICO RECENTE DE EMISSÕES */}
       <RecentEmissionsTable emissions={recentEmissions} />

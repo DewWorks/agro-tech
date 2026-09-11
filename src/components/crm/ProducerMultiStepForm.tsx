@@ -43,6 +43,11 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
     rgIssuer: initialData?.rgIssuer || '',
     profession: initialData?.profession || '',
     nationality: initialData?.nationality || '',
+    birthDate: initialData?.birthDate
+      ? (typeof initialData.birthDate === 'string'
+          ? initialData.birthDate.split('T')[0]
+          : new Date(initialData.birthDate).toISOString().split('T')[0])
+      : '',
     representativeCpf: initialData?.representativeCpf ? formatCPF(initialData.representativeCpf) : '',
     
     // Propriedade Principal

@@ -10,6 +10,7 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   Select,
   SelectContent,
@@ -176,7 +177,12 @@ export function LandIdentificationCard({ control, branches, producers }: LandIde
             <FormItem>
               <FormLabel>Término de Contrato (se não proprietário)</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  placeholder="DD/MM/AAAA"
+                  showPresets={true}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

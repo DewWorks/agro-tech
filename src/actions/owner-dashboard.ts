@@ -6,6 +6,8 @@ import { startOfMonth, subDays, format, eachDayOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { CREDIT_TEMPLATES_REGISTRY } from '@/lib/document-templates';
 import { Prisma } from '@prisma/client';
+import { calculateDocumentStatus } from '@/lib/ged/semaphore';
+import type { DocumentRow } from '@/components/ged/DocumentTable';
 
 export interface FranchiseUsageResult {
   used: number;
@@ -472,6 +474,69 @@ export async function getGlobalSemaphoreOverview(branchId?: string, userParam?: 
 }
 
 /**
+ * Retorna os documentos da organização processados com o status do semáforo para o dashboard.
+ */
+export async function getProcessedDocumentsForSemaphore(branchId?: string, userParam?: any): Promise<{
+  documents: DocumentRow[];
+  validCount: number;
+  alertCount: number;
+  expiredCount: number;
+}> {
+  const user = await resolveEffectiveUser(userParam);
+
+  const whereClause: Prisma.DocumentWhereInput = {
+    branch: { organizationId: user.organizationId },
+    isArchived: false,
+    isSuperseded: false,
+    ...(branchId && branchId !== 'ALL' ? { branchId } : {}),
+  };
+
+  const rawDocs = await prisma.document.findMany({
+    where: whereClause,
+    include: {
+      producer: { select: { id: true, name: true } },
+      property: { select: { id: true, name: true } },
+    },
+    orderBy: { expirationDate: 'asc' },
+  });
+
+  let validCount = 0;
+  let alertCount = 0;
+  let expiredCount = 0;
+
+  const documents: DocumentRow[] = rawDocs.map((doc) => {
+    const calculatedStatus = calculateDocumentStatus(doc.expirationDate, doc.documentType);
+    if (calculatedStatus === 'VALIDO') validCount++;
+    if (calculatedStatus === 'ALERTA') alertCount++;
+    if (calculatedStatus === 'VENCIDO') expiredCount++;
+
+    return {
+      id: doc.id,
+      fileName: doc.fileName,
+      documentType: doc.documentType,
+      issueDate: doc.issueDate,
+      expirationDate: doc.expirationDate,
+      fileSize: Number(doc.fileSize),
+      mimeType: doc.mimeType,
+      storagePath: doc.storagePath,
+      isInherited: doc.isInherited,
+      cropYear: doc.cropYear,
+      inheritedFromId: doc.inheritedFromId,
+      calculatedStatus,
+      producer: doc.producer,
+      property: doc.property,
+    };
+  });
+
+  return {
+    documents,
+    validCount,
+    alertCount,
+    expiredCount,
+  };
+}
+
+/**
  * Agregador completo para carregar todos os dados do dashboard em paralelo.
  */
 export async function getAllOwnerDashboardData(branchId?: string) {
@@ -487,6 +552,7 @@ export async function getAllOwnerDashboardData(branchId?: string) {
     recentEmissions,
     storage,
     semaphores,
+    semaphoreData,
   ] = await Promise.all([
     getBranchesList(user),
     getFranchiseUsage(branchId, user),
@@ -497,6 +563,7 @@ export async function getAllOwnerDashboardData(branchId?: string) {
     getRecentEmissions(branchId, 12, user),
     getRealStorageMetrics(branchId, user),
     getGlobalSemaphoreOverview(branchId, user),
+    getProcessedDocumentsForSemaphore(branchId, user),
   ]);
 
   return {
@@ -509,6 +576,7 @@ export async function getAllOwnerDashboardData(branchId?: string) {
     recentEmissions,
     storage,
     semaphores,
+    semaphoreData,
     effectiveOrgName: user.organization?.name || 'Organização AgroTech',
   };
 }

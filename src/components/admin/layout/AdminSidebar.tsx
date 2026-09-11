@@ -103,13 +103,12 @@ const getMenuItems = (
   const gedStatus = checkModule('GED')
   if (gedStatus.show) {
     items.push({
-      title: 'Documentos (GED Inteligente)',
+      title: 'Gerenciador de Documentos',
       icon: FolderTree,
       badge: gedStatus.badge,
       subItems: [
-        { title: 'Dashboard (Métricas)', href: '/admin/dashboard/owner' },
+        { title: 'Dashboard de Arquivos', href: '/admin/dashboard/owner' },
         { title: 'Explorador de Arquivos', href: '/admin/ged/explorer' },
-        { title: 'Validades & Semáforo', href: '/admin/ged/semaphore' },
         { title: 'Projetos de Crédito BB', href: '/admin/documents/credit-projects' },
         { title: 'Declarações Legais', href: '/admin/documents/declarations' },
       ]
