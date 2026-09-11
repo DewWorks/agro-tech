@@ -141,7 +141,9 @@ export function ProducerBasicInfoStep({
           }}
         >
           <SelectTrigger className="w-full">
-            <SelectValue />
+            <SelectValue placeholder="Selecione o tipo">
+              {formData.type === 'PJ' ? 'Pessoa Jurídica (CNPJ)' : 'Pessoa Física (CPF)'}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="PF">Pessoa Física (CPF)</SelectItem>
@@ -223,7 +225,15 @@ export function ProducerBasicInfoStep({
             }}
           >
             <SelectTrigger className="w-full bg-white">
-              <SelectValue />
+              <SelectValue placeholder="Selecione o estado civil">
+                {{
+                  SOLTEIRO: 'Solteiro(a)',
+                  CASADO: 'Casado(a)',
+                  UNIAO_ESTAVEL: 'União Estável',
+                  DIVORCIADO: 'Divorciado(a)',
+                  VIUVO: 'Viúvo(a)',
+                }[formData.civilStatus as string] || formData.civilStatus}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="SOLTEIRO">Solteiro(a)</SelectItem>

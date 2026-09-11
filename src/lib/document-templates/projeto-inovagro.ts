@@ -165,7 +165,7 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
           ` : `
           <tr>
             <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
-              ⚠️ Aguardando preenchimento dos equipamentos e valores de investimento no formulário lateral.
+              Aguardando preenchimento dos equipamentos e valores de investimento no formulário lateral.
             </td>
           </tr>
           `}

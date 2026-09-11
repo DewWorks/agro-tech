@@ -258,7 +258,8 @@ export default function CreditProjectWizard({
             </h1>
             {currentTemplate ? (
               <p className="text-sm font-semibold text-[#1B4D3E] mt-1 flex items-center gap-1.5">
-                📄 {currentTemplate.title}
+                <FileText className="h-4 w-4 text-[#1B4D3E] shrink-0" />
+                <span>{currentTemplate.title}</span>
                 <span className="text-[10px] text-muted-foreground font-medium ml-1">({currentTemplate.bank || 'Banco do Brasil'})</span>
               </p>
             ) : (

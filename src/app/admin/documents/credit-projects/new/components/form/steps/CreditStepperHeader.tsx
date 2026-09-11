@@ -1,5 +1,5 @@
 import React from 'react'
-import { Sparkles, Check, AlertTriangle, LucideIcon } from 'lucide-react'
+import { Sparkles, Check, AlertTriangle, LucideIcon, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface StepMeta {
@@ -51,8 +51,9 @@ export function CreditStepperHeader({
               {currentTemplate?.type === 'LEGAL' ? 'Passo a Passo da Declaração' : 'Passo a Passo do Projeto de Crédito'}
             </span>
             {currentTemplate && (
-              <span className="text-xs font-semibold text-[#1B4D3E] mt-0.5">
-                📄 {currentTemplate.title}
+              <span className="text-xs font-semibold text-[#1B4D3E] mt-0.5 inline-flex items-center gap-1">
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span>{currentTemplate.title}</span>
                 {currentTemplate.category && (
                   <span className="ml-1.5 text-[10px] text-muted-foreground font-medium">({currentTemplate.bank || 'BB'})</span>
                 )}

@@ -16,14 +16,34 @@ export default async function EditPropertyPage({
     redirect('/login')
   }
 
-  if (!dbUser.organizationId) {
+  let effectiveUser = dbUser
+  const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || (dbUser as any).realRole === 'SUPER_ADMIN'
+
+  if (isSuperAdmin && !effectiveUser.organizationId) {
+    const defaultOrg = await prisma.organization.findFirst({
+      orderBy: { createdAt: 'asc' },
+    })
+    if (defaultOrg) {
+      effectiveUser = {
+        ...dbUser,
+        organizationId: defaultOrg.id,
+        organization: defaultOrg,
+      }
+    }
+  }
+
+  if (!isSuperAdmin && !effectiveUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }
 
   const property = await prisma.property.findUnique({
     where: { id },
     include: {
-      branch: true,
+      branch: {
+        include: {
+          organization: true,
+        },
+      },
       producers: {
         include: {
           producer: true
@@ -35,7 +55,7 @@ export default async function EditPropertyPage({
     }
   })
 
-  if (!property || property.branch.organizationId !== dbUser.organizationId) {
+  if (!property || (!isSuperAdmin && property.branch.organizationId !== effectiveUser.organizationId)) {
     notFound()
   }
 
@@ -96,26 +116,27 @@ export default async function EditPropertyPage({
   }
 
   let userBranches: any[] = []
+  const targetOrgId = property.branch.organizationId || effectiveUser.organizationId || undefined
 
-  if (dbUser.role === 'OWNER' || dbUser.role === 'ADMIN' || dbUser.realRole === 'SUPER_ADMIN') {
+  if (effectiveUser.role === 'OWNER' || effectiveUser.role === 'ADMIN' || isSuperAdmin) {
     userBranches = await prisma.branch.findMany({
-      where: { organizationId: dbUser.organizationId },
+      where: { organizationId: targetOrgId },
       orderBy: { name: 'asc' }
     })
   } else {
     const userBranchesData = await prisma.userBranch.findMany({
-      where: { userId: dbUser.id },
+      where: { userId: effectiveUser.id },
       include: { branch: true }
     })
     userBranches = userBranchesData.map(ub => ub.branch)
   }
 
-  const producers = await prisma.producer.findMany({
+  const producers: any[] = await prisma.producer.findMany({
     where: {
       branchId: property.branchId,
       isActive: true,
       branch: {
-        organizationId: dbUser.organizationId
+        organizationId: targetOrgId
       }
     },
     select: {
@@ -130,7 +151,7 @@ export default async function EditPropertyPage({
   // Garantir que os produtores vinculados à propriedade estejam sempre presentes na lista
   const linkedProducers = property.producers.map(p => p.producer).filter(Boolean)
   for (const lp of linkedProducers) {
-    if (!producers.some(p => p.id === lp.id)) {
+    if (lp && !producers.some(p => p.id === lp.id)) {
       producers.push({
         id: lp.id,
         name: lp.name,
@@ -140,7 +161,12 @@ export default async function EditPropertyPage({
     }
   }
 
-  const hasFinancialModule = (dbUser.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+  // Super Admin sempre tem acesso ao módulo financeiro, mesmo que desativado no cliente.
+  // Para os demais usuários, respeita estritamente a lista de módulos da organização.
+  const targetOrg = property.branch?.organization || effectiveUser.organization
+  const isOrgFinancialEnabled = (targetOrg?.modules || []).includes('FINANCIAL_SUMMARY')
+  const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
+  const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -162,6 +188,7 @@ export default async function EditPropertyPage({
           initialData={property} 
           producers={producers}
           hasFinancialModule={hasFinancialModule}
+          isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
         />
       </div>
     </div>

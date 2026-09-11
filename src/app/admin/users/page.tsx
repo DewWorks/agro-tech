@@ -23,7 +23,8 @@ import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import DataTableToolbar from '@/components/admin/DataTableToolbar'
 
 const roleLabels: Record<string, string> = {
-  OWNER: 'Administrador (Prop.)',
+  SUPER_ADMIN: 'Super Administrador',
+  OWNER: 'Administrador (Proprietário)',
   ADMIN: 'Gerente',
   OPERATOR: 'Usuário',
 }

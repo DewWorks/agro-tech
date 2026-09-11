@@ -9,7 +9,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Administrador',
+  OWNER: 'Administrador (Proprietário)',
+  ADMIN: 'Gerente',
+  OPERATOR: 'Usuário',
+}
+
 export default function AdminHeader({ email, role }: { email: string, role: string }) {
+  const roleLabel = ROLE_LABELS[role] || role
+
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm">
       <div className="flex items-center">
@@ -27,7 +36,7 @@ export default function AdminHeader({ email, role }: { email: string, role: stri
               </div>
               <div className="hidden md:block text-sm text-left">
                 <p className="font-medium text-gray-900 leading-tight">{email}</p>
-                <p className="text-xs text-gray-500 font-semibold">{role}</p>
+                <p className="text-xs text-gray-500 font-semibold">{roleLabel}</p>
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">

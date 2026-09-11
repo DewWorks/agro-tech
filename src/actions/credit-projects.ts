@@ -15,7 +15,16 @@ import {
 export async function getCreditTemplatesList(): Promise<CreditTemplateMeta[]> {
   const user = await getUserContext()
   if (!user) throw new Error('Unauthorized')
-  return CREDIT_TEMPLATES_REGISTRY
+
+  const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
+  const hasFinancial = isSuperAdmin || (user.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+
+  if (hasFinancial) {
+    return CREDIT_TEMPLATES_REGISTRY
+  }
+
+  // Se o módulo financeiro estiver desativado para o cliente, oculta a Ficha de Limite de Crédito
+  return CREDIT_TEMPLATES_REGISTRY.filter(t => t.code !== 'LIMITE_CREDITO_BB')
 }
 
 export async function getProducersWithPropertiesForCredit() {
@@ -184,6 +193,13 @@ export async function resolveCreditProjectDocument(
   const templateMeta = CREDIT_TEMPLATES_REGISTRY.find(t => t.code === templateCode)
   if (!templateMeta) throw new Error('Modelo de crédito não encontrado.')
 
+  const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
+  const hasFinancialModule = isSuperAdmin || (org?.modules || []).includes('FINANCIAL_SUMMARY')
+
+  if (templateCode === 'LIMITE_CREDITO_BB' && !hasFinancialModule) {
+    throw new Error('Acesso não autorizado: o módulo Resumo Financeiro & Limites não está ativo para a sua organização.')
+  }
+
   // Parse JSON fields
   const livestock = (property.livestock as any) || {}
   const possessionData = (property.possessionData as any) || {}
@@ -284,7 +300,7 @@ export async function resolveCreditProjectDocument(
       } : undefined,
       options: {
         ...options,
-        hasFinancialModule: (org?.modules || []).includes('FINANCIAL_SUMMARY'),
+        hasFinancialModule: hasFinancialModule,
         responsibleName: options.responsibleName
           ? options.responsibleName
           : ownerName,

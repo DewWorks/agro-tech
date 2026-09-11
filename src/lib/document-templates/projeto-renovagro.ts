@@ -157,7 +157,7 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
       </div>
       <div style="padding: 6px 10px;">
         <div style="margin-bottom: 4px;"><strong>Atividade Principal:</strong> ${prop.explorationActivity || 'Não informada'}</div>
-        <div><strong>Linha de Enquadramento:</strong> ${subline ? `<span style="background: #ecfdf5; color: #065f46; font-weight: bold; padding: 2px 6px; border-radius: 3px;">${subline}</span>` : '<span style="color: #b45309; font-style: italic;">⚠️ Aguardando preenchimento da sublinha</span>'}</div>
+        <div><strong>Linha de Enquadramento:</strong> ${subline ? `<span style="background: #ecfdf5; color: #065f46; font-weight: bold; padding: 2px 6px; border-radius: 3px;">${subline}</span>` : '<span style="color: #b45309; font-style: italic;">Aguardando preenchimento da sublinha</span>'}</div>
       </div>
     </div>
 
@@ -198,7 +198,7 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
           ` : `
           <tr>
             <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
-              ⚠️ Aguardando preenchimento da área a recuperar e orçamento no formulário lateral.
+              Aguardando preenchimento da área a recuperar e orçamento no formulário lateral.
             </td>
           </tr>
           `}

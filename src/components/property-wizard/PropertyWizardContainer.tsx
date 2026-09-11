@@ -38,6 +38,7 @@ interface PropertyWizardContainerProps {
   isEditMode?: boolean
   propertyId?: string
   hasFinancialModule?: boolean
+  isFinancialModuleDisabledForOrg?: boolean
 }
 
 export function PropertyWizardContainer({
@@ -47,6 +48,7 @@ export function PropertyWizardContainer({
   isEditMode = false,
   propertyId,
   hasFinancialModule = false,
+  isFinancialModuleDisabledForOrg = false,
 }: PropertyWizardContainerProps) {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState<number>(1)
@@ -154,6 +156,19 @@ export function PropertyWizardContainer({
         markingType: 'Ferro Quente',
         markingLocation: 'Perna Traseira Direita',
       })) || [],
+
+      // Dados Financeiros e Base de Limite de Crédito
+      effectiveAgroRevenue: Number(initialData.possessionData?.effectiveAgroRevenue) || 0,
+      projectedAgroRevenue: Number(initialData.possessionData?.projectedAgroRevenue) || 0,
+      otherRevenues: Number(initialData.possessionData?.otherRevenues) || 0,
+      operationalExpenses: Number(initialData.possessionData?.operationalExpenses) || 0,
+      existingDebtService: Number(initialData.possessionData?.existingDebtService) || 0,
+      familyLivingCosts: Number(initialData.possessionData?.familyLivingCosts) || 0,
+      creditLimitRequested: Number(initialData.possessionData?.creditLimitRequested) || 0,
+      creditLimitPurpose: initialData.possessionData?.creditLimitPurpose || 'CUSTEIO_AGRICOLA',
+      creditLimitTargetBank: initialData.possessionData?.creditLimitTargetBank || 'BANCO_DO_BRASIL',
+      creditLimitTermMonths: Number(initialData.possessionData?.creditLimitTermMonths) || 12,
+      creditLimitNotes: initialData.possessionData?.creditLimitNotes || '',
     }
   }, [initialData, branches, producers])
 
@@ -311,13 +326,18 @@ export function PropertyWizardContainer({
           totalValue: Math.round((Number(l.quantity) || 0) * (Number(l.unitValue) || 0) * 100) / 100,
         })),
 
-        // Financeiro
+        // Financeiro & Base de Limite de Crédito
         effectiveAgroRevenue: values.effectiveAgroRevenue ?? 0,
         projectedAgroRevenue: values.projectedAgroRevenue ?? 0,
         otherRevenues: values.otherRevenues ?? 0,
         operationalExpenses: values.operationalExpenses ?? 0,
         existingDebtService: values.existingDebtService ?? 0,
         familyLivingCosts: values.familyLivingCosts ?? 0,
+        creditLimitRequested: values.creditLimitRequested ?? 0,
+        creditLimitPurpose: values.creditLimitPurpose || 'CUSTEIO_AGRICOLA',
+        creditLimitTargetBank: values.creditLimitTargetBank || 'BANCO_DO_BRASIL',
+        creditLimitTermMonths: values.creditLimitTermMonths ?? 12,
+        creditLimitNotes: values.creditLimitNotes || '',
       }
 
       let res
@@ -471,6 +491,7 @@ export function PropertyWizardContainer({
         highestVisitedStep={highestVisitedStep}
         isEditMode={isEditMode}
         hasFinancialModule={hasFinancialModule}
+        isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
       />
 
       {/* Formulário Principal com Contexto RHF */}
@@ -489,7 +510,12 @@ export function PropertyWizardContainer({
 
           {currentStep === 3 && <Step3ImprovementsHerd form={form} />}
 
-          {hasFinancialModule && currentStep === 4 && <Step4FinancialSummary form={form} />}
+          {hasFinancialModule && currentStep === 4 && (
+            <Step4FinancialSummary 
+              form={form} 
+              isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+            />
+          )}
 
           {currentStep === 5 && (
             <Step5ReviewDossier
@@ -499,6 +525,7 @@ export function PropertyWizardContainer({
               isSubmitting={isSubmitting}
               onSubmit={form.handleSubmit(onFinalSubmit, onFormError)}
               hasFinancialModule={hasFinancialModule}
+              isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
             />
           )}
 

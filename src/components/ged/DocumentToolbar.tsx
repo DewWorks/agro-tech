@@ -13,6 +13,14 @@ import {
 import { DOCUMENT_TYPE_LABELS } from '@/lib/ged/semaphore'
 import { DatePicker } from '@/components/ui/date-picker'
 
+const STATUS_FILTER_LABELS: Record<string, string> = {
+  TODOS: 'Todos os Status',
+  VALIDO: 'Válidos',
+  ALERTA: 'Em Alerta',
+  VENCIDO: 'Vencidos',
+  INDEFINIDO: 'Sem Validade',
+}
+
 interface DocumentToolbarProps {
   search: string
   onSearchChange: (value: string) => void
@@ -59,7 +67,9 @@ export default function DocumentToolbar({
         <Select value={statusFilter} onValueChange={(val) => onStatusFilterChange(val ?? 'TODOS')}>
           <SelectTrigger className="h-9 w-[180px] text-sm">
             <Filter className="h-3.5 w-3.5 mr-1 text-gray-400" />
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Status">
+              {STATUS_FILTER_LABELS[statusFilter] || statusFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="TODOS">
@@ -98,7 +108,9 @@ export default function DocumentToolbar({
         {/* Type Filter */}
         <Select value={typeFilter} onValueChange={(val) => onTypeFilterChange(val ?? 'TODOS')}>
           <SelectTrigger className="h-9 w-[200px] text-sm">
-            <SelectValue placeholder="Categoria" />
+            <SelectValue placeholder="Categoria">
+              {typeFilter === 'TODOS' ? 'Todas as Categorias' : DOCUMENT_TYPE_LABELS[typeFilter] || typeFilter}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
             <SelectItem value="TODOS">Todas as Categorias</SelectItem>

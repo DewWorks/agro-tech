@@ -43,7 +43,10 @@ export default function BranchFilterSelect({ branches, currentBranchId }: Branch
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="ALL" className="text-xs font-medium">
-            🏢 Todas as Filiais (Consolidado)
+            <span className="flex items-center gap-1.5">
+              <Building2 className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+              <span>Todas as Filiais (Consolidado)</span>
+            </span>
           </SelectItem>
           {branches.map((b) => (
             <SelectItem key={b.id} value={b.id} className="text-xs">

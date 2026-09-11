@@ -8,6 +8,7 @@ interface PropertyMultiStepFormProps {
   initialData?: any
   producers?: Array<{ id: string; name: string; document?: string }>
   hasFinancialModule?: boolean
+  isFinancialModuleDisabledForOrg?: boolean
 }
 
 export default function PropertyMultiStepForm({
@@ -15,6 +16,7 @@ export default function PropertyMultiStepForm({
   initialData,
   producers = [],
   hasFinancialModule = false,
+  isFinancialModuleDisabledForOrg = false,
 }: PropertyMultiStepFormProps) {
   return (
     <PropertyWizardContainer
@@ -24,6 +26,7 @@ export default function PropertyMultiStepForm({
       isEditMode={Boolean(initialData?.id)}
       propertyId={initialData?.id}
       hasFinancialModule={hasFinancialModule}
+      isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
     />
   )
 }

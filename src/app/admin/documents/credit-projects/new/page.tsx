@@ -28,7 +28,10 @@ export default async function NewCreditProjectPage({
 
   const initialProducerId = producers[0]?.id
   const initialPropertyId = producers[0]?.properties?.[0]?.id
-  const initialTemplateCode = resolvedSearchParams?.template || templates[0]?.code || 'CHECKLIST_PROFISSIONAL'
+  const requestedTemplateCode = resolvedSearchParams?.template
+  const initialTemplateCode = (requestedTemplateCode && templates.some(t => t.code === requestedTemplateCode))
+    ? requestedTemplateCode
+    : (templates[0]?.code || 'CHECKLIST_PROFISSIONAL')
 
   const initialSavedData = (initialProducerId && initialTemplateCode)
     ? await getSavedCreditProjectData(initialProducerId, initialPropertyId || '', initialTemplateCode)

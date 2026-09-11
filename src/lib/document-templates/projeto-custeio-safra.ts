@@ -179,7 +179,7 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
           ` : `
           <tr>
             <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
-              ⚠️ Aguardando preenchimento da cultura, área de plantio e custos por hectare no formulário lateral.
+              Aguardando preenchimento da cultura, área de plantio e custos por hectare no formulário lateral.
             </td>
           </tr>
           `}

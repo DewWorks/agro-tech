@@ -4,6 +4,7 @@ import { useForm, useFieldArray, FormProvider } from 'react-hook-form'
 import { ImprovementTableRow } from '@/components/property-wizard/steps/step3-subcomponents/ImprovementTableRow'
 import { LivestockTableRow } from '@/components/property-wizard/steps/step3-subcomponents/LivestockTableRow'
 import { MachineryTableRow } from '@/components/property-wizard/steps/step2-subcomponents/MachineryTableRow'
+import { Step4FinancialSummary, PURPOSE_OPTIONS, BANK_OPTIONS } from '@/components/property-wizard/steps/Step4FinancialSummary'
 
 function ImprovementTestApp() {
   const methods = useForm({
@@ -209,5 +210,58 @@ describe('Property Wizard Select Reactivity Tests', () => {
     expect(combobox).toHaveTextContent('Colheitadeira')
     expect(screen.getByText('Alienado')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Banco / Credor')).toBeInTheDocument()
+  })
+
+  it('guarantees PURPOSE_OPTIONS and BANK_OPTIONS contain zero emojis and have valid Lucide icon components', () => {
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}]/u
+
+    expect(PURPOSE_OPTIONS.length).toBeGreaterThan(0)
+    for (const opt of PURPOSE_OPTIONS) {
+      expect(emojiRegex.test(opt.label)).toBe(false)
+      expect(opt.icon).toBeDefined()
+      expect(opt.iconColor).toBeDefined()
+    }
+
+    expect(BANK_OPTIONS.length).toBeGreaterThan(0)
+    for (const opt of BANK_OPTIONS) {
+      expect(emojiRegex.test(opt.label)).toBe(false)
+      expect(opt.icon).toBeDefined()
+      expect(opt.iconColor).toBeDefined()
+    }
+  })
+
+  it('renders Step4FinancialSummary select with Portuguese label and icon instead of raw enum or emoji', () => {
+    function FinancialTestApp() {
+      const methods = useForm({
+        defaultValues: {
+          totalArea: 100,
+          vtnPerHectare: 15000,
+          machineries: [],
+          improvements: [],
+          livestocks: [],
+          effectiveAgroRevenue: 500000,
+          operationalExpenses: 200000,
+          creditLimitRequested: 250000,
+          creditLimitPurpose: 'CUSTEIO_AGRICOLA',
+          creditLimitTargetBank: 'BANCO_DO_BRASIL',
+          creditLimitTermMonths: 12,
+        },
+      })
+
+      return (
+        <FormProvider {...methods}>
+          <Step4FinancialSummary form={methods} />
+        </FormProvider>
+      )
+    }
+
+    render(<FinancialTestApp />)
+
+    // Should show Portuguese label and never raw enum or emoji
+    expect(screen.getByText('Custeio Agrícola (Safra)')).toBeInTheDocument()
+    expect(screen.getByText('Banco do Brasil')).toBeInTheDocument()
+
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}]/u
+    expect(emojiRegex.test(screen.getByText('Custeio Agrícola (Safra)').textContent || '')).toBe(false)
   })
 })

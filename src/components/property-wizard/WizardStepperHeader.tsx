@@ -10,6 +10,7 @@ interface WizardStepperHeaderProps {
   highestVisitedStep: number
   isEditMode?: boolean
   hasFinancialModule?: boolean
+  isFinancialModuleDisabledForOrg?: boolean
 }
 
 const STEPS = [
@@ -51,6 +52,7 @@ export function WizardStepperHeader({
   highestVisitedStep,
   isEditMode = false,
   hasFinancialModule = false,
+  isFinancialModuleDisabledForOrg = false,
 }: WizardStepperHeaderProps) {
   const visibleSteps = hasFinancialModule ? STEPS : STEPS.filter((s) => s.step !== 4)
   const currentStepDisplayIndex = Math.max(1, visibleSteps.findIndex((s) => s.step === currentStep) + 1)
@@ -68,9 +70,17 @@ export function WizardStepperHeader({
           <span className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
             Etapa {currentStepDisplayIndex} de {visibleSteps.length}
           </span>
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
-            {currentStepObj?.title}
-          </h2>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">
+              {currentStepObj?.title}
+            </h2>
+            {currentStep === 4 && isFinancialModuleDisabledForOrg && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-800 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                Módulo Desligado no Cliente (Visível apenas para Super Admin)
+              </span>
+            )}
+          </div>
         </div>
         <div className="text-right">
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
@@ -136,6 +146,12 @@ export function WizardStepperHeader({
               <span className="hidden md:block text-[11px] text-slate-600 dark:text-slate-300 line-clamp-1 mt-0.5">
                 {s.description}
               </span>
+
+              {s.step === 4 && isFinancialModuleDisabledForOrg && (
+                <span className="text-[9px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 px-1.5 py-0.5 rounded mt-1 shadow-2xs">
+                  Desligada
+                </span>
+              )}
             </button>
           )
         })}

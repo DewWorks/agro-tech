@@ -18,6 +18,14 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 
+const OWNERSHIP_LABELS: Record<string, string> = {
+  PROPRIETARIO: 'Proprietário',
+  ARRENDATARIO: 'Arrendatário',
+  MEEIRO: 'Meeiro',
+  COMODATARIO: 'Comodatário',
+  PARCEIRO: 'Parceiro / Outros',
+}
+
 interface Step5ReviewDossierProps {
   form?: UseFormReturn<any>
   producerName?: string
@@ -25,6 +33,7 @@ interface Step5ReviewDossierProps {
   isSubmitting?: boolean
   onSubmit: () => void
   hasFinancialModule?: boolean
+  isFinancialModuleDisabledForOrg?: boolean
 }
 
 export function Step5ReviewDossier({
@@ -34,6 +43,7 @@ export function Step5ReviewDossier({
   isSubmitting = false,
   onSubmit,
   hasFinancialModule = false,
+  isFinancialModuleDisabledForOrg = false,
 }: Step5ReviewDossierProps) {
   const context = useFormContext()
   const activeForm: UseFormReturn<any> = (form || context) as any
@@ -181,7 +191,7 @@ export function Step5ReviewDossier({
               </div>
               <div>
                 <span className="text-slate-700 block text-[11px]">Vínculo:</span>
-                <span className="font-bold">{values.ownershipType || 'PROPRIETARIO'} ({values.explorationPercentage || 100}%)</span>
+                <span className="font-bold">{OWNERSHIP_LABELS[values.ownershipType] || values.ownershipType || 'Proprietário'} ({values.explorationPercentage || 100}%)</span>
               </div>
 
               <div>
@@ -297,11 +307,19 @@ export function Step5ReviewDossier({
           </div>
 
           {/* 5. CAPACIDADE DE PAGAMENTO */}
+          {/* 5. CAPACIDADE DE PAGAMENTO */}
           {hasFinancialModule && (
             <div className="mb-8">
-              <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2">
-                5. Capacidade de Pagamento Anual
-              </h2>
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                  5. Capacidade de Pagamento Anual
+                </h2>
+                {isFinancialModuleDisabledForOrg && (
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">
+                    Módulo Desligado no Cliente (Super Admin)
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-3 gap-2 text-xs bg-slate-50 p-2 rounded-sm border border-slate-200">
                 <div>
                   <span className="text-[10px] text-slate-700 block">Receitas Anuais</span>
@@ -327,6 +345,64 @@ export function Step5ReviewDossier({
                     )}
                   </span>
                 </div>
+              </div>
+
+              {/* 6. BASE DE LIMITE DE CRÉDITO & DIMENSIONAMENTO MCR */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-2">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                    6. Base de Limite de Crédito & Dimensionamento MCR
+                  </h2>
+                  {isFinancialModuleDisabledForOrg && (
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded">
+                      Módulo Desligado no Cliente (Super Admin)
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs bg-slate-50 p-2.5 rounded-sm border border-slate-200">
+                  <div>
+                    <span className="text-[10px] text-slate-700 block">Limite Custeio Sugerido</span>
+                    <span className="font-bold text-slate-900">
+                      {formatBRL(
+                        Number(values.operationalExpenses) > 0
+                          ? Math.min(
+                              Number(values.operationalExpenses),
+                              (Number(values.projectedAgroRevenue) || Number(values.effectiveAgroRevenue) || 0) * 0.5
+                            )
+                          : (Number(values.projectedAgroRevenue) || Number(values.effectiveAgroRevenue) || 0) * 0.4
+                      )}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-700 block">Suporte Imobiliário (65%)</span>
+                    <span className="font-bold text-slate-900">
+                      {formatBRL(
+                        ((Number(values.computedLandValue) || 0) + (Number(values.computedImprovementsValue) || 0)) * 0.65
+                      )}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-700 block">Penhor Máq. & Rebanho (50%)</span>
+                    <span className="font-bold text-slate-900">
+                      {formatBRL(
+                        ((Number(values.computedMachineryValue) || 0) + (Number(values.computedLivestockValue) || 0)) * 0.5
+                      )}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-700 block">Proposta de Limite</span>
+                    <span className="font-bold text-emerald-700">
+                      {values.creditLimitRequested ? formatBRL(Number(values.creditLimitRequested)) : 'Não simulado'}
+                    </span>
+                  </div>
+                </div>
+                {values.creditLimitPurpose && (
+                  <div className="mt-1.5 px-2.5 py-1 bg-emerald-50/50 border border-emerald-200 rounded-sm text-[11px] text-slate-700 flex flex-wrap items-center justify-between gap-2">
+                    <span><strong>Finalidade:</strong> {values.creditLimitPurpose.replace(/_/g, ' ')}</span>
+                    <span><strong>Banco Alvo:</strong> {values.creditLimitTargetBank ? values.creditLimitTargetBank.replace(/_/g, ' ') : 'BANCO DO BRASIL'}</span>
+                    <span><strong>Prazo:</strong> {values.creditLimitTermMonths || 12} meses</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
