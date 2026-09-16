@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { EDUCATION_LEVEL_OPTIONS } from '@/lib/validations/reference-data'
 
 interface ProducerSpouseStepProps {
   formData: any
@@ -77,6 +78,45 @@ export function ProducerSpouseStep({
           maxLength={14}
         />
         {errors.spouseCpf && <p className="text-xs text-red-500 font-medium">{errors.spouseCpf}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Grau de Instrução do Cônjuge</Label>
+        <Select
+          value={formData.spouseEducationLevel}
+          onValueChange={(val) => handleChange('spouseEducationLevel', val)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Selecione a escolaridade">
+              {EDUCATION_LEVEL_OPTIONS.find((opt) => opt.value === formData.spouseEducationLevel)?.label || formData.spouseEducationLevel}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {EDUCATION_LEVEL_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Registro Geral (RG) do Cônjuge</Label>
+        <Input 
+          value={formData.spouseRg}
+          onChange={(e) => handleChange('spouseRg', e.target.value)}
+          placeholder="Ex: 0000000"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Órgão Emissor do RG</Label>
+        <Input 
+          value={formData.spouseRgIssuer}
+          onChange={(e) => handleChange('spouseRgIssuer', e.target.value)}
+          placeholder="Ex: SSP/TO"
+        />
       </div>
     </div>
   )

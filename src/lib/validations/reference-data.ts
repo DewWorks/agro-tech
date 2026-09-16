@@ -28,25 +28,50 @@ export const BB_IMPROVEMENTS_CATALOG = [
   { specification: 'Energia Solar Fotovoltaica conectada', unit: 'kWp', suggestedValue: 4200 },
   { specification: 'Silo metálico para grãos', unit: 'toneladas', suggestedValue: 480 },
   { specification: 'Armazém Graneleiro convencional', unit: 'm²', suggestedValue: 980 },
+  { specification: 'Pastagem Artificial', unit: 'ha', suggestedValue: 2500 },
   { specification: 'Outros Melhoramentos', unit: 'unidade', suggestedValue: 1000 },
 ] as const
 
-export const LIVESTOCK_CATEGORIES = [
-  'Matrizes (Vacas)',
-  'Touros (Reprodutores)',
-  'Novilhas (2 a 3 Anos)',
-  'Novilhos (2 a 3 Anos)',
-  'Garrotas (1 a 2 Anos)',
-  'Garrotes (1 a 2 Anos)',
-  'Bezerras (0 a 1 Ano)',
-  'Bezerros (0 a 1 Ano)',
-  'Boi Gordo',
-  'Animais de Serviço (Equinos/Muares)',
+// 32 Categorias Oficiais do Banco do Brasil (Sistema Bancário)
+export const ANIMAL_CATEGORIES_BB = [
+  'Avestruz',
+  'Bezerra',
+  'Bezerro',
+  'Bode',
+  'Boi',
+  'Boi Carreiro',
+  'Bubalino - Bezerro',
+  'Bubalino - Matriz',
+  'Búfalo',
+  'Burro',
+  'Cabra',
+  'Carneiro',
+  'Cavalo',
+  'Codorna',
+  'Coelho(s)',
+  'Égua',
+  'Franga',
+  'Frango',
+  'Galinha',
+  'Garrota',
+  'Garrote',
+  'Javali',
+  'Leitão',
+  'Novilha Bovina',
+  'Novilha Bubalina',
+  'Novilho Bovino',
+  'Ovelha',
+  'Pato',
+  'Porca',
+  'Porco',
+  'Touro',
+  'Vaca',
 ] as const
+
+export const LIVESTOCK_CATEGORIES = ANIMAL_CATEGORIES_BB
 
 export const LIVESTOCK_BREEDS = [
   'Nelore',
-  'Nelore Mocho',
   'Angus',
   'Senepol',
   'Brahman',
@@ -59,18 +84,38 @@ export const LIVESTOCK_BREEDS = [
   'Gir Leiteiro',
   'Cruzamento Industrial',
   'Mestiço',
-  'Outra Raça',
+  'Caipira',
+  'Melhorados',
+  'Granja',
+  'Ovinos - Carne',
+  'Ovinos - Lã',
+  'Caprinos - Carne',
+  'Porco - Raça - Caipira (Nativas)',
+  'Porco - Raça - Industrial (Estrangeiras)',
+  'Outros',
 ] as const
 
-export const LIVESTOCK_PURPOSES = [
-  'Cria',
-  'Recria',
-  'Engorda',
-  'Ciclo Completo',
+// 16 Finalidades Oficiais do Banco do Brasil
+export const ANIMAL_PURPOSES_BB = [
+  'Produção de Crias',
+  'Produção de Ovos',
+  'Criação',
+  'Engorda Para Abate',
+  'Criação/Recriação e Abate',
   'Produção de Leite',
-  'Reprodução / Genética',
-  'Trabalho / Lida',
+  'Produção de Carne',
+  'Produção de Carne e Leite',
+  'Produção de Couros e Afins',
+  'Produção de Lã',
+  'Estocagem de Boi',
+  'Animais de Serviços',
+  'Produção de Carne e Lã',
+  'Produção de Carne e Banha',
+  'Engorda em Confinamento',
+  'Outro',
 ] as const
+
+export const LIVESTOCK_PURPOSES = ANIMAL_PURPOSES_BB
 
 export const MACHINERY_CATEGORIES = [
   'Trator de Pneus',
@@ -213,4 +258,43 @@ export const BRAZILIAN_STATES = [
 ] as const
 
 export const MODULE_FINANCIAL_SUMMARY = 'FINANCIAL_SUMMARY' as const
+
+export const CREDIT_BANKS = [
+  { value: '001', label: '001 - Banco do Brasil' },
+  { value: '748', label: '748 - Banco Cooperativo Sicredi' },
+  { value: '756', label: '756 - Banco Cooperativo Sicoob' },
+  { value: '003', label: '003 - Banco da Amazônia (BASA)' },
+  { value: '237', label: '237 - Bradesco' },
+  { value: '104', label: '104 - Caixa Econômica Federal' },
+  { value: '341', label: '341 - Itaú Unibanco' },
+  { value: '033', label: '033 - Banco Santander' },
+  { value: '041', label: '041 - Banrisul' },
+  { value: '070', label: '070 - BRB - Banco de Brasília' },
+  { value: 'OUTRO', label: 'Outro Banco / Cooperativa' },
+] as const
+
+export const EDUCATION_LEVEL_OPTIONS = [
+  { value: 'NAO_ALFABETIZADO', label: 'Não Alfabetizado' },
+  { value: 'FUNDAMENTAL_INCOMPLETO', label: 'Ensino Fundamental Incompleto' },
+  { value: 'FUNDAMENTAL_COMPLETO', label: 'Ensino Fundamental Completo' },
+  { value: 'MEDIO_INCOMPLETO', label: 'Ensino Médio Incompleto' },
+  { value: 'MEDIO_COMPLETO', label: 'Ensino Médio Completo' },
+  { value: 'SUPERIOR_INCOMPLETO', label: 'Ensino Superior Incompleto' },
+  { value: 'SUPERIOR_COMPLETO', label: 'Ensino Superior Completo' },
+  { value: 'POS_GRADUACAO', label: 'Pós-Graduação / Mestrado / Doutorado' },
+] as const
+
+export const PROPERTY_STATUS_OPTIONS = [
+  { value: 'QUITADA', label: 'Quitada (Sem Financiamento Imobiliário Ativo)' },
+  { value: 'FINANCIADA', label: 'Financiada (Alienação Fiduciária / Hipoteca Ativa)' },
+] as const
+
+export const TENURE_TYPE_OPTIONS = [
+  { value: 'PROPRIETARIO', label: 'Proprietário' },
+  { value: 'ARRENDATARIO', label: 'Arrendatário' },
+  { value: 'COMODATARIO', label: 'Comodatário' },
+  { value: 'PARCEIRO', label: 'Parceiro Rural' },
+  { value: 'MEEIRO', label: 'Meeiro' },
+  { value: 'CONDOMINO', label: 'Condômino' },
+] as const
 

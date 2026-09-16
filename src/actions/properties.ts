@@ -64,7 +64,16 @@ export async function createProperty(data: any) {
       producerId,
       ownershipType = 'PROPRIETARIO',
       explorationPercentage = 100,
+      contractStartDate,
       contractEndDate,
+      landlordName,
+      landlordDocument,
+      contractType,
+      exploredAreaHa,
+
+      // Status da Propriedade
+      propertyStatus,
+      financialStatus,
 
       // Áreas (ha)
       totalArea,
@@ -74,7 +83,9 @@ export async function createProperty(data: any) {
       preserveArea,
       ruralModules,
       vtnPerHectare,
+      vtnValuePerHa,
       totalLandValue,
+      totalVtnAmount,
 
       // Documentação Fundiária
       registrationNumber,
@@ -91,6 +102,10 @@ export async function createProperty(data: any) {
       // Localização e Acesso
       accessRoute,
       confrontants,
+      confrontantNorth,
+      confrontantSouth,
+      confrontantEast,
+      confrontantWest,
 
       // Indicadores de Risco Bancário
       impenhorabilidade,
@@ -134,6 +149,34 @@ export async function createProperty(data: any) {
 
     const propName = propertyName || name || 'Propriedade Rural'
 
+    const north = confrontantNorth !== undefined ? confrontantNorth : (confrontants?.norte ?? confrontants?.north ?? null)
+    const south = confrontantSouth !== undefined ? confrontantSouth : (confrontants?.sul ?? confrontants?.south ?? null)
+    const east = confrontantEast !== undefined ? confrontantEast : (confrontants?.leste ?? confrontants?.east ?? null)
+    const west = confrontantWest !== undefined ? confrontantWest : (confrontants?.oeste ?? confrontants?.west ?? null)
+
+    const resolvedVtnPerHa = vtnValuePerHa !== undefined && vtnValuePerHa !== null && vtnValuePerHa !== ''
+      ? Number(vtnValuePerHa)
+      : (vtnPerHectare !== undefined && vtnPerHectare !== null && vtnPerHectare !== '' ? Number(vtnPerHectare) : null)
+
+    const resolvedTotalVtn = totalVtnAmount !== undefined && totalVtnAmount !== null && totalVtnAmount !== ''
+      ? Number(totalVtnAmount)
+      : (totalLandValue !== undefined && totalLandValue !== null && totalLandValue !== ''
+          ? Number(totalLandValue)
+          : (resolvedVtnPerHa && totalArea ? resolvedVtnPerHa * Number(totalArea) : null))
+
+    const resolvedPropertyStatus = propertyStatus || financialStatus || 'QUITADA'
+
+    const confrontantsJson = confrontants || ((north || south || east || west) ? {
+      norte: north,
+      sul: south,
+      leste: east,
+      oeste: west,
+      north,
+      south,
+      east,
+      west
+    } : null)
+
     const property = await prisma.property.create({
       data: {
         branchId,
@@ -159,7 +202,15 @@ export async function createProperty(data: any) {
         itr: itr || null,
 
         accessRoute: accessRoute || null,
-        confrontants: confrontants || null,
+        confrontants: confrontantsJson,
+        confrontantNorth: north,
+        confrontantSouth: south,
+        confrontantEast: east,
+        confrontantWest: west,
+
+        propertyStatus: resolvedPropertyStatus as any,
+        vtnValuePerHa: resolvedVtnPerHa,
+        totalVtnAmount: resolvedTotalVtn,
 
         hasLien: Boolean(hasLien),
         hasInsurance: Boolean(hasInsurance),
@@ -183,14 +234,14 @@ export async function createProperty(data: any) {
           improvementsValue: improvements && Array.isArray(improvements)
             ? improvements.reduce((acc: number, imp: any) => acc + ((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0)), 0)
             : 0,
-          estimatedLandValuePerHa: vtnPerHectare ? Number(vtnPerHectare) : 0,
+          estimatedLandValuePerHa: resolvedVtnPerHa || 0,
         },
 
         possessionData: {
           possessionYears: possessionYears ? Number(possessionYears) : null,
           explorationActivity: explorationActivity || null,
-          vtnPerHectare: vtnPerHectare ? Number(vtnPerHectare) : null,
-          totalLandValue: totalLandValue ? Number(totalLandValue) : null,
+          vtnPerHectare: resolvedVtnPerHa,
+          totalLandValue: resolvedTotalVtn,
           effectiveAgroRevenue: effectiveAgroRevenue ? Number(effectiveAgroRevenue) : null,
           projectedAgroRevenue: projectedAgroRevenue ? Number(projectedAgroRevenue) : null,
           otherRevenues: otherRevenues ? Number(otherRevenues) : null,
@@ -212,7 +263,12 @@ export async function createProperty(data: any) {
             producerId,
             ownershipType: (ownershipType as OwnershipType) || 'PROPRIETARIO',
             explorationPercentage: explorationPercentage ? Number(explorationPercentage) : 100,
+            contractStartDate: contractStartDate ? new Date(contractStartDate) : null,
             contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
+            landlordName: landlordName || null,
+            landlordDocument: landlordDocument || null,
+            contractType: contractType || null,
+            exploredAreaHa: exploredAreaHa ? Number(exploredAreaHa) : null,
           }
         } : undefined,
 
@@ -235,14 +291,22 @@ export async function createProperty(data: any) {
 
         // Criação de benfeitorias se fornecidas
         improvementsList: improvements && Array.isArray(improvements) && improvements.length > 0 ? {
-          create: improvements.map((imp: any) => ({
-            branchId,
-            specification: imp.specification || '',
-            unit: imp.unit || 'm²',
-            quantity: imp.quantity ? Number(imp.quantity) : 0,
-            unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
-            observation: imp.observation || null,
-          }))
+          create: improvements.map((imp: any) => {
+            const isArtPast = Boolean(
+              imp.isArtificialPasture ||
+              imp.specification === 'Pastagem Artificial' ||
+              (typeof imp.specification === 'string' && imp.specification.toLowerCase().includes('pastagem artificial'))
+            )
+            return {
+              branchId,
+              specification: imp.specification || '',
+              unit: isArtPast ? (imp.unit || 'ha') : (imp.unit || 'm²'),
+              quantity: imp.quantity ? Number(imp.quantity) : 0,
+              unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
+              observation: imp.observation || null,
+              isArtificialPasture: isArtPast,
+            }
+          })
         } : undefined,
 
         // Criação de rebanho se fornecido
@@ -252,11 +316,16 @@ export async function createProperty(data: any) {
             species: (l.species as any) || 'BOVINO',
             category: (l.category as any) || 'MATRIZES',
             purpose: l.purpose || null,
+            breed: l.breed || null,
             quantity: l.quantity ? Number(l.quantity) : 0,
             ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
             avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
             unitValue: l.unitValue ? Number(l.unitValue) : 0,
-            observation: l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null,
+            observation: l.observation || (l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null),
+            brandingType: l.brandingType || l.markingType || null,
+            brandingLocation: l.brandingLocation || l.markingLocation || null,
+            categoryBB: l.categoryBB || null,
+            purposeBB: l.purposeBB || null,
           }))
         } : undefined,
       }
@@ -301,7 +370,16 @@ export async function updateProperty(id: string, data: any) {
       producerId,
       ownershipType = 'PROPRIETARIO',
       explorationPercentage = 100,
+      contractStartDate,
       contractEndDate,
+      landlordName,
+      landlordDocument,
+      contractType,
+      exploredAreaHa,
+
+      // Status da Propriedade
+      propertyStatus,
+      financialStatus,
 
       // Áreas (ha)
       totalArea,
@@ -311,7 +389,9 @@ export async function updateProperty(id: string, data: any) {
       preserveArea,
       ruralModules,
       vtnPerHectare,
+      vtnValuePerHa,
       totalLandValue,
+      totalVtnAmount,
 
       // Documentação Fundiária
       registrationNumber,
@@ -328,6 +408,10 @@ export async function updateProperty(id: string, data: any) {
       // Localização e Acesso
       accessRoute,
       confrontants,
+      confrontantNorth,
+      confrontantSouth,
+      confrontantEast,
+      confrontantWest,
 
       // Indicadores
       impenhorabilidade,
@@ -364,6 +448,44 @@ export async function updateProperty(id: string, data: any) {
 
     const propName = propertyName || name || existing.name
 
+    const north = confrontantNorth !== undefined
+      ? (confrontantNorth || null)
+      : (confrontants?.norte ?? confrontants?.north ?? existing.confrontantNorth)
+    const south = confrontantSouth !== undefined
+      ? (confrontantSouth || null)
+      : (confrontants?.sul ?? confrontants?.south ?? existing.confrontantSouth)
+    const east = confrontantEast !== undefined
+      ? (confrontantEast || null)
+      : (confrontants?.leste ?? confrontants?.east ?? existing.confrontantEast)
+    const west = confrontantWest !== undefined
+      ? (confrontantWest || null)
+      : (confrontants?.oeste ?? confrontants?.west ?? existing.confrontantWest)
+
+    const resolvedVtnPerHa = vtnValuePerHa !== undefined && vtnValuePerHa !== null && vtnValuePerHa !== ''
+      ? Number(vtnValuePerHa)
+      : (vtnPerHectare !== undefined && vtnPerHectare !== null && vtnPerHectare !== '' ? Number(vtnPerHectare) : existing.vtnValuePerHa)
+
+    const resolvedTotalVtn = totalVtnAmount !== undefined && totalVtnAmount !== null && totalVtnAmount !== ''
+      ? Number(totalVtnAmount)
+      : (totalLandValue !== undefined && totalLandValue !== null && totalLandValue !== ''
+          ? Number(totalLandValue)
+          : (resolvedVtnPerHa && (totalArea || existing.totalArea) ? resolvedVtnPerHa * Number(totalArea || existing.totalArea) : existing.totalVtnAmount))
+
+    const resolvedPropertyStatus = propertyStatus || financialStatus || existing.propertyStatus || 'QUITADA'
+
+    const confrontantsJson = confrontants !== undefined
+      ? confrontants
+      : ((north || south || east || west) ? {
+          norte: north,
+          sul: south,
+          leste: east,
+          oeste: west,
+          north,
+          south,
+          east,
+          west
+        } : existing.confrontants)
+
     const txOps: any[] = [
       prisma.property.update({
         where: { id },
@@ -391,7 +513,15 @@ export async function updateProperty(id: string, data: any) {
           itr: itr !== undefined ? (itr || null) : existing.itr,
 
           accessRoute: accessRoute !== undefined ? (accessRoute || null) : existing.accessRoute,
-          confrontants: confrontants !== undefined ? confrontants : existing.confrontants,
+          confrontants: confrontantsJson,
+          confrontantNorth: north,
+          confrontantSouth: south,
+          confrontantEast: east,
+          confrontantWest: west,
+
+          propertyStatus: resolvedPropertyStatus as any,
+          vtnValuePerHa: resolvedVtnPerHa,
+          totalVtnAmount: resolvedTotalVtn,
 
           hasLien: hasLien !== undefined ? Boolean(hasLien) : existing.hasLien,
           hasInsurance: hasInsurance !== undefined ? Boolean(hasInsurance) : existing.hasInsurance,
@@ -421,17 +551,15 @@ export async function updateProperty(id: string, data: any) {
             improvementsValue: improvements && Array.isArray(improvements)
               ? improvements.reduce((acc: number, imp: any) => acc + ((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0)), 0)
               : ((existing.improvements as any)?.improvementsValue || 0),
-            estimatedLandValuePerHa: vtnPerHectare !== undefined
-              ? (vtnPerHectare ? Number(vtnPerHectare) : 0)
-              : ((existing.improvements as any)?.estimatedLandValuePerHa || 0),
+            estimatedLandValuePerHa: resolvedVtnPerHa || 0,
           },
 
           possessionData: {
             ...(existing.possessionData as any || {}),
             possessionYears: possessionYears !== undefined ? (possessionYears ? Number(possessionYears) : null) : ((existing.possessionData as any)?.possessionYears || null),
             explorationActivity: explorationActivity !== undefined ? (explorationActivity || null) : ((existing.possessionData as any)?.explorationActivity || null),
-            vtnPerHectare: vtnPerHectare !== undefined ? (vtnPerHectare ? Number(vtnPerHectare) : null) : ((existing.possessionData as any)?.vtnPerHectare || null),
-            totalLandValue: totalLandValue !== undefined ? (totalLandValue ? Number(totalLandValue) : null) : ((existing.possessionData as any)?.totalLandValue || null),
+            vtnPerHectare: resolvedVtnPerHa,
+            totalLandValue: resolvedTotalVtn,
             effectiveAgroRevenue: effectiveAgroRevenue !== undefined ? (effectiveAgroRevenue ? Number(effectiveAgroRevenue) : null) : ((existing.possessionData as any)?.effectiveAgroRevenue || null),
             projectedAgroRevenue: projectedAgroRevenue !== undefined ? (projectedAgroRevenue ? Number(projectedAgroRevenue) : null) : ((existing.possessionData as any)?.projectedAgroRevenue || null),
             otherRevenues: otherRevenues !== undefined ? (otherRevenues ? Number(otherRevenues) : null) : ((existing.possessionData as any)?.otherRevenues || null),
@@ -481,15 +609,23 @@ export async function updateProperty(id: string, data: any) {
       if (improvements.length > 0) {
         txOps.push(
           prisma.improvement.createMany({
-            data: improvements.map((imp: any) => ({
-              branchId: branchId || existing.branchId,
-              propertyId: id,
-              specification: imp.specification || '',
-              unit: imp.unit || 'm²',
-              quantity: imp.quantity ? Number(imp.quantity) : 0,
-              unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
-              observation: imp.observation || null,
-            }))
+            data: improvements.map((imp: any) => {
+              const isArtPast = Boolean(
+                imp.isArtificialPasture ||
+                imp.specification === 'Pastagem Artificial' ||
+                (typeof imp.specification === 'string' && imp.specification.toLowerCase().includes('pastagem artificial'))
+              )
+              return {
+                branchId: branchId || existing.branchId,
+                propertyId: id,
+                specification: imp.specification || '',
+                unit: isArtPast ? (imp.unit || 'ha') : (imp.unit || 'm²'),
+                quantity: imp.quantity ? Number(imp.quantity) : 0,
+                unitValue: imp.unitValue ? Number(imp.unitValue) : 0,
+                observation: imp.observation || null,
+                isArtificialPasture: isArtPast,
+              }
+            })
           })
         )
       }
@@ -507,11 +643,16 @@ export async function updateProperty(id: string, data: any) {
               species: (l.species as any) || 'BOVINO',
               category: (l.category as any) || 'MATRIZES',
               purpose: l.purpose || null,
+              breed: l.breed || null,
               quantity: l.quantity ? Number(l.quantity) : 0,
               ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
               avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
               unitValue: l.unitValue ? Number(l.unitValue) : 0,
-              observation: l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null,
+              observation: l.observation || (l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null),
+              brandingType: l.brandingType || l.markingType || null,
+              brandingLocation: l.brandingLocation || l.markingLocation || null,
+              categoryBB: l.categoryBB || null,
+              purposeBB: l.purposeBB || null,
             }))
           })
         )
@@ -541,7 +682,12 @@ export async function updateProperty(id: string, data: any) {
             data: {
               ownershipType: (ownershipType as OwnershipType) || existingLink.ownershipType,
               explorationPercentage: explorationPercentage ? Number(explorationPercentage) : existingLink.explorationPercentage,
-              contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
+              contractStartDate: contractStartDate !== undefined ? (contractStartDate ? new Date(contractStartDate) : null) : existingLink.contractStartDate,
+              contractEndDate: contractEndDate !== undefined ? (contractEndDate ? new Date(contractEndDate) : null) : existingLink.contractEndDate,
+              landlordName: landlordName !== undefined ? (landlordName || null) : existingLink.landlordName,
+              landlordDocument: landlordDocument !== undefined ? (landlordDocument || null) : existingLink.landlordDocument,
+              contractType: contractType !== undefined ? (contractType || null) : existingLink.contractType,
+              exploredAreaHa: exploredAreaHa !== undefined ? (exploredAreaHa ? Number(exploredAreaHa) : null) : existingLink.exploredAreaHa,
             }
           })
         )
@@ -556,7 +702,12 @@ export async function updateProperty(id: string, data: any) {
               propertyId: id,
               ownershipType: (ownershipType as OwnershipType) || 'PROPRIETARIO',
               explorationPercentage: explorationPercentage ? Number(explorationPercentage) : 100,
+              contractStartDate: contractStartDate ? new Date(contractStartDate) : null,
               contractEndDate: contractEndDate ? new Date(contractEndDate) : null,
+              landlordName: landlordName || null,
+              landlordDocument: landlordDocument || null,
+              contractType: contractType || null,
+              exploredAreaHa: exploredAreaHa ? Number(exploredAreaHa) : null,
             }
           })
         )

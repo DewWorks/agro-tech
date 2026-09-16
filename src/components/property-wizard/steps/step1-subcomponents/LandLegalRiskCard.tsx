@@ -226,7 +226,7 @@ export function LandLegalRiskCard({ control }: LandLegalRiskCardProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <FormField
                 control={control}
-                name="confrontants.north"
+                name="confrontantNorth"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs">Norte</FormLabel>
@@ -239,7 +239,7 @@ export function LandLegalRiskCard({ control }: LandLegalRiskCardProps) {
 
               <FormField
                 control={control}
-                name="confrontants.south"
+                name="confrontantSouth"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs">Sul</FormLabel>
@@ -252,7 +252,7 @@ export function LandLegalRiskCard({ control }: LandLegalRiskCardProps) {
 
               <FormField
                 control={control}
-                name="confrontants.east"
+                name="confrontantEast"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs">Leste</FormLabel>
@@ -265,7 +265,7 @@ export function LandLegalRiskCard({ control }: LandLegalRiskCardProps) {
 
               <FormField
                 control={control}
-                name="confrontants.west"
+                name="confrontantWest"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-xs">Oeste</FormLabel>

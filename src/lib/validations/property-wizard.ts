@@ -51,7 +51,15 @@ export const step1LandBaseSchema = z.object({
   producerId: z.string().min(1, 'Produtor titular obrigatório'),
   ownershipType: z.string().min(1, 'Tipo de vínculo obrigatório'),
   explorationPercentage: z.coerce.number().min(1).max(100).default(100),
-  contractEndDate: z.string().optional(),
+  propertyStatus: z.string().default('QUITADA'),
+
+  // Vínculos Contratuais Condicionais (Arrendamento, Parceria, Comodato, Meeiro)
+  landlordName: z.string().optional().or(z.literal('')),
+  landlordDocument: z.string().optional().or(z.literal('')),
+  contractType: z.string().optional().or(z.literal('')),
+  contractStartDate: z.string().optional().or(z.literal('')),
+  contractEndDate: z.string().optional().or(z.literal('')),
+  exploredAreaHa: z.coerce.number().min(0).default(0),
 
   // Registros Fundiários
   registrationNumber: z.string().optional().or(z.literal('')),
@@ -96,17 +104,44 @@ export const step1LandBaseSchema = z.object({
   conservationState: z.string().default('BOM'),
 })
 
-export const step1LandSchema = step1LandBaseSchema.refine(
-  (data) => {
-    if (!data.totalArea || data.totalArea <= 0) return true
-    const sum = (Number(data.productiveArea) || 0) + (Number(data.pastureArea) || 0) + (Number(data.preserveArea) || 0)
-    return sum <= Number(data.totalArea)
-  },
-  {
-    message: 'A soma das áreas (produtiva, pastagem e preservação) não pode ultrapassar a área total da propriedade (balanço de áreas fundiárias).',
-    path: ['totalArea'],
-  }
-)
+export const step1LandSchema = step1LandBaseSchema
+  .refine(
+    (data) => {
+      if (!data.totalArea || data.totalArea <= 0) return true
+      const sum = (Number(data.productiveArea) || 0) + (Number(data.pastureArea) || 0) + (Number(data.preserveArea) || 0)
+      return sum <= Number(data.totalArea)
+    },
+    {
+      message: 'A soma das áreas (produtiva, pastagem e preservação) não pode ultrapassar a área total da propriedade (balanço de áreas fundiárias).',
+      path: ['totalArea'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.ownershipType && data.ownershipType !== 'PROPRIETARIO') {
+        if (data.exploredAreaHa && data.totalArea && Number(data.exploredAreaHa) > Number(data.totalArea)) {
+          return false
+        }
+      }
+      return true
+    },
+    {
+      message: 'A área explorada não pode ser superior à área total da propriedade.',
+      path: ['exploredAreaHa'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.ownershipType && data.ownershipType !== 'PROPRIETARIO' && data.contractStartDate && data.contractEndDate) {
+        return new Date(data.contractEndDate) > new Date(data.contractStartDate)
+      }
+      return true
+    },
+    {
+      message: 'A data final do contrato deve ser posterior à data inicial.',
+      path: ['contractEndDate'],
+    }
+  )
 
 export type Step1LandValues = z.infer<typeof step1LandSchema>
 
@@ -151,13 +186,14 @@ export const improvementItemSchema = z.object({
   totalValue: z.coerce.number().min(0).default(0),
   conservationState: z.string().default('BOM'),
   observation: z.string().optional().or(z.literal('')),
+  isArtificialPasture: z.boolean().optional().default(false),
 })
 
 export const livestockItemSchema = z.object({
   id: z.string().optional(),
   species: z.string().optional().or(z.literal('BOVINO')),
-  category: z.string().optional().or(z.literal('MATRIZES')),
-  purpose: z.string().optional().or(z.literal('Cria')),
+  category: z.string().optional().or(z.literal('Vaca')),
+  purpose: z.string().optional().or(z.literal('Criação')),
   breed: z.string().optional().or(z.literal('Nelore')),
   geneticGrade: z.string().default('Comercial'),
   quantity: z.coerce.number().min(0).default(0),
@@ -167,6 +203,10 @@ export const livestockItemSchema = z.object({
   totalValue: z.coerce.number().min(0).default(0),
   markingType: z.string().optional().or(z.literal('')),
   markingLocation: z.string().optional().or(z.literal('')),
+  brandingType: z.string().optional().or(z.literal('')),
+  brandingLocation: z.string().optional().or(z.literal('')),
+  categoryBB: z.string().optional().or(z.literal('')),
+  purposeBB: z.string().optional().or(z.literal('')),
 })
 
 export const step3ImprovementsAndHerdSchema = z.object({
@@ -231,6 +271,13 @@ export const STEP_FIELDS_MAP: Record<number, (keyof PropertyWizardFormValues)[]>
     'branchId',
     'producerId',
     'ownershipType',
+    'propertyStatus',
+    'landlordName',
+    'landlordDocument',
+    'contractType',
+    'contractStartDate',
+    'contractEndDate',
+    'exploredAreaHa',
     'explorationPercentage',
     'registrationNumber',
     'registryOffice',
@@ -250,6 +297,10 @@ export const STEP_FIELDS_MAP: Record<number, (keyof PropertyWizardFormValues)[]>
     'city',
     'state',
     'accessRoute',
+    'confrontantNorth',
+    'confrontantSouth',
+    'confrontantEast',
+    'confrontantWest',
     'impenhorabilidade',
     'hasLien',
     'hasInsurance',
@@ -283,8 +334,14 @@ export const defaultPropertyWizardValues: Partial<PropertyWizardFormValues> = {
   branchId: '',
   producerId: '',
   ownershipType: 'PROPRIETARIO',
-  explorationPercentage: 100,
+  propertyStatus: 'QUITADA',
+  landlordName: '',
+  landlordDocument: '',
+  contractType: '',
+  contractStartDate: '',
   contractEndDate: '',
+  exploredAreaHa: 0,
+  explorationPercentage: 100,
   registrationNumber: '',
   registryOffice: '',
   comarca: '',

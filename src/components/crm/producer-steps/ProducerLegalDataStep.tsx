@@ -4,6 +4,15 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { EDUCATION_LEVEL_OPTIONS } from '@/lib/validations/reference-data'
+
 interface ProducerLegalDataStepProps {
   formData: any
   handleChange: (field: string, value: string) => void
@@ -29,12 +38,40 @@ export function ProducerLegalDataStep({
             />
           </div>
           <div className="space-y-2">
+            <Label>Naturalidade (Cidade/UF)</Label>
+            <Input 
+              value={formData.naturalness}
+              onChange={(e) => handleChange('naturalness', e.target.value)}
+              placeholder="Ex: Porto Nacional / TO"
+            />
+          </div>
+          <div className="space-y-2">
             <Label>Profissão</Label>
             <Input 
               value={formData.profession}
               onChange={(e) => handleChange('profession', e.target.value)}
               placeholder="Ex: Produtor(a) Rural"
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Escolaridade / Grau de Instrução</Label>
+            <Select
+              value={formData.educationLevel}
+              onValueChange={(val) => handleChange('educationLevel', val)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Selecione a escolaridade">
+                  {EDUCATION_LEVEL_OPTIONS.find((opt) => opt.value === formData.educationLevel)?.label || formData.educationLevel}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {EDUCATION_LEVEL_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-2">
             <Label>Registro Geral (RG)</Label>

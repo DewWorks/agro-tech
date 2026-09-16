@@ -137,6 +137,84 @@ enum PropertyFinancialStatus {
   QUITADA
 }
 
+enum PropertyStatus {
+  QUITADA
+  FINANCIADA
+}
+
+enum TenureType {
+  PROPRIETARIO
+  ARRENDATARIO
+  COMODATARIO
+  PARCEIRO
+  MEEIRO
+}
+
+enum EducationLevel {
+  NAO_ALFABETIZADO
+  FUNDAMENTAL_INCOMPLETO
+  FUNDAMENTAL_COMPLETO
+  MEDIO_INCOMPLETO
+  MEDIO_COMPLETO
+  SUPERIOR_INCOMPLETO
+  SUPERIOR_COMPLETO
+  POS_GRADUACAO
+}
+
+enum AnimalCategoryBB {
+  AVESTRUZ
+  BEZERRA
+  BEZERRO
+  BODE
+  BOI
+  BOI_CARREIRO
+  BUBALINO_BEZERRO
+  BUBALINO_MATRIZ
+  BUFALO
+  BURRO
+  CABRA
+  CARNEIRO
+  CAVALO
+  CODORNA
+  COELHO
+  EGUA
+  FRANGA
+  FRANGO
+  GALINHA
+  GARROTA
+  GARROTE
+  JAVALI
+  LEITAO
+  NOVILHA_BOVINA
+  NOVILHA_BUBALINA
+  NOVILHO_BOVINO
+  OVELHA
+  PATO
+  PORCA
+  PORCO
+  TOURO
+  VACA
+}
+
+enum AnimalPurposeBB {
+  PRODUCAO_DE_CRIAS
+  PRODUCAO_DE_OVOS
+  CRIACAO
+  ENGORDA_PARA_ABATE
+  CRIACAO_RECRIACAO_ABATE
+  PRODUCAO_DE_LEITE
+  PRODUCAO_DE_CARNE
+  PRODUCAO_DE_CARNE_E_LEITE
+  PRODUCAO_DE_COURO_E_AFINS
+  PRODUCAO_DE_LA
+  ESTOCAGEM_DE_BOI
+  ANIMAIS_DE_SERVICO
+  PRODUCAO_DE_CARNE_E_LA
+  PRODUCAO_DE_CARNE_E_BANHA
+  ENGORDA_EM_CONFINAMENTO
+  OUTRO
+}
+
 enum LivestockSpecies {
   BOVINO
   OVINO
@@ -309,9 +387,20 @@ model Property {
   
   seizureStatus           SeizureStatus?
   financialStatus         PropertyFinancialStatus?
+  propertyStatus          PropertyStatus? @default(QUITADA) @map("property_status")
   condominiumType         CondominiumType?
   conservationState       ConservationState?
   
+  // Avaliação da Terra Nua (VTN Nativo)
+  vtnValuePerHa           Float?          @map("vtn_value_per_ha")
+  totalVtnAmount          Float?          @map("total_vtn_amount")
+
+  // Limites e Confrontações Perimétricas (Nativo)
+  confrontantNorth        String?         @map("confrontant_north")
+  confrontantSouth        String?         @map("confrontant_south")
+  confrontantEast         String?         @map("confrontant_east")
+  confrontantWest         String?         @map("confrontant_west")
+
   confrontants            Json? // { norte, sul, leste, oeste }
 
   // Campos Dinâmicos (JSONB no Postgres)
@@ -348,6 +437,7 @@ enum OwnershipType {
   MEEIRO
   COMODATARIO
   CONDOMINO
+  PARCEIRO
 }
 
 model ProducerProperty {
@@ -357,6 +447,13 @@ model ProducerProperty {
   explorationPercentage  Float         @default(100.0) // 0 a 100%
   contractEndDate        DateTime?     // Para arrendatários/meeiros
   
+  // Campos Condicionais para Arrendamento / Parceria / Comodato / Meeiro
+  landlordName           String?       @map("landlord_name")
+  landlordDocument       String?       @map("landlord_document")
+  contractType           String?       @map("contract_type")
+  contractStartDate      DateTime?     @map("contract_start_date")
+  exploredAreaHa         Float?        @map("explored_area_ha")
+
   producer               Producer      @relation(fields: [producerId], references: [id], onDelete: Cascade)
   property               Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
@@ -391,14 +488,15 @@ model LandUse {
 }
 
 model Improvement {
-  id            String       @id @default(uuid())
-  branchId      String       @map("branch_id")
-  propertyId    String
-  specification String
-  unit          String       @default("m²")
-  quantity      Float        @default(0)
-  unitValue     Float        @default(0)
-  observation   String?
+  id                  String       @id @default(uuid())
+  branchId            String       @map("branch_id")
+  propertyId          String
+  specification       String
+  unit                String       @default("m²")
+  quantity            Float        @default(0)
+  unitValue           Float        @default(0)
+  observation         String?
+  isArtificialPasture Boolean      @default(false) @map("is_artificial_pasture")
 
   property      Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   branch        Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
@@ -412,17 +510,22 @@ model Improvement {
 }
 
 model Livestock {
-  id            String            @id @default(uuid())
-  branchId      String            @map("branch_id")
-  propertyId    String
-  species       LivestockSpecies
-  category      LivestockCategory
-  purpose       String?
-  quantity      Int               @default(0)
-  ageMonths     Int?
-  avgWeightKg   Float?
-  unitValue     Float             @default(0)
-  observation   String?
+  id                  String            @id @default(uuid())
+  branchId            String            @map("branch_id")
+  propertyId          String
+  species             LivestockSpecies
+  category            LivestockCategory
+  purpose             String?
+  breed               String?
+  quantity            Int               @default(0)
+  ageMonths           Int?
+  avgWeightKg         Float?
+  unitValue           Float             @default(0)
+  observation         String?
+  brandingType        String?           @map("branding_type")
+  brandingLocation    String?           @map("branding_location")
+  categoryBB          AnimalCategoryBB? @map("category_bb")
+  purposeBB           AnimalPurposeBB?  @map("purpose_bb")
 
   property      Property          @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   branch        Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)

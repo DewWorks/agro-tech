@@ -50,6 +50,18 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
       : '',
     representativeCpf: initialData?.representativeCpf ? formatCPF(initialData.representativeCpf) : '',
     
+    // Qualificação Civil e Bancária
+    educationLevel: initialData?.educationLevel || '',
+    naturalness: initialData?.naturalness || '',
+    producerSize: initialData?.producerSize || 'MEDIO',
+    bankName: initialData?.bankName || '',
+    bankAgency: initialData?.bankAgency || '',
+    bankAccount: initialData?.bankAccount || '',
+    bankAccountType: initialData?.bankAccountType || 'CORRENTE',
+    spouseRg: initialData?.spouseRg || '',
+    spouseRgIssuer: initialData?.spouseRgIssuer || '',
+    spouseEducationLevel: initialData?.spouseEducationLevel || '',
+
     // Propriedade Principal
     propertyName: initialData?.properties?.[0]?.property?.name || initialData?.properties?.[0]?.property?.propertyName || '',
     propertyCity: initialData?.properties?.[0]?.property?.city || '',

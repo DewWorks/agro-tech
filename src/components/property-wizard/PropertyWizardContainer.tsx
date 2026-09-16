@@ -70,10 +70,18 @@ export function PropertyWizardContainer({
       branchId: initialData.branchId || branches[0]?.id || '',
       producerId: primaryProducer?.producerId || initialData.producerId || producers[0]?.id || '',
       ownershipType: primaryProducer?.ownershipType || initialData.ownershipType || 'PROPRIETARIO',
+      propertyStatus: initialData.propertyStatus || initialData.financialStatus || 'QUITADA',
       explorationPercentage: primaryProducer?.explorationPercentage ?? 100,
+      contractStartDate: primaryProducer?.contractStartDate
+        ? new Date(primaryProducer.contractStartDate).toISOString().split('T')[0]
+        : '',
       contractEndDate: primaryProducer?.contractEndDate
         ? new Date(primaryProducer.contractEndDate).toISOString().split('T')[0]
         : '',
+      landlordName: primaryProducer?.landlordName || '',
+      landlordDocument: primaryProducer?.landlordDocument || '',
+      contractType: primaryProducer?.contractType || 'ARRENDAMENTO',
+      exploredAreaHa: Number(primaryProducer?.exploredAreaHa) || 0,
       registrationNumber: initialData.registrationNumber || '',
       registryOffice: initialData.registryOffice || '',
       comarca: initialData.comarca || '',
@@ -88,8 +96,8 @@ export function PropertyWizardContainer({
       pastureArea: Number(initialData.pastureArea) || 0,
       preserveArea: Number(initialData.preserveArea) || 0,
       ruralModules: Number(initialData.ruralModules) || 0,
-      vtnPerHectare: Number(initialData.vtnPerHectare) || 0,
-      totalLandValue: Number(initialData.totalLandValue) || 0,
+      vtnPerHectare: Number(initialData.vtnValuePerHa ?? initialData.vtnPerHectare ?? initialData.possessionData?.vtnPerHectare ?? initialData.improvements?.estimatedLandValuePerHa) || 0,
+      totalLandValue: Number(initialData.totalVtnAmount ?? initialData.totalLandValue ?? initialData.possessionData?.totalLandValue) || 0,
       city: initialData.city || '',
       state: initialData.state || 'TO',
       latitude:
@@ -105,10 +113,10 @@ export function PropertyWizardContainer({
             : String(initialData.longitude)
           : '',
       accessRoute: initialData.accessRoute || '',
-      confrontantNorth: initialData.confrontants?.norte || '',
-      confrontantSouth: initialData.confrontants?.sul || '',
-      confrontantEast: initialData.confrontants?.leste || '',
-      confrontantWest: initialData.confrontants?.oeste || '',
+      confrontantNorth: initialData.confrontantNorth || initialData.confrontants?.norte || initialData.confrontants?.north || '',
+      confrontantSouth: initialData.confrontantSouth || initialData.confrontants?.sul || initialData.confrontants?.south || '',
+      confrontantEast: initialData.confrontantEast || initialData.confrontants?.leste || initialData.confrontants?.east || '',
+      confrontantWest: initialData.confrontantWest || initialData.confrontants?.oeste || initialData.confrontants?.west || '',
       impenhorabilidade: initialData.seizureStatus || 'PENHORAVEL',
       hasLien: Boolean(initialData.hasLien),
       hasInsurance: Boolean(initialData.hasInsurance),
@@ -133,28 +141,31 @@ export function PropertyWizardContainer({
       improvements: initialData.improvementsList?.map((imp: any) => ({
         id: imp.id,
         specification: imp.specification || '',
-        unit: imp.unit || 'm²',
+        unit: imp.unit || (imp.isArtificialPasture ? 'ha' : 'm²'),
         quantity: Number(imp.quantity) || 0,
         unitValue: Number(imp.unitValue) || 0,
         totalValue: (Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0),
         conservationState: 'BOM',
         observation: imp.observation || '',
+        isArtificialPasture: Boolean(imp.isArtificialPasture || imp.specification === 'Pastagem Artificial'),
       })) || [],
 
       livestocks: initialData.livestockList?.map((l: any) => ({
         id: l.id,
         species: l.species || 'BOVINO',
         category: l.category || 'MATRIZES',
+        categoryBB: l.categoryBB || '',
         purpose: l.purpose || 'Cria',
-        breed: 'Nelore',
+        purposeBB: l.purposeBB || '',
+        breed: l.breed || 'Nelore',
         geneticGrade: '1/2 Sangue',
         quantity: Number(l.quantity) || 0,
         ageMonths: l.ageMonths || 0,
         avgWeightKg: Number(l.avgWeightKg) || 0,
         unitValue: Number(l.unitValue) || 0,
         totalValue: (Number(l.quantity) || 0) * (Number(l.unitValue) || 0),
-        markingType: 'Ferro Quente',
-        markingLocation: 'Perna Traseira Direita',
+        markingType: l.brandingType || 'Ferro Quente',
+        markingLocation: l.brandingLocation || 'Perna Traseira Direita',
       })) || [],
 
       // Dados Financeiros e Base de Limite de Crédito
@@ -259,8 +270,14 @@ export function PropertyWizardContainer({
         branchId: values.branchId || branches[0]?.id || initialData?.branchId,
         producerId: values.producerId || producers[0]?.id,
         ownershipType: values.ownershipType || 'PROPRIETARIO',
+        propertyStatus: values.propertyStatus || 'QUITADA',
         explorationPercentage: values.explorationPercentage ?? 100,
+        contractStartDate: values.contractStartDate || null,
         contractEndDate: values.contractEndDate || null,
+        landlordName: values.landlordName || null,
+        landlordDocument: values.landlordDocument || null,
+        contractType: values.contractType || null,
+        exploredAreaHa: values.exploredAreaHa ? Number(values.exploredAreaHa) : null,
 
         // Áreas
         totalArea: values.totalArea ?? 0,
@@ -270,7 +287,9 @@ export function PropertyWizardContainer({
         preserveArea: values.preserveArea ?? 0,
         ruralModules: values.ruralModules ?? 0,
         vtnPerHectare: values.vtnPerHectare ?? 0,
+        vtnValuePerHa: values.vtnPerHectare ?? 0,
         totalLandValue: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || values.totalLandValue || 0,
+        totalVtnAmount: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || values.totalLandValue || 0,
 
         // Registros
         registrationNumber: values.registrationNumber || '',
@@ -297,6 +316,10 @@ export function PropertyWizardContainer({
         conservationState: values.conservationState || 'BOM',
 
         // Confrontantes
+        confrontantNorth: values.confrontantNorth || '',
+        confrontantSouth: values.confrontantSouth || '',
+        confrontantEast: values.confrontantEast || '',
+        confrontantWest: values.confrontantWest || '',
         confrontants: {
           norte: values.confrontantNorth || '',
           sul: values.confrontantSouth || '',
@@ -316,6 +339,7 @@ export function PropertyWizardContainer({
           quantity: Number(imp.quantity) || 0,
           unitValue: Number(imp.unitValue) || 0,
           totalValue: Math.round((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0) * 100) / 100,
+          isArtificialPasture: Boolean(imp.isArtificialPasture || imp.specification === 'Pastagem Artificial'),
         })),
         livestocks: (values.livestocks || []).map((l: any) => ({
           ...l,
@@ -324,6 +348,10 @@ export function PropertyWizardContainer({
           avgWeightKg: Number(l.avgWeightKg) || 0,
           unitValue: Number(l.unitValue) || 0,
           totalValue: Math.round((Number(l.quantity) || 0) * (Number(l.unitValue) || 0) * 100) / 100,
+          brandingType: l.markingType || l.brandingType || 'Ferro Quente',
+          brandingLocation: l.markingLocation || l.brandingLocation || 'Perna Traseira Direita',
+          categoryBB: l.categoryBB || null,
+          purposeBB: l.purposeBB || null,
         })),
 
         // Financeiro & Base de Limite de Crédito
@@ -521,6 +549,7 @@ export function PropertyWizardContainer({
             <Step5ReviewDossier
               form={form}
               producerName={selectedProducer?.name}
+              selectedProducer={selectedProducer}
               branchName={selectedBranch?.name}
               isSubmitting={isSubmitting}
               onSubmit={form.handleSubmit(onFinalSubmit, onFormError)}

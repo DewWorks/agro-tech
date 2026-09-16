@@ -1,5 +1,3 @@
-import { faker } from '@faker-js/faker'
-
 export interface MockPropertyInput {
   id?: string
   branchId?: string
@@ -29,20 +27,21 @@ export function buildMockProperty(overrides: Partial<MockPropertyInput> = {}): M
   const pastureArea = overrides.pastureArea ?? 80
   const preserveArea = overrides.preserveArea ?? 50
   const vtnPerHectare = overrides.vtnPerHectare ?? 10000
+  const randId = Math.random().toString(36).substring(2, 11)
 
   return {
-    id: overrides.id || faker.string.uuid(),
-    branchId: overrides.branchId || faker.string.uuid(),
-    producerId: overrides.producerId || faker.string.uuid(),
-    name: overrides.name || `Fazenda ${faker.location.city()}`,
+    id: overrides.id || `prop-${randId}`,
+    branchId: overrides.branchId || `branch-${randId}`,
+    producerId: overrides.producerId || `producer-${randId}`,
+    name: overrides.name || `Fazenda Boa Esperança ${randId}`,
     ownershipType: overrides.ownershipType || 'PROPRIETARIO',
     explorationPercentage: overrides.explorationPercentage ?? 100,
-    registrationNumber: overrides.registrationNumber || faker.string.numeric(5),
+    registrationNumber: overrides.registrationNumber || '12345',
     registryOffice: overrides.registryOffice || '1º Ofício de Registro de Imóveis',
     comarca: overrides.comarca || 'Taguatinga',
-    car: overrides.car || `TO-${faker.string.numeric(7)}-${faker.string.alphanumeric(10).toUpperCase()}`,
-    ccir: overrides.ccir || faker.string.numeric(13),
-    itr: overrides.itr || faker.string.numeric(8),
+    car: overrides.car || `TO-1720903-ABCD1234EF`,
+    ccir: overrides.ccir || '9999999999999',
+    itr: overrides.itr || '88888888',
     totalArea,
     productiveArea,
     pastureArea,
