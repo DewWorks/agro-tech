@@ -51,6 +51,7 @@ model Branch {
   improvements   Improvement[]
   livestocks     Livestock[]
   machineries    Machinery[]
+  serviceDemands ServiceDemand[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -72,6 +73,7 @@ model User {
   userBranches UserBranch[]
   branch       Branch?       @relation(fields: [branchId], references: [id])
   branchId     String?
+  assignedDemands ServiceDemand[]
 
   @@index([organizationId])
   @@index([branchId])
@@ -335,6 +337,7 @@ model Producer {
   properties     ProducerProperty[]
   documents      Document[]
   documentAlerts DocumentAlert[]
+  serviceDemands ServiceDemand[]
 
   // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
   @@unique([branchId, document])
@@ -422,6 +425,7 @@ model Property {
   branch         Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
   producers      ProducerProperty[]
   documents      Document[]
+  serviceDemands ServiceDemand[]
 
   @@index([branchId])
   @@index([branchId, name])
@@ -664,6 +668,7 @@ model Document {
   inheritedFrom    Document?        @relation("DocumentInheritance", fields: [inheritedFromId], references: [id])
   inheritedDocs    Document[]       @relation("DocumentInheritance")
   alerts           DocumentAlert[]
+  checklistItems   DemandChecklistItem[]
 
   @@index([branchId, producerId])
   @@index([branchId, documentType])
@@ -749,4 +754,97 @@ model GeneratedForm {
   property          Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
 
   @@map("generated_forms")
+}
+
+// ----------------------------------------------------------------------
+// MÓDULO DE SERVIÇOS E DEMANDAS (CRM DE ATENDIMENTO RURAL)
+// ----------------------------------------------------------------------
+
+enum RuralServiceType {
+  PROJETO_CUSTEIO              // Projeto de Custeio Agrícola / Pecuário
+  PROJETO_INVESTIMENTO         // Projeto de Investimento (Máquinas, Solo, Benfeitorias)
+  LIMITE_CREDITO               // Limite de Crédito / Limite Técnico
+  PRORROGACAO_DIVIDAS          // Prorrogação de Dívidas / Alongamento
+  CADASTRO_AMBIENTAL_RURAL     // Cadastro Ambiental Rural (CAR)
+  LEVANTAMENTO_TOPOGRAFICO     // Levantamento Topográfico / Georreferenciamento
+  LAUDO_TECNICO                // Laudo Técnico de Avaliação Patrimonial
+  ORCAMENTO_SERVICOS           // Orçamento de Serviços
+  VISITA_TECNICA               // Visita Técnica de Campo
+  OUTORGA_LICENCA_AMBIENTAL    // Outorga / DUI / Licença Ambiental
+  OUTROS                       // Outros Serviços Rurais
+}
+
+enum DemandStatus {
+  SOLICITADO                   // Serviço Solicitado (Triagem/Entrada)
+  EM_EXECUCAO                  // Em Execução (Elaboração técnica)
+  AGUARDANDO_DOCUMENTACAO      // Aguardando Documentação (Com lista de pendências)
+  CONCLUIDO                    // Concluído (Finalizado/Entregue)
+  CANCELADO                    // Cancelado (Arquivado pelo cliente)
+}
+
+enum DemandPriority {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
+model ServiceDemand {
+  id                    String            @id @default(uuid())
+  branchId              String            @map("branch_id")
+  producerId            String            @map("producer_id")
+  propertyId            String?           @map("property_id")
+  assigneeId            String?           @map("assignee_id")
+  responsibleName       String?           @map("responsible_name")
+
+  serviceType           RuralServiceType  @map("service_type")
+  customServiceType     String?           @map("custom_service_type")
+  status                DemandStatus      @default(SOLICITADO)
+  priority              DemandPriority    @default(MEDIA)
+
+  description           String?           @db.Text @map("description")
+  notes                 String?           @db.Text @map("notes")
+
+  // Controle de Prazos
+  requestDate           DateTime          @default(now()) @map("request_date")
+  startDate             DateTime?         @map("start_date")
+  estimatedDeliveryDate DateTime?         @map("estimated_delivery_date")
+  completionDate        DateTime?         @map("completion_date")
+
+  createdAt             DateTime          @default(now()) @map("created_at")
+  updatedAt             DateTime          @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  branch                Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer              Producer          @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  property              Property?         @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  assignee              User?             @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  checklistItems        DemandChecklistItem[]
+
+  @@index([branchId, status])
+  @@index([branchId, serviceType])
+  @@index([producerId])
+  @@index([propertyId])
+  @@map("service_demands")
+}
+
+model DemandChecklistItem {
+  id               String           @id @default(uuid())
+  demandId         String           @map("demand_id")
+  title            String
+  documentType     DocumentType?    @map("document_type")
+  documentId       String?          @map("document_id")
+  isRequired       Boolean          @default(true) @map("is_required")
+  isDelivered      Boolean          @default(false) @map("is_delivered")
+  deliveredAt      DateTime?        @map("delivered_at")
+  notes            String?
+
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  demand           ServiceDemand    @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  document         Document?        @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@index([demandId])
+  @@map("demand_checklist_items")
 }
