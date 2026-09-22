@@ -83,6 +83,8 @@ export const ImprovementTableRow = React.memo(function ImprovementTableRow({
           onValueChange={(val) => {
             if (!val) return
             setValue(`improvements.${index}.specification`, val, { shouldValidate: true })
+            const isArtPast = val === 'Pastagem Artificial' || val.toLowerCase().includes('pastagem artificial')
+            setValue(`improvements.${index}.isArtificialPasture`, isArtPast, { shouldValidate: true })
             const cat = BB_IMPROVEMENTS_CATALOG.find((c) => c.specification === val)
             if (cat) {
               setValue(`improvements.${index}.unit`, cat.unit, { shouldValidate: true })

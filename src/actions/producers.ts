@@ -31,6 +31,22 @@ export async function createProducer(data: any) {
       profession,
       nationality,
       representativeCpf,
+
+      // Dados Bancários
+      bankName,
+      bankAgency,
+      bankAccount,
+      bankAccountType,
+
+      // Qualificação Civil e Escolaridade
+      educationLevel,
+      naturalness,
+      producerSize,
+
+      // Cônjuge Expandido
+      spouseRg,
+      spouseRgIssuer,
+      spouseEducationLevel,
       
       propertyName,
       propertyCity,
@@ -84,6 +100,23 @@ export async function createProducer(data: any) {
         profession,
         nationality,
         representativeCpf: type === 'PJ' && representativeCpf ? representativeCpf.replace(/[^\d]+/g, '') : null,
+        
+        // Dados Bancários
+        bankName: bankName || null,
+        bankAgency: bankAgency || null,
+        bankAccount: bankAccount || null,
+        bankAccountType: bankAccountType || 'CORRENTE',
+
+        // Qualificação Civil e Escolaridade
+        educationLevel: educationLevel || null,
+        naturalness: naturalness || null,
+        producerSize: producerSize || null,
+
+        // Cônjuge
+        spouseRg: spouseRg || null,
+        spouseRgIssuer: spouseRgIssuer || null,
+        spouseEducationLevel: spouseEducationLevel || null,
+
         branchId, // Deve vir do form (filial onde o produtor está sendo criado)
         createdBy: dbUser.id,
       }
@@ -167,6 +200,22 @@ export async function updateProducer(id: string, data: any) {
       profession,
       nationality,
       representativeCpf,
+
+      // Dados Bancários
+      bankName,
+      bankAgency,
+      bankAccount,
+      bankAccountType,
+
+      // Qualificação Civil e Escolaridade
+      educationLevel,
+      naturalness,
+      producerSize,
+
+      // Cônjuge Expandido
+      spouseRg,
+      spouseRgIssuer,
+      spouseEducationLevel,
       
       propertyName,
       propertyCity,
@@ -223,6 +272,23 @@ export async function updateProducer(id: string, data: any) {
         profession: profession || null,
         nationality: nationality || null,
         representativeCpf: type === 'PJ' && representativeCpf ? representativeCpf.replace(/[^\d]+/g, '') : null,
+        
+        // Dados Bancários
+        bankName: bankName !== undefined ? (bankName || null) : undefined,
+        bankAgency: bankAgency !== undefined ? (bankAgency || null) : undefined,
+        bankAccount: bankAccount !== undefined ? (bankAccount || null) : undefined,
+        bankAccountType: bankAccountType !== undefined ? (bankAccountType || null) : undefined,
+
+        // Qualificação Civil e Escolaridade
+        educationLevel: educationLevel !== undefined ? (educationLevel || null) : undefined,
+        naturalness: naturalness !== undefined ? (naturalness || null) : undefined,
+        producerSize: producerSize !== undefined ? (producerSize || null) : undefined,
+
+        // Cônjuge
+        spouseRg: spouseRg !== undefined ? (spouseRg || null) : undefined,
+        spouseRgIssuer: spouseRgIssuer !== undefined ? (spouseRgIssuer || null) : undefined,
+        spouseEducationLevel: spouseEducationLevel !== undefined ? (spouseEducationLevel || null) : undefined,
+
         updatedBy: dbUser.id
       }
     })

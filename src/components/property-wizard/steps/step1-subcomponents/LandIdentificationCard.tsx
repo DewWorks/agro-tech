@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Control } from 'react-hook-form'
+import { Control, useWatch } from 'react-hook-form'
 import {
   FormField,
   FormItem,
@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2 } from 'lucide-react'
+import { Building2, FileText } from 'lucide-react'
 import { SmartCreatableCombobox } from '../../subcomponents/SmartCreatableCombobox'
 import { RURAL_ACTIVITIES } from '@/lib/validations/property-wizard'
 
@@ -40,6 +40,8 @@ interface LandIdentificationCardProps {
 }
 
 export function LandIdentificationCard({ control, branches, producers }: LandIdentificationCardProps) {
+  const ownershipType = useWatch({ control, name: 'ownershipType' })
+
   return (
     <Card className="border-slate-200 dark:border-slate-800 shadow-xs">
       <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -151,6 +153,30 @@ export function LandIdentificationCard({ control, branches, producers }: LandIde
 
         <FormField
           control={control}
+          name="propertyStatus"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Situação da Propriedade *</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value || 'QUITADA'}>
+                <FormControl>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione a situação">
+                      {field.value === 'FINANCIADA' ? 'Financiada' : 'Quitada'}
+                    </SelectValue>
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="QUITADA">Quitada (Sem Financiamento Ativo)</SelectItem>
+                  <SelectItem value="FINANCIADA">Financiada (Alienação / Hipoteca)</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={control}
           name="explorationPercentage"
           render={({ field }) => (
             <FormItem>
@@ -163,25 +189,6 @@ export function LandIdentificationCard({ control, branches, producers }: LandIde
                   placeholder="100"
                   {...field}
                   onChange={(e) => field.onChange(Number(e.target.value))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={control}
-          name="contractEndDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Término de Contrato (se não proprietário)</FormLabel>
-              <FormControl>
-                <DatePicker
-                  value={field.value}
-                  onChange={field.onChange}
-                  placeholder="DD/MM/AAAA"
-                  showPresets={true}
                 />
               </FormControl>
               <FormMessage />
@@ -208,6 +215,128 @@ export function LandIdentificationCard({ control, branches, producers }: LandIde
             </FormItem>
           )}
         />
+
+        {/* Bloco Condicional para Não Proprietários (Arrendatário / Comodatário / Parceiro / Meeiro) */}
+        {ownershipType && ownershipType !== 'PROPRIETARIO' && (
+          <div className="col-span-1 md:col-span-3 p-4 rounded-lg border border-amber-200 bg-amber-50/60 dark:border-amber-900/50 dark:bg-amber-950/20 space-y-3">
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold text-sm">
+              <FileText className="w-4 h-4 text-amber-600" />
+              <span>Dados da Cedência / Contrato (Arrendamento, Parceria ou Comodato)</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              <FormField
+                control={control}
+                name="landlordName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Nome do Cedente / Proprietário *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nome completo do proprietário" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={control}
+                name="landlordDocument"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">CPF / CNPJ do Cedente *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="000.000.000-00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={control}
+                name="contractType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Tipo de Contrato</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || 'ARRENDAMENTO'}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Tipo de contrato" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="ARRENDAMENTO">Arrendamento</SelectItem>
+                        <SelectItem value="PARCERIA">Parceria Agrícola / Pecuária</SelectItem>
+                        <SelectItem value="COMODATO">Comodato</SelectItem>
+                        <SelectItem value="MEEIRIA">Meeiria</SelectItem>
+                        <SelectItem value="OUTRO">Outro Vínculo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={control}
+                name="contractStartDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Início da Vigência *</FormLabel>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="DD/MM/AAAA"
+                        showPresets={false}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={control}
+                name="contractEndDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Término da Vigência *</FormLabel>
+                    <FormControl>
+                      <DatePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                        placeholder="DD/MM/AAAA"
+                        showPresets={false}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={control}
+                name="exploredAreaHa"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Área Explorada / Cedida (ha) *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="Ex: 150.00"
+                        {...field}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
