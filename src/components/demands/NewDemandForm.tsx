@@ -26,6 +26,7 @@ import {
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectTrigger,
@@ -164,12 +165,12 @@ export function NewDemandForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
+    <form onSubmit={handleSubmit} className="w-full space-y-6">
       {/* Botão Voltar */}
       <div className="flex items-center justify-between">
         <Link
           href="/admin/demands"
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-slate-800 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Voltar para Hub de Demandas</span>
@@ -179,8 +180,8 @@ export function NewDemandForm({
       {/* Card 1: Identificação & Vínculos de Negócio */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-5">
         <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-          <User className="w-5 h-5 text-emerald-600" />
-          <h2 className="font-bold text-slate-900 text-base">Cliente & Propriedade Vinculada</h2>
+          <User className="w-5 h-5 text-[#1B4D3E]" />
+          <h2 className="font-bold text-[#1B4D3E] text-base">Cliente & Propriedade Vinculada</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -302,8 +303,8 @@ export function NewDemandForm({
       {/* Card 2: Definição do Serviço & Prazos */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-5">
         <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-          <Briefcase className="w-5 h-5 text-emerald-600" />
-          <h2 className="font-bold text-slate-900 text-base">Serviço Rural & Prazos Operacionais</h2>
+          <Briefcase className="w-5 h-5 text-[#1B4D3E]" />
+          <h2 className="font-bold text-[#1B4D3E] text-base">Serviço Rural & Prazos Operacionais</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -427,13 +428,14 @@ export function NewDemandForm({
       </div>
 
       {/* Card 3: Checklist Documental Sugerido */}
+      {/* Card 3: Checklist Sugerido para o GED */}
       <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-emerald-600" />
-            <h2 className="font-bold text-slate-900 text-base">Checklist Sugerido para o GED</h2>
+            <FileText className="w-5 h-5 text-[#1B4D3E]" />
+            <h2 className="font-bold text-[#1B4D3E] text-base">Checklist Sugerido para o GED</h2>
           </div>
-          <span className="text-xs text-slate-500">{checklist.length} documentos pré-carregados</span>
+          <span className="text-xs text-muted-foreground">{checklist.length} documentos pré-carregados</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -449,7 +451,7 @@ export function NewDemandForm({
               <button
                 type="button"
                 onClick={() => setChecklist(checklist.filter((_, i) => i !== idx))}
-                className="text-slate-400 hover:text-rose-600 ml-2 font-bold px-1.5"
+                className="text-slate-400 hover:text-rose-600 ml-2 font-bold px-1.5 cursor-pointer"
                 title="Remover do checklist inicial"
               >
                 ×
@@ -461,26 +463,25 @@ export function NewDemandForm({
 
       {/* Botões de Ação */}
       <div className="flex items-center justify-end gap-3 pt-2">
-        <Link
-          href="/admin/demands"
-          className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-        >
-          Cancelar
+        <Link href="/admin/demands">
+          <Button type="button" variant="outline">
+            Cancelar
+          </Button>
         </Link>
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+          className="bg-[#1B4D3E] hover:bg-[#13382D]"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
               <span>Registrando...</span>
             </>
           ) : (
             <span>Criar Ordem de Serviço</span>
           )}
-        </button>
+        </Button>
       </div>
     </form>
   )

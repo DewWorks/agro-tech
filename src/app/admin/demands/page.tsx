@@ -16,7 +16,9 @@ import {
   Layers,
   Ban,
   ShieldAlert,
+  ClipboardList,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { RURAL_SERVICES_CATALOG, RURAL_SERVICE_TYPES, RuralServiceTypeCode } from '@/lib/validations/demands'
 
 export const dynamic = 'force-dynamic'
@@ -60,27 +62,20 @@ export default async function DemandsPage(props: DemandsPageProps) {
   return (
     <div className="space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              Serviços & Demandas Rurais
-            </h1>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-              Workflow Operacional
-            </span>
-          </div>
-          <p className="text-sm text-slate-500 mt-1">
-            Gestão visual de ordens de serviço, esteira documental do GED e governança de prazos.
+          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
+            <ClipboardList className="h-8 w-8" />
+            Serviços & Demandas Rurais
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Gestão operacional de ordens de serviço, esteira documental do GED e governança de prazos.
           </p>
         </div>
-
-        <Link
-          href="/admin/demands/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm hover:shadow transition-all duration-200 active:scale-95"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Nova Demanda</span>
+        <Link href="/admin/demands/new">
+          <Button className="bg-[#1B4D3E] hover:bg-[#13382D]">
+            <Plus className="mr-2 h-4 w-4" /> Nova Demanda
+          </Button>
         </Link>
       </div>
 

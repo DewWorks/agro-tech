@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { NewDemandForm } from '@/components/demands/NewDemandForm'
+import { ClipboardList } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -77,14 +78,17 @@ export default async function NewDemandPage(props: NewDemandPageProps) {
   })
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-          Abertura de Nova Demanda Rural
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Cadastre uma nova ordem de serviço técnico, projeto de crédito ou solicitação ambiental.
-        </p>
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
+            <ClipboardList className="h-8 w-8" />
+            Abertura de Nova Demanda Rural
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Cadastre uma nova ordem de serviço técnico, projeto de crédito ou solicitação ambiental.
+          </p>
+        </div>
       </div>
 
       <NewDemandForm

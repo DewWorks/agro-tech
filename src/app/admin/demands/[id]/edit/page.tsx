@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { getDemandById } from '@/actions/demands'
 import { EditDemandForm } from '@/components/demands/EditDemandForm'
+import { ClipboardList } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,14 +72,17 @@ export default async function EditDemandPage(props: EditDemandPageProps) {
   })
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-          Edição de Demanda Rural
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Altere informações de cadastro, prazos, responsável ou especificações técnicas.
-        </p>
+    <div className="max-w-5xl mx-auto space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
+            <ClipboardList className="h-8 w-8" />
+            Edição de Demanda Rural
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Altere informações de cadastro, prazos, responsável ou especificações técnicas.
+          </p>
+        </div>
       </div>
 
       <EditDemandForm demand={demand} properties={properties} users={rawUsers} />

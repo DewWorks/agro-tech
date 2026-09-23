@@ -5,6 +5,8 @@ import { cancelDemand } from '@/actions/demands'
 import { AlertTriangle, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 
+import { Button } from '@/components/ui/button'
+
 interface CancelDemandModalProps {
   isOpen: boolean
   onClose: () => void
@@ -106,28 +108,28 @@ export function CancelDemandModal({
           </p>
 
           <div className="flex items-center justify-end gap-3 pt-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2 text-sm font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition-colors"
             >
               Voltar
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              disabled={isSubmitting}
-              className="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+              disabled={isSubmitting || !reason.trim()}
+              className="bg-rose-600 hover:bg-rose-700 text-white font-medium"
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
                   Cancelando...
                 </>
               ) : (
                 'Confirmar Cancelamento'
               )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

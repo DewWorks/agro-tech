@@ -159,15 +159,15 @@ export function DemandChecklistSection({
   const percentage = total > 0 ? Math.round((delivered / total) * 100) : 100
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+    <div className="bg-white rounded-xl border shadow-xs overflow-hidden">
       {/* Cabeçalho */}
       <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-50/50">
         <div>
           <div className="flex items-center gap-2">
-            <Paperclip className="w-5 h-5 text-emerald-600" />
-            <h3 className="font-bold text-slate-900 text-base">Checklist Documental do GED</h3>
+            <Paperclip className="w-5 h-5 text-[#1B4D3E]" />
+            <h3 className="font-bold text-[#1B4D3E] text-base">Checklist Documental do GED</h3>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Entrada única de dados: documentos anexados são arquivados diretamente no GED corporativo.
           </p>
         </div>

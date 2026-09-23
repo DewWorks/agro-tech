@@ -23,7 +23,9 @@ import {
   MessageCircle,
   AlertCircle,
   FileCheck2,
+  ClipboardList,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -110,36 +112,47 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Barra de Navegação Superior */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <Link
-          href="/admin/demands"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar para Hub de Demandas</span>
-        </Link>
+        <div>
+          <div className="mb-2">
+            <Link
+              href="/admin/demands"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Voltar para Hub de Demandas</span>
+            </Link>
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
+            <ClipboardList className="h-8 w-8" />
+            {serviceTitle}
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Demanda vinculada a <strong className="text-foreground">{demand.producer.name}</strong>
+            {demand.property ? ` — Fazenda ${propertyDisplayName}` : ''}
+          </p>
+        </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            href={`/admin/demands/${demand.id}/edit`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 shadow-2xs transition-all"
-          >
-            <Edit className="w-3.5 h-3.5 text-slate-400" />
-            <span>Editar Demanda</span>
+          <Link href={`/admin/demands/${demand.id}/edit`}>
+            <Button variant="outline" className="border-slate-200">
+              <Edit className="mr-2 h-4 w-4" />
+              <span>Editar Demanda</span>
+            </Button>
           </Link>
         </div>
       </div>
 
       {/* Cartão de Identificação Principal */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-1">
+      <div className="bg-white rounded-xl p-6 border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[#1B4D3E] bg-[#1B4D3E]/10 px-2.5 py-0.5 rounded-md border border-[#1B4D3E]/20">
               {serviceTitle}
             </span>
             {demand.proposalId && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-lg">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md">
                 <FileCheck2 className="w-3.5 h-3.5 text-indigo-500" />
                 Proposta: {demand.proposalId}
               </span>
@@ -147,26 +160,22 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
             <DemandSlaBadge sla={demand.sla} />
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight pt-1">
-            Demanda para {demand.producer.name}
-          </h1>
-
-          <div className="flex items-center gap-4 text-xs text-slate-500 flex-wrap pt-1">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             <div className="flex items-center gap-1.5">
-              <User className="w-4 h-4 text-slate-400" />
+              <User className="w-4 h-4 text-muted-foreground" />
               <span>Produtor: </span>
               <Link
                 href={`/admin/crm/${demand.producer.id}`}
-                className="font-bold text-slate-700 hover:text-emerald-700 transition-colors"
+                className="font-semibold text-foreground hover:text-[#1B4D3E] transition-colors"
               >
                 {demand.producer.name}
               </Link>
             </div>
 
             <div className="flex items-center gap-1.5">
-              <Home className="w-4 h-4 text-slate-400" />
+              <Home className="w-4 h-4 text-muted-foreground" />
               <span>Fazenda: </span>
-              <span className="font-semibold text-slate-700">
+              <span className="font-semibold text-foreground">
                 {propertyDisplayName} {propertyLocation && `(${propertyLocation})`}
               </span>
             </div>
@@ -174,15 +183,15 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
         </div>
 
         {/* Resumo Rápido de Prazos */}
-        <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 flex items-center gap-6 shrink-0 text-xs">
+        <div className="bg-slate-50 p-4 rounded-xl border flex items-center gap-6 shrink-0 text-xs">
           <div>
-            <div className="text-slate-400 font-medium">Solicitado em</div>
-            <div className="font-bold text-slate-800 text-sm mt-0.5">{formattedRequestDate}</div>
+            <div className="text-muted-foreground font-medium">Solicitado em</div>
+            <div className="font-bold text-foreground text-sm mt-0.5">{formattedRequestDate}</div>
           </div>
           <div className="w-px h-8 bg-slate-200" />
           <div>
-            <div className="text-slate-400 font-medium">Previsão (SLA)</div>
-            <div className="font-bold text-slate-800 text-sm mt-0.5">{formattedEstimatedDate}</div>
+            <div className="text-muted-foreground font-medium">Previsão (SLA)</div>
+            <div className="font-bold text-foreground text-sm mt-0.5">{formattedEstimatedDate}</div>
           </div>
         </div>
       </div>
@@ -205,27 +214,27 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
           />
 
           {/* Especificações & Observações */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl p-6 border shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <FileText className="w-5 h-5 text-emerald-600" />
-              <h3 className="font-bold text-slate-900 text-base">Especificações da Demanda</h3>
+              <FileText className="w-5 h-5 text-[#1B4D3E]" />
+              <h3 className="font-bold text-[#1B4D3E] text-base">Especificações da Demanda</h3>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                 Descrição do Atendimento
               </h4>
-              <p className="text-xs text-slate-700 leading-relaxed bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 font-normal">
+              <p className="text-xs text-foreground leading-relaxed bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 font-normal">
                 {demand.description || 'Nenhuma descrição detalhada informada.'}
               </p>
             </div>
 
             {demand.notes && (
               <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
                   Notas Internas
                 </h4>
-                <p className="text-xs text-slate-700 leading-relaxed bg-amber-50/40 p-3.5 rounded-xl border border-amber-100 font-normal">
+                <p className="text-xs text-foreground leading-relaxed bg-amber-50/40 p-3.5 rounded-xl border border-amber-100 font-normal">
                   {demand.notes}
                 </p>
               </div>
@@ -236,36 +245,36 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
         {/* Coluna da Direita (1 Coluna): Auditoria & Linha do Tempo */}
         <div className="space-y-6">
           {/* Card de Metadados de Auditoria & Governança */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl p-6 border shadow-xs space-y-4">
             <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Building2 className="w-5 h-5 text-emerald-600" />
-              <h3 className="font-bold text-slate-900 text-base">Governança & Rastreabilidade</h3>
+              <Building2 className="w-5 h-5 text-[#1B4D3E]" />
+              <h3 className="font-bold text-[#1B4D3E] text-base">Governança & Rastreabilidade</h3>
             </div>
 
             <div className="space-y-3 text-xs">
               <div className="flex items-start justify-between gap-2">
-                <span className="text-slate-400">Criado por:</span>
-                <span className="font-semibold text-slate-800 text-right">{creatorName}</span>
+                <span className="text-muted-foreground">Criado por:</span>
+                <span className="font-semibold text-foreground text-right">{creatorName}</span>
               </div>
 
               <div className="flex items-start justify-between gap-2">
-                <span className="text-slate-400">Data de Abertura:</span>
-                <span className="font-semibold text-slate-800 text-right">{formattedRequestDate}</span>
+                <span className="text-muted-foreground">Data de Abertura:</span>
+                <span className="font-semibold text-foreground text-right">{formattedRequestDate}</span>
               </div>
 
               <div className="flex items-start justify-between gap-2">
-                <span className="text-slate-400">Responsável Atual:</span>
-                <span className="font-semibold text-slate-800 text-right">{assigneeName}</span>
+                <span className="text-muted-foreground">Responsável Atual:</span>
+                <span className="font-semibold text-foreground text-right">{assigneeName}</span>
               </div>
 
               <div className="flex items-start justify-between gap-2">
-                <span className="text-slate-400">Início da Execução:</span>
-                <span className="font-semibold text-slate-800 text-right">{formattedStartDate}</span>
+                <span className="text-muted-foreground">Início da Execução:</span>
+                <span className="font-semibold text-foreground text-right">{formattedStartDate}</span>
               </div>
 
               {formattedCompletionDate && (
                 <div className="flex items-start justify-between gap-2">
-                  <span className="text-slate-400">Conclusão Efetiva:</span>
+                  <span className="text-muted-foreground">Conclusão Efetiva:</span>
                   <span className="font-bold text-emerald-700 text-right">
                     {formattedCompletionDate}
                   </span>
@@ -274,7 +283,7 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
 
               {demand.proposalId && (
                 <div className="flex items-start justify-between gap-2 pt-2 border-t border-slate-100">
-                  <span className="text-slate-400">Proposta / Dossiê:</span>
+                  <span className="text-muted-foreground">Proposta / Dossiê:</span>
                   <span className="font-bold text-indigo-700 text-right">{demand.proposalId}</span>
                 </div>
               )}
@@ -282,13 +291,13 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
           </div>
 
           {/* Linha do Tempo / Histórico de Transições */}
-          <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="bg-white rounded-xl p-6 border shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-emerald-600" />
-                <h3 className="font-bold text-slate-900 text-base">Linha do Tempo</h3>
+                <History className="w-5 h-5 text-[#1B4D3E]" />
+                <h3 className="font-bold text-[#1B4D3E] text-base">Linha do Tempo</h3>
               </div>
-              <span className="text-xs text-slate-400 font-semibold">
+              <span className="text-xs text-muted-foreground font-semibold">
                 {demand.history.length} evento{demand.history.length > 1 ? 's' : ''}
               </span>
             </div>

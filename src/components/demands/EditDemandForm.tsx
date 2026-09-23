@@ -18,8 +18,10 @@ import {
   Loader2,
   ArrowLeft,
   Save,
+  ClipboardList,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   Select,
   SelectTrigger,
@@ -106,23 +108,26 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-6">
+    <form onSubmit={handleSubmit} className="w-full space-y-6">
       <div className="flex items-center justify-between">
         <Link
           href={`/admin/demands/${demand.id}`}
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Voltar para Detalhes</span>
         </Link>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs space-y-5">
+      <div className="bg-white rounded-xl p-6 border shadow-xs space-y-5">
         <div className="border-b border-slate-100 pb-3">
-          <h2 className="font-bold text-slate-900 text-base">Editar Cadastro da Demanda</h2>
-          <p className="text-xs text-slate-500">
+          <h2 className="font-bold text-[#1B4D3E] text-base flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-[#1B4D3E]" />
+            Editar Cadastro da Demanda
+          </h2>
+          <p className="text-xs text-muted-foreground">
             Produtor:{' '}
-            <strong className="text-slate-800">{demand.producer?.name || 'Não identificado'}</strong>
+            <strong className="text-foreground">{demand.producer?.name || 'Não identificado'}</strong>
           </p>
         </div>
 
@@ -318,29 +323,28 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
       </div>
 
       <div className="flex items-center justify-end gap-3 pt-2">
-        <Link
-          href={`/admin/demands/${demand.id}`}
-          className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
-        >
-          Cancelar
+        <Link href={`/admin/demands/${demand.id}`}>
+          <Button type="button" variant="outline">
+            Cancelar
+          </Button>
         </Link>
-        <button
+        <Button
           type="submit"
           disabled={isSubmitting}
-          className="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+          className="bg-[#1B4D3E] hover:bg-[#13382D]"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
               <span>Salvando...</span>
             </>
           ) : (
             <>
-              <Save className="w-4 h-4" />
+              <Save className="w-4 h-4 mr-2" />
               <span>Salvar Alterações</span>
             </>
           )}
-        </button>
+        </Button>
       </div>
     </form>
   )
