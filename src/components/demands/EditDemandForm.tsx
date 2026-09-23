@@ -44,15 +44,22 @@ interface UserOption {
   email: string
 }
 
+interface BranchOption {
+  id: string
+  name: string
+}
+
 interface EditDemandFormProps {
   demand: any
   properties: PropertyOption[]
+  branches?: BranchOption[]
   users: UserOption[]
 }
 
-export function EditDemandForm({ demand, properties, users }: EditDemandFormProps) {
+export function EditDemandForm({ demand, properties, branches = [], users }: EditDemandFormProps) {
   const router = useRouter()
 
+  const [branchId, setBranchId] = useState(demand.branchId || '')
   const [propertyId, setPropertyId] = useState(demand.propertyId || '')
   const [assignedToId, setAssignedToId] = useState(demand.assignedToId || demand.assigneeId || '')
   const [serviceType, setServiceType] = useState<RuralServiceTypeCode>(demand.serviceType)
@@ -85,6 +92,7 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
         serviceType,
         customServiceType: serviceType === 'OUTROS' ? customServiceType.trim() : null,
         priority,
+        branchId: branchId || undefined,
         proposalId: proposalId.trim() || null,
         description: description.trim() || null,
         notes: notes.trim() || null,
@@ -132,6 +140,32 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Filial de Atendimento */}
+          {branches.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                Filial de Atendimento
+              </label>
+              <Select value={branchId} onValueChange={(val) => setBranchId(val || '')}>
+                <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                  <SelectValue placeholder="Selecione a filial...">
+                    {(() => {
+                      const b = branches.find((item) => item.id === branchId)
+                      return b ? b.name : undefined
+                    })()}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Propriedade / Fazenda

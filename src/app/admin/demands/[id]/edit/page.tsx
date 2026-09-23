@@ -57,6 +57,19 @@ export default async function EditDemandPage(props: EditDemandPageProps) {
     state: pp.property.state,
   }))
 
+  // Carrega filiais ativas da organização
+  const branches = await prisma.branch.findMany({
+    where: {
+      ...(organizationId ? { organizationId } : {}),
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: { name: 'asc' },
+  })
+
   // Carrega operadores/técnicos da organização para atribuição
   const rawUsers = await prisma.user.findMany({
     where: {
@@ -85,7 +98,12 @@ export default async function EditDemandPage(props: EditDemandPageProps) {
         </div>
       </div>
 
-      <EditDemandForm demand={demand} properties={properties} users={rawUsers} />
+      <EditDemandForm
+        demand={demand}
+        properties={properties}
+        branches={branches}
+        users={rawUsers}
+      />
     </div>
   )
 }

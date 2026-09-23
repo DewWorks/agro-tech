@@ -318,13 +318,48 @@ export async function createDemand(rawData: any) {
     }
 
     const parsed = createDemandSchema.parse(rawData)
+    const assignedToId = parsed.assignedToId || parsed.assigneeId || null
 
-    const branchId = parsed.branchId || dbUser.branchId
-    if (!branchId) {
-      throw new Error('Filial não especificada para a demanda.')
+    // Resolução robusta de Filial da Demanda
+    let branchId = parsed.branchId || dbUser.branchId
+
+    // 1. Se não especificado diretamente, tenta herdar da propriedade vinculada
+    if (!branchId && parsed.propertyId) {
+      const prop = await prisma.property.findUnique({
+        where: { id: parsed.propertyId },
+        select: { branchId: true },
+      })
+      if (prop?.branchId) {
+        branchId = prop.branchId
+      }
     }
 
-    const assignedToId = parsed.assignedToId || parsed.assigneeId || null
+    // 2. Se ainda não tiver filial, herda diretamente do produtor rural selecionado
+    if (!branchId && parsed.producerId) {
+      const producer = await prisma.producer.findUnique({
+        where: { id: parsed.producerId },
+        select: { branchId: true },
+      })
+      if (producer?.branchId) {
+        branchId = producer.branchId
+      }
+    }
+
+    // 3. Fallback: primeira filial ativa da organização
+    if (!branchId && dbUser.organizationId) {
+      const defaultBranch = await prisma.branch.findFirst({
+        where: { organizationId: dbUser.organizationId, isActive: true },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (defaultBranch?.id) {
+        branchId = defaultBranch.id
+      }
+    }
+
+    if (!branchId) {
+      throw new Error('Nenhuma filial encontrada para vincular a demanda. Cadastre uma filial antes.')
+    }
 
     // Se checklist não foi fornecido explicitamente, carrega os documentos sugeridos do catálogo
     let initialChecklist = parsed.checklist || []
@@ -424,6 +459,7 @@ export async function updateDemand(id: string, rawData: any) {
     const updated = await prisma.serviceDemand.update({
       where: { id },
       data: {
+        branchId: parsed.branchId ? parsed.branchId : undefined,
         propertyId: parsed.propertyId !== undefined ? (parsed.propertyId || null) : undefined,
         assignedToId: assignedToId !== undefined ? (assignedToId || null) : undefined,
         responsibleName: parsed.responsibleName !== undefined ? (parsed.responsibleName || null) : undefined,

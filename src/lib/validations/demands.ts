@@ -371,6 +371,7 @@ export const createDemandSchema = z
 
 export const updateDemandSchema = z
   .object({
+    branchId: z.string().optional(),
     propertyId: z.string().optional().nullable(),
     assignedToId: z.string().optional().nullable(),
     assigneeId: z.string().optional().nullable(),

@@ -19,7 +19,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Building2, FileText } from 'lucide-react'
+import { Building2, FileText, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import { SmartCreatableCombobox } from '../../subcomponents/SmartCreatableCombobox'
 import { RURAL_ACTIVITIES } from '@/lib/validations/property-wizard'
 
@@ -36,10 +38,11 @@ const OWNERSHIP_LABELS: Record<string, string> = {
 interface LandIdentificationCardProps {
   control: Control<any>
   branches: Array<{ id: string; name: string }>
-  producers: Array<{ id: string; name: string; document?: string }>
+  producers: Array<{ id: string; name: string; document?: string; branchId?: string }>
+  setValue?: (name: string, value: any, options?: any) => void
 }
 
-export function LandIdentificationCard({ control, branches, producers }: LandIdentificationCardProps) {
+export function LandIdentificationCard({ control, branches, producers, setValue }: LandIdentificationCardProps) {
   const ownershipType = useWatch({ control, name: 'ownershipType' })
 
   return (
@@ -98,25 +101,56 @@ export function LandIdentificationCard({ control, branches, producers }: LandIde
           render={({ field }) => (
             <FormItem className="md:col-span-2">
               <FormLabel>Produtor Titular Vinculado *</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Selecione o produtor rural">
-                      {(() => {
-                        const p = producers.find((prod) => prod.id === field.value)
-                        return p ? `${p.name} ${p.document ? `(${p.document})` : ''}` : undefined
-                      })()}
-                    </SelectValue>
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {producers.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name} {p.document ? `(${p.document})` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {producers.length === 0 ? (
+                <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-xs text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="font-medium text-amber-800">
+                      Nenhum produtor cadastrado para vincular a esta propriedade.
+                    </span>
+                  </div>
+                  <Link href="/admin/crm/new">
+                    <Button type="button" size="sm" className="bg-[#1B4D3E] hover:bg-[#153e32] text-white text-xs h-7 px-3">
+                      Cadastrar Produtor
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                <Select
+                  onValueChange={(val) => {
+                    field.onChange(val)
+                    if (setValue) {
+                      const selected = producers.find((prod) => prod.id === val)
+                      if (selected?.branchId) {
+                        setValue('branchId', selected.branchId, { shouldValidate: true })
+                      }
+                    }
+                  }}
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o produtor rural">
+                        {(() => {
+                          const p = producers.find((prod) => prod.id === field.value)
+                          return p ? `${p.name} ${p.document ? `(${p.document})` : ''}` : undefined
+                        })()}
+                      </SelectValue>
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {producers.map((p) => {
+                      const branchName = branches.find((b) => b.id === p.branchId)?.name
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name} {p.document ? `(${p.document})` : ''}
+                          {branchName ? ` • ${branchName}` : ''}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
               <FormMessage />
             </FormItem>
           )}

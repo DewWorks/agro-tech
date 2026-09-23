@@ -40,12 +40,19 @@ interface ProducerOption {
   id: string
   name: string
   document: string
+  branchId?: string | null
+  branchName?: string | null
   properties: {
     id: string
     name: string
     city?: string | null
     state?: string | null
   }[]
+}
+
+interface BranchOption {
+  id: string
+  name: string
 }
 
 interface UserOption {
@@ -56,20 +63,28 @@ interface UserOption {
 
 interface NewDemandFormProps {
   producers: ProducerOption[]
+  branches?: BranchOption[]
   users: UserOption[]
   defaultProducerId?: string
   defaultPropertyId?: string
+  defaultBranchId?: string
 }
 
 export function NewDemandForm({
   producers,
+  branches = [],
   users,
   defaultProducerId = '',
   defaultPropertyId = '',
+  defaultBranchId = '',
 }: NewDemandFormProps) {
   const router = useRouter()
 
+  const initialProducer = producers.find((p) => p.id === defaultProducerId)
   const [producerId, setProducerId] = useState(defaultProducerId)
+  const [branchId, setBranchId] = useState(
+    defaultBranchId || initialProducer?.branchId || branches[0]?.id || ''
+  )
   const [propertyId, setPropertyId] = useState(defaultPropertyId)
   const [assignedToId, setAssignedToId] = useState('')
   const [serviceType, setServiceType] = useState<RuralServiceTypeCode>('PROJETO_CUSTEIO')
@@ -130,6 +145,7 @@ export function NewDemandForm({
       setIsSubmitting(true)
 
       const payload = {
+        branchId: branchId || undefined,
         producerId,
         propertyId: propertyId || null,
         assignedToId: assignedToId || null,
@@ -195,6 +211,10 @@ export function NewDemandForm({
               onValueChange={(val) => {
                 setProducerId(val || '')
                 setPropertyId('')
+                const selected = producers.find((p) => p.id === val)
+                if (selected?.branchId) {
+                  setBranchId(selected.branchId)
+                }
               }}
             >
               <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
@@ -213,6 +233,36 @@ export function NewDemandForm({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          {/* Seletor de Filial de Atendimento */}
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Filial de Atendimento <span className="text-rose-500">*</span>
+            </label>
+            <Select
+              value={branchId}
+              onValueChange={(val) => setBranchId(val || '')}
+            >
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                <SelectValue placeholder="Selecione a filial...">
+                  {(() => {
+                    const b = branches.find((branch) => branch.id === branchId)
+                    return b ? b.name : undefined
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {producerId ? 'Vinculada automaticamente à filial do produtor rural selecionado.' : 'Selecione a filial responsável pela gestão desta ordem.'}
+            </p>
           </div>
 
           {/* Seletor de Propriedade */}

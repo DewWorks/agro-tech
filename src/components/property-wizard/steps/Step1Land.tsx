@@ -11,7 +11,7 @@ import { LandLegalRiskCard } from './step1-subcomponents/LandLegalRiskCard'
 
 interface Step1LandProps {
   form?: UseFormReturn<any>
-  producers: Array<{ id: string; name: string; document?: string }>
+  producers: Array<{ id: string; name: string; document?: string; branchId?: string }>
   branches: Array<{ id: string; name: string }>
 }
 
@@ -38,6 +38,7 @@ export function Step1Land({ form, producers, branches }: Step1LandProps) {
         control={control}
         branches={branches}
         producers={producers}
+        setValue={setValue}
       />
 
       {/* 2. REGISTROS LEGAIS E DOCUMENTAIS (COM MÁSCARAS) */}

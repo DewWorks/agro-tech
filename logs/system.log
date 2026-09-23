@@ -1,0 +1,54 @@
+[2026-09-23T20:52:40.711Z] [ERROR] [Erro ao criar demanda de serviço]
+  - Message: Filial não especificada para a demanda.
+  - Stack: Error: Filial não especificada para a demanda.
+    at createDemand (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\[root-of-the-server]__0heo91n._.js:434:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async executeActionAndPrepareForRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:168:5395)
+    at async C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:168:2018
+    at async handleAction (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:166:27863)
+    at async renderToHTMLOrFlightImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:173:2883)
+    at async doRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_20_kxrf._.js:1302:32)
+    at async AppPageRouteModule.handleResponse (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:216:75826)
+    at async handleResponse (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_20_kxrf._.js:1669:36)
+    at async Module.handler (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_20_kxrf._.js:2140:24)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1537:9)
+    at async DevServer.renderPageComponent (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1589:24)
+    at async DevServer.renderToResponseImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1639:32)
+    at async DevServer.pipeImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1088:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\next-server.js:338:17)
+    at async DevServer.handleRequestImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:979:17)
+    at async C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\dev\next-dev-server.js:426:20
+    at async Span.traceAsyncFn (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\trace\trace.js:164:20)
+    at async DevServer.handleRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\dev\next-dev-server.js:422:24)
+    at async invokeRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:306:21)
+    at async handleRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:508:24)
+    at async requestHandlerImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:565:13)
+    at async Server.requestListener (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\start-server.js:225:13)
+
+[2026-09-23T20:52:47.729Z] [ERROR] [Erro ao criar demanda de serviço]
+  - Message: Filial não especificada para a demanda.
+  - Stack: Error: Filial não especificada para a demanda.
+    at createDemand (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\[root-of-the-server]__0heo91n._.js:434:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async executeActionAndPrepareForRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:168:5395)
+    at async C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:168:2018
+    at async handleAction (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:166:27863)
+    at async renderToHTMLOrFlightImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:173:2883)
+    at async doRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_20_kxrf._.js:1302:32)
+    at async AppPageRouteModule.handleResponse (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:216:75826)
+    at async handleResponse (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_20_kxrf._.js:1669:36)
+    at async Module.handler (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_20_kxrf._.js:2140:24)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1537:9)
+    at async DevServer.renderPageComponent (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1589:24)
+    at async DevServer.renderToResponseImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1639:32)
+    at async DevServer.pipeImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1088:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\next-server.js:338:17)
+    at async DevServer.handleRequestImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:979:17)
+    at async C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\dev\next-dev-server.js:426:20
+    at async Span.traceAsyncFn (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\trace\trace.js:164:20)
+    at async DevServer.handleRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\dev\next-dev-server.js:422:24)
+    at async invokeRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:306:21)
+    at async handleRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:508:24)
+    at async requestHandlerImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:565:13)
+    at async Server.requestListener (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\start-server.js:225:13)
+

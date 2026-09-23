@@ -24,7 +24,20 @@ export default async function NewDemandPage(props: NewDemandPageProps) {
 
   const organizationId = dbUser.organizationId
 
-  // Carrega produtores com suas propriedades atreladas
+  // Carrega filiais ativas da organização
+  const branches = await prisma.branch.findMany({
+    where: {
+      ...(organizationId ? { organizationId } : {}),
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: { name: 'asc' },
+  })
+
+  // Carrega produtores com suas propriedades atreladas e respectiva filial
   const rawProducers = await prisma.producer.findMany({
     where: {
       ...(organizationId ? { branch: { organizationId } } : {}),
@@ -34,6 +47,13 @@ export default async function NewDemandPage(props: NewDemandPageProps) {
       id: true,
       name: true,
       document: true,
+      branchId: true,
+      branch: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
       properties: {
         select: {
           property: {
@@ -55,6 +75,8 @@ export default async function NewDemandPage(props: NewDemandPageProps) {
     id: p.id,
     name: p.name,
     document: p.document,
+    branchId: p.branchId,
+    branchName: p.branch?.name || null,
     properties: p.properties.map((pp) => ({
       id: pp.property.id,
       name: pp.property.name || pp.property.propertyName || 'Fazenda sem nome',
@@ -93,6 +115,7 @@ export default async function NewDemandPage(props: NewDemandPageProps) {
 
       <NewDemandForm
         producers={producers}
+        branches={branches}
         users={rawUsers}
         defaultProducerId={searchParams.producerId}
         defaultPropertyId={searchParams.propertyId}
