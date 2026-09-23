@@ -320,10 +320,14 @@ export const demandChecklistItemSchema = z.object({
 export const createDemandSchema = z
   .object({
     branchId: z.string().optional(),
+    createdById: z.string().optional(),
     producerId: z.string().min(1, 'Selecione o produtor rural'),
     propertyId: z.string().optional().nullable(),
+    assignedToId: z.string().optional().nullable(),
     assigneeId: z.string().optional().nullable(),
     responsibleName: z.string().optional().nullable(),
+    proposalId: z.string().optional().nullable(),
+    documentId: z.string().optional().nullable(),
     serviceType: z.enum(RURAL_SERVICE_TYPES, {
       message: 'Tipo de serviço rural inválido',
     }),
@@ -367,9 +371,13 @@ export const createDemandSchema = z
 
 export const updateDemandSchema = z
   .object({
+    branchId: z.string().optional(),
     propertyId: z.string().optional().nullable(),
+    assignedToId: z.string().optional().nullable(),
     assigneeId: z.string().optional().nullable(),
     responsibleName: z.string().optional().nullable(),
+    proposalId: z.string().optional().nullable(),
+    documentId: z.string().optional().nullable(),
     serviceType: z.enum(RURAL_SERVICE_TYPES).optional(),
     customServiceType: z.string().optional().nullable(),
     status: z.enum(DEMAND_STATUSES).optional(),
@@ -398,11 +406,17 @@ export const updateDemandSchema = z
 
 export const updateDemandStatusSchema = z.object({
   status: z.enum(DEMAND_STATUSES),
+  notes: z.string().optional().nullable(),
   startDate: z.coerce.date().optional().nullable(),
   completionDate: z.coerce.date().optional().nullable(),
+})
+
+export const cancelDemandSchema = z.object({
+  reason: z.string().min(3, 'O motivo do cancelamento é obrigatório e deve ter no mínimo 3 caracteres'),
 })
 
 export type CreateDemandInput = z.infer<typeof createDemandSchema>
 export type UpdateDemandInput = z.infer<typeof updateDemandSchema>
 export type UpdateDemandStatusInput = z.infer<typeof updateDemandStatusSchema>
+export type CancelDemandInput = z.infer<typeof cancelDemandSchema>
 export type DemandChecklistItemInput = z.infer<typeof demandChecklistItemSchema>

@@ -1,10 +1,20 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import PropertyMultiStepForm from '@/components/crm/PropertyMultiStepForm'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 
-export default async function NewPropertyPage() {
+interface NewPropertyPageProps {
+  searchParams?: Promise<{
+    producerId?: string
+    branchId?: string
+  }>
+}
+
+export default async function NewPropertyPage(props: NewPropertyPageProps) {
+  const searchParams = props.searchParams ? await props.searchParams : {}
   const dbUser = await getUserContext()
 
   if (!dbUser) {
@@ -46,24 +56,40 @@ export default async function NewPropertyPage() {
     userBranches = userBranchesData.map(ub => ub.branch)
   }
 
-  const initialBranchId = userBranches[0]?.id
+  const userBranchIds = userBranches.map((ub) => ub.id)
 
-  const initialProducers = initialBranchId ? await prisma.producer.findMany({
-    where: {
-      branchId: initialBranchId,
-      isActive: true,
-      branch: {
-        organizationId: effectiveUser.organizationId
-      }
-    },
-    select: {
-      id: true,
-      name: true,
-      document: true,
-      type: true,
-    },
-    orderBy: { name: 'asc' }
-  }) : []
+  let producers = userBranchIds.length > 0
+    ? await prisma.producer.findMany({
+        where: {
+          branchId: { in: userBranchIds },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          document: true,
+          type: true,
+          branchId: true,
+        },
+        orderBy: { name: 'asc' },
+      })
+    : []
+
+  if (searchParams.producerId && !producers.some((p) => p.id === searchParams.producerId)) {
+    const specificProducer = await prisma.producer.findUnique({
+      where: { id: searchParams.producerId },
+      select: {
+        id: true,
+        name: true,
+        document: true,
+        type: true,
+        branchId: true,
+      },
+    })
+    if (specificProducer) {
+      producers = [specificProducer, ...producers]
+    }
+  }
 
   // Super Admin sempre tem acesso ao módulo financeiro, mesmo que desativado no cliente.
   // Para os demais usuários, respeita estritamente a lista de módulos da organização.
@@ -85,10 +111,33 @@ export default async function NewPropertyPage() {
         </div>
       </div>
 
+      {producers.length === 0 && (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
+            <div>
+              <h3 className="font-semibold text-sm text-amber-900">
+                Nenhum produtor rural cadastrado
+              </h3>
+              <p className="text-xs text-amber-800 mt-0.5">
+                No sistema AgroTech, toda propriedade rural deve estar vinculada a um produtor titular. Cadastre o produtor rural primeiro para poder vincular esta fazenda.
+              </p>
+            </div>
+          </div>
+          <Link href="/admin/crm/new">
+            <Button className="bg-[#1B4D3E] hover:bg-[#153e32] text-white text-xs font-semibold shrink-0">
+              Cadastrar Produtor Agora
+            </Button>
+          </Link>
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-xs border p-6">
         <PropertyMultiStepForm 
           branches={userBranches} 
-          producers={initialProducers} 
+          producers={producers} 
+          initialProducerId={searchParams.producerId}
+          initialBranchId={searchParams.branchId}
           hasFinancialModule={hasFinancialModule}
           isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
         />

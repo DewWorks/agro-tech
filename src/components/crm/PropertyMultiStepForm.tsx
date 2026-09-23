@@ -6,7 +6,9 @@ import { PropertyWizardContainer } from '@/components/property-wizard/PropertyWi
 interface PropertyMultiStepFormProps {
   branches: Array<{ id: string; name: string }>
   initialData?: any
-  producers?: Array<{ id: string; name: string; document?: string }>
+  producers?: Array<{ id: string; name: string; document?: string; branchId?: string }>
+  initialProducerId?: string
+  initialBranchId?: string
   hasFinancialModule?: boolean
   isFinancialModuleDisabledForOrg?: boolean
 }
@@ -15,6 +17,8 @@ export default function PropertyMultiStepForm({
   branches,
   initialData,
   producers = [],
+  initialProducerId,
+  initialBranchId,
   hasFinancialModule = false,
   isFinancialModuleDisabledForOrg = false,
 }: PropertyMultiStepFormProps) {
@@ -23,6 +27,8 @@ export default function PropertyMultiStepForm({
       branches={branches}
       initialData={initialData}
       producers={producers}
+      initialProducerId={initialProducerId}
+      initialBranchId={initialBranchId}
       isEditMode={Boolean(initialData?.id)}
       propertyId={initialData?.id}
       hasFinancialModule={hasFinancialModule}

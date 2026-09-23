@@ -34,7 +34,9 @@ import { toDMS } from './subcomponents/FarmMapModal'
 interface PropertyWizardContainerProps {
   initialData?: any
   branches: Array<{ id: string; name: string }>
-  producers: Array<{ id: string; name: string; document?: string }>
+  producers: Array<{ id: string; name: string; document?: string; branchId?: string }>
+  initialProducerId?: string
+  initialBranchId?: string
   isEditMode?: boolean
   propertyId?: string
   hasFinancialModule?: boolean
@@ -45,6 +47,8 @@ export function PropertyWizardContainer({
   initialData,
   branches,
   producers,
+  initialProducerId,
+  initialBranchId,
   isEditMode = false,
   propertyId,
   hasFinancialModule = false,
@@ -55,9 +59,27 @@ export function PropertyWizardContainer({
   const [highestVisitedStep, setHighestVisitedStep] = useState<number>(isEditMode ? 5 : 1)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
-  // Mapeamento dos valores iniciais se estiver em modo de edição
+  // Mapeamento dos valores iniciais se estiver em modo de edição ou com pré-seleção
   const mappedInitialValues: Partial<PropertyWizardFormValues> = React.useMemo(() => {
-    if (!initialData) return defaultPropertyWizardValues
+    if (!initialData) {
+      const selectedProducer = initialProducerId
+        ? producers.find((p) => p.id === initialProducerId)
+        : producers.length === 1
+        ? producers[0]
+        : null
+
+      const defaultBranchId =
+        initialBranchId ||
+        selectedProducer?.branchId ||
+        branches[0]?.id ||
+        ''
+
+      return {
+        ...defaultPropertyWizardValues,
+        branchId: defaultBranchId,
+        producerId: selectedProducer?.id || '',
+      }
+    }
 
     const primaryProducer =
       initialData.producers && initialData.producers.length > 0
@@ -181,7 +203,7 @@ export function PropertyWizardContainer({
       creditLimitTermMonths: Number(initialData.possessionData?.creditLimitTermMonths) || 12,
       creditLimitNotes: initialData.possessionData?.creditLimitNotes || '',
     }
-  }, [initialData, branches, producers])
+  }, [initialData, branches, producers, initialProducerId, initialBranchId])
 
   // Inicialização do React Hook Form com Zod Resolver
   const form = useForm<PropertyWizardFormValues>({
