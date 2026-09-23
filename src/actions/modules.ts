@@ -58,6 +58,12 @@ export async function ensureDefaultSystemModules() {
       description: 'Análise de fluxo de caixa, capacidade de pagamento e limites de crédito no levantamento patrimonial.',
       isActive: true,
     },
+    {
+      code: 'DEMANDS',
+      name: 'Serviços & Demandas',
+      description: 'Gestão de ordens de serviço rurais, fluxo visual de 4 estados, esteira de auditoria/rastreabilidade, controle de prazos/SLA e checklist documental do GED.',
+      isActive: false,
+    },
   ]
 
   for (const mod of defaults) {

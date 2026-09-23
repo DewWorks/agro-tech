@@ -16,7 +16,8 @@ import {
   FileText,
   Tractor,
   Settings2,
-  Landmark
+  Landmark,
+  ClipboardList
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +59,15 @@ const getMenuItems = (
         badge: 'Super Admin',
         subItems: [
           { title: 'Visão Geral & Limites', href: '/admin/credit-limit' },
+        ]
+      },
+      {
+        title: 'Serviços & Demandas',
+        icon: ClipboardList,
+        badge: 'Super Admin',
+        subItems: [
+          { title: 'Hub de Demandas', href: '/admin/demands' },
+          { title: 'Nova Demanda', href: '/admin/demands/new' },
         ]
       },
       {
@@ -132,6 +142,19 @@ const getMenuItems = (
       badge: financialStatus.badge,
       subItems: [
         { title: 'Visão Geral & Limites', href: '/admin/credit-limit' },
+      ]
+    })
+  }
+
+  const demandsStatus = checkModule('DEMANDS')
+  if (demandsStatus.show) {
+    items.push({
+      title: 'Serviços & Demandas',
+      icon: ClipboardList,
+      badge: demandsStatus.badge,
+      subItems: [
+        { title: 'Hub de Demandas', href: '/admin/demands' },
+        { title: 'Nova Demanda', href: '/admin/demands/new' },
       ]
     })
   }
