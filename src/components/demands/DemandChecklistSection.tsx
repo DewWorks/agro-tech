@@ -176,10 +176,10 @@ export function DemandChecklistSection({
           <button
             type="button"
             onClick={handleCopyWhatsApp}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100/80 border border-emerald-200 text-xs font-bold transition-all shadow-2xs active:scale-95"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100/80 border border-emerald-200 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
           >
-            {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <MessageCircle className="w-4 h-4 text-emerald-600" />}
-            <span>{copied ? 'Copiado!' : 'Copiar Pendências (WhatsApp)'}</span>
+            {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-emerald-600" />}
+            <span>{copied ? 'Copiado!' : 'Copiar Mensagem de Pendências'}</span>
           </button>
         </div>
       </div>

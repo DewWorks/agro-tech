@@ -426,9 +426,9 @@ export async function createDemand(rawData: any) {
     })
 
     revalidatePath('/admin/demands')
-    revalidatePath(`/admin/crm/${parsed.producerId}`)
+    revalidatePath(`/admin/crm/${parsed.producerId}/edit`)
     if (parsed.propertyId) {
-      revalidatePath(`/admin/crm/properties/${parsed.propertyId}`)
+      revalidatePath(`/admin/crm/properties/${parsed.propertyId}/edit`)
     }
 
     return {
@@ -480,9 +480,9 @@ export async function updateDemand(id: string, rawData: any) {
 
     revalidatePath('/admin/demands')
     revalidatePath(`/admin/demands/${id}`)
-    revalidatePath(`/admin/crm/${updated.producerId}`)
+    revalidatePath(`/admin/crm/${updated.producerId}/edit`)
     if (updated.propertyId) {
-      revalidatePath(`/admin/crm/properties/${updated.propertyId}`)
+      revalidatePath(`/admin/crm/properties/${updated.propertyId}/edit`)
     }
 
     return {

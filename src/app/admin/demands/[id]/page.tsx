@@ -165,8 +165,9 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
               <User className="w-4 h-4 text-muted-foreground" />
               <span>Produtor: </span>
               <Link
-                href={`/admin/crm/${demand.producer.id}`}
+                href={`/admin/crm/${demand.producer.id}/edit`}
                 className="font-semibold text-foreground hover:text-[#1B4D3E] transition-colors"
+                title={`Ver cadastro de ${demand.producer.name} no CRM`}
               >
                 {demand.producer.name}
               </Link>
@@ -175,9 +176,19 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
             <div className="flex items-center gap-1.5">
               <Home className="w-4 h-4 text-muted-foreground" />
               <span>Fazenda: </span>
-              <span className="font-semibold text-foreground">
-                {propertyDisplayName} {propertyLocation && `(${propertyLocation})`}
-              </span>
+              {demand.property?.id ? (
+                <Link
+                  href={`/admin/crm/properties/${demand.property.id}/edit`}
+                  className="font-semibold text-foreground hover:text-[#1B4D3E] transition-colors"
+                  title={`Ver dados da fazenda ${propertyDisplayName}`}
+                >
+                  {propertyDisplayName} {propertyLocation && `(${propertyLocation})`}
+                </Link>
+              ) : (
+                <span className="font-semibold text-foreground">
+                  {propertyDisplayName} {propertyLocation && `(${propertyLocation})`}
+                </span>
+              )}
             </div>
           </div>
         </div>

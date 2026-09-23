@@ -85,7 +85,12 @@ export function DemandTableView({ demands }: DemandTableViewProps) {
                 <tr key={demand.id} className="hover:bg-slate-50/80 transition-colors">
                   {/* Serviço & Proposta */}
                   <td className="py-3.5 px-4">
-                    <div className="font-bold text-slate-900">{serviceTitle}</div>
+                    <Link
+                      href={`/admin/demands/${demand.id}`}
+                      className="font-bold text-slate-900 hover:text-emerald-700 transition-colors block"
+                    >
+                      {serviceTitle}
+                    </Link>
                     {demand.proposalId && (
                       <span className="inline-block mt-0.5 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-1.5 py-0.2 rounded">
                         Prop: {demand.proposalId}
@@ -96,8 +101,9 @@ export function DemandTableView({ demands }: DemandTableViewProps) {
                   {/* Produtor */}
                   <td className="py-3.5 px-4">
                     <Link
-                      href={`/admin/crm/${demand.producer.id}`}
+                      href={`/admin/crm/${demand.producer.id}/edit`}
                       className="font-semibold text-slate-900 hover:text-emerald-700 transition-colors"
+                      title={`Ver cadastro de ${demand.producer.name} no CRM`}
                     >
                       {demand.producer.name}
                     </Link>
@@ -107,9 +113,19 @@ export function DemandTableView({ demands }: DemandTableViewProps) {
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-1.5 text-slate-600">
                       <Home className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span className="truncate max-w-[150px]" title={propertyName}>
-                        {propertyName}
-                      </span>
+                      {demand.property?.id ? (
+                        <Link
+                          href={`/admin/crm/properties/${demand.property.id}/edit`}
+                          className="truncate max-w-[150px] hover:text-emerald-700 hover:underline transition-colors"
+                          title={propertyName}
+                        >
+                          {propertyName}
+                        </Link>
+                      ) : (
+                        <span className="truncate max-w-[150px]" title={propertyName}>
+                          {propertyName}
+                        </span>
+                      )}
                     </div>
                   </td>
 
