@@ -26,6 +26,14 @@ import {
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface ProducerOption {
   id: string
@@ -181,22 +189,29 @@ export function NewDemandForm({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Produtor Rural <span className="text-rose-500">*</span>
             </label>
-            <select
+            <Select
               value={producerId}
-              onChange={(e) => {
-                setProducerId(e.target.value)
-                setPropertyId('') // Reseta a propriedade
+              onValueChange={(val) => {
+                setProducerId(val || '')
+                setPropertyId('')
               }}
-              required
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             >
-              <option value="">Selecione um produtor cadastrado...</option>
-              {producers.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} ({p.document})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                <SelectValue placeholder="Selecione um produtor cadastrado...">
+                  {(() => {
+                    const p = producers.find((prod) => prod.id === producerId)
+                    return p ? `${p.name} (${p.document})` : undefined
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {producers.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} ({p.document})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Seletor de Propriedade */}
@@ -204,25 +219,37 @@ export function NewDemandForm({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Propriedade / Fazenda (Opcional)
             </label>
-            <select
-              value={propertyId}
-              onChange={(e) => setPropertyId(e.target.value)}
-              disabled={!producerId}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 disabled:bg-slate-50 disabled:text-slate-400"
+            <Select
+              value={propertyId || 'NONE'}
+              onValueChange={(val) => setPropertyId(val === 'NONE' || !val ? '' : val)}
+              disabled={!producerId || availableProperties.length === 0}
             >
-              <option value="">
-                {producerId
-                  ? availableProperties.length > 0
-                    ? 'Selecione uma fazenda...'
-                    : 'Nenhuma fazenda vinculada a este produtor'
-                  : 'Selecione o produtor primeiro'}
-              </option>
-              {availableProperties.map((prop) => (
-                <option key={prop.id} value={prop.id}>
-                  {prop.name} {prop.city ? `(${prop.city}/${prop.state})` : ''}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800 disabled:bg-slate-50 disabled:text-slate-400">
+                <SelectValue
+                  placeholder={
+                    producerId
+                      ? availableProperties.length > 0
+                        ? 'Selecione uma fazenda...'
+                        : 'Nenhuma fazenda vinculada a este produtor'
+                      : 'Selecione o produtor primeiro'
+                  }
+                >
+                  {(() => {
+                    if (!propertyId || propertyId === 'NONE') return undefined
+                    const prop = availableProperties.find((p) => p.id === propertyId)
+                    return prop ? `${prop.name} ${prop.city ? `(${prop.city}/${prop.state})` : ''}` : undefined
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">Nenhuma fazenda vinculada</SelectItem>
+                {availableProperties.map((prop) => (
+                  <SelectItem key={prop.id} value={prop.id}>
+                    {prop.name} {prop.city ? `(${prop.city}/${prop.state})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -232,18 +259,28 @@ export function NewDemandForm({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Responsável Técnico / Executor
             </label>
-            <select
-              value={assignedToId}
-              onChange={(e) => setAssignedToId(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            <Select
+              value={assignedToId || 'UNASSIGNED'}
+              onValueChange={(val) => setAssignedToId(val === 'UNASSIGNED' || !val ? '' : val)}
             >
-              <option value="">Não atribuído (Definir na triagem)</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.fullName || u.email}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                <SelectValue placeholder="Não atribuído (Definir na triagem)">
+                  {(() => {
+                    if (!assignedToId || assignedToId === 'UNASSIGNED') return undefined
+                    const u = users.find((usr) => usr.id === assignedToId)
+                    return u ? (u.fullName || u.email) : undefined
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="UNASSIGNED">Não atribuído (Definir na triagem)</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.fullName || u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Proposta / Dossiê Vinculado */}
@@ -256,7 +293,7 @@ export function NewDemandForm({
               value={proposalId}
               onChange={(e) => setProposalId(e.target.value)}
               placeholder="Ex: PRP-2026-089 ou Custeio Soja BB"
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 h-11 text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           </div>
         </div>
@@ -275,18 +312,24 @@ export function NewDemandForm({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Tipo de Serviço Oficial <span className="text-rose-500">*</span>
             </label>
-            <select
+            <Select
               value={serviceType}
-              onChange={(e) => handleServiceChange(e.target.value as RuralServiceTypeCode)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-medium"
+              onValueChange={(val) => val && handleServiceChange(val as RuralServiceTypeCode)}
             >
-              {RURAL_SERVICE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {RURAL_SERVICES_CATALOG[type]?.label || type}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800 font-medium">
+                <SelectValue placeholder="Selecione o tipo de serviço">
+                  {RURAL_SERVICES_CATALOG[serviceType]?.label || serviceType}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {RURAL_SERVICE_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {RURAL_SERVICES_CATALOG[type]?.label || type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
               {RURAL_SERVICES_CATALOG[serviceType]?.description}
             </p>
           </div>
@@ -296,16 +339,28 @@ export function NewDemandForm({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Prioridade
             </label>
-            <select
+            <Select
               value={priority}
-              onChange={(e) => setPriority(e.target.value as DemandPriorityCode)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              onValueChange={(val) => val && setPriority(val as DemandPriorityCode)}
             >
-              <option value="BAIXA">Baixa</option>
-              <option value="MEDIA">Média (Padrão)</option>
-              <option value="ALTA">Alta</option>
-              <option value="URGENTE">Urgente</option>
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                <SelectValue placeholder="Selecione a prioridade">
+                  {priority === 'BAIXA'
+                    ? 'Baixa'
+                    : priority === 'MEDIA'
+                    ? 'Média (Padrão)'
+                    : priority === 'ALTA'
+                    ? 'Alta'
+                    : 'Urgente'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BAIXA">Baixa</SelectItem>
+                <SelectItem value="MEDIA">Média (Padrão)</SelectItem>
+                <SelectItem value="ALTA">Alta</SelectItem>
+                <SelectItem value="URGENTE">Urgente</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -321,7 +376,7 @@ export function NewDemandForm({
               onChange={(e) => setCustomServiceType(e.target.value)}
               placeholder="Digite o nome do serviço rural personalizado"
               required
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 h-11 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           </div>
         )}
@@ -332,12 +387,12 @@ export function NewDemandForm({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Data de Solicitação
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={requestDate}
-              onChange={(e) => setRequestDate(e.target.value)}
-              required
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              onChange={(val) => setRequestDate(val)}
+              placeholder="DD/MM/AAAA"
+              showPresets={false}
+              className="w-full h-11 text-sm rounded-xl border border-slate-300 bg-white text-slate-800"
             />
           </div>
 
@@ -346,11 +401,12 @@ export function NewDemandForm({
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Previsão de Entrega (SLA)
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={estimatedDeliveryDate}
-              onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              onChange={(val) => setEstimatedDeliveryDate(val)}
+              placeholder="DD/MM/AAAA"
+              showPresets={true}
+              className="w-full h-11 text-sm rounded-xl border border-slate-300 bg-white text-slate-800"
             />
           </div>
         </div>

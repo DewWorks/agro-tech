@@ -1,0 +1,178 @@
+'use client'
+
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Search, Ban, X } from 'lucide-react'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import {
+  RURAL_SERVICE_TYPES,
+  RURAL_SERVICES_CATALOG,
+  RuralServiceTypeCode,
+} from '@/lib/validations/demands'
+
+interface DemandFiltersBarProps {
+  currentView: string
+  currentSearch: string
+  currentServiceType?: string
+  showCancelled: boolean
+}
+
+export function DemandFiltersBar({
+  currentView,
+  currentSearch,
+  currentServiceType,
+  showCancelled,
+}: DemandFiltersBarProps) {
+  const router = useRouter()
+  const [search, setSearch] = useState(currentSearch)
+  const [serviceType, setServiceType] = useState<string>(currentServiceType || 'ALL')
+
+  const handleApplyFilters = (newServiceType?: string) => {
+    const activeServiceType = newServiceType !== undefined ? newServiceType : serviceType
+    const params = new URLSearchParams()
+    if (currentView) params.set('view', currentView)
+    if (search.trim()) params.set('search', search.trim())
+    if (activeServiceType && activeServiceType !== 'ALL') {
+      params.set('serviceType', activeServiceType)
+    }
+    if (showCancelled) params.set('showCancelled', 'true')
+    router.push(`/admin/demands?${params.toString()}`)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleApplyFilters()
+    }
+  }
+
+  const handleServiceChange = (val: string | null) => {
+    const normalized = val || 'ALL'
+    setServiceType(normalized)
+    handleApplyFilters(normalized)
+  }
+
+  return (
+    <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      {/* Formulário de Busca e Filtro de Serviço */}
+      <div className="flex items-center gap-2.5 flex-1 flex-wrap">
+        {/* Campo de Busca */}
+        <div className="relative flex-1 min-w-[220px]">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Buscar por produtor, fazenda, proposta..."
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl border border-slate-200 text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+          />
+          {search && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('')
+                const params = new URLSearchParams()
+                if (currentView) params.set('view', currentView)
+                if (serviceType && serviceType !== 'ALL') params.set('serviceType', serviceType)
+                if (showCancelled) params.set('showCancelled', 'true')
+                router.push(`/admin/demands?${params.toString()}`)
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Dropdown de Serviços usando o componente Select do sistema */}
+        <div className="w-[220px]">
+          <Select value={serviceType} onValueChange={handleServiceChange}>
+            <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white">
+              <SelectValue placeholder="Todos os Serviços">
+                {serviceType === 'ALL'
+                  ? 'Todos os Serviços'
+                  : RURAL_SERVICES_CATALOG[serviceType as RuralServiceTypeCode]?.label || serviceType}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Todos os Serviços</SelectItem>
+              {RURAL_SERVICE_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {RURAL_SERVICES_CATALOG[type]?.label || type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => handleApplyFilters()}
+          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+        >
+          Filtrar
+        </button>
+      </div>
+
+      {/* Controles da Direita: Canceladas & View Switcher */}
+      <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
+        {/* Toggle Canceladas */}
+        <Link
+          href={`/admin/demands?view=${currentView}&search=${encodeURIComponent(
+            search
+          )}&serviceType=${encodeURIComponent(
+            serviceType === 'ALL' ? '' : serviceType
+          )}&showCancelled=${showCancelled ? 'false' : 'true'}`}
+          className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all inline-flex items-center gap-1.5 ${
+            showCancelled
+              ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-2xs'
+              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+          }`}
+        >
+          <Ban className="w-3.5 h-3.5" />
+          <span>{showCancelled ? 'Ocultar Canceladas' : 'Ver Canceladas'}</span>
+        </Link>
+
+        {/* Alternância Kanban | Tabela */}
+        <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex items-center">
+          <Link
+            href={`/admin/demands?view=kanban&search=${encodeURIComponent(
+              search
+            )}&serviceType=${encodeURIComponent(
+              serviceType === 'ALL' ? '' : serviceType
+            )}&showCancelled=${showCancelled ? 'true' : 'false'}`}
+            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+              currentView === 'kanban'
+                ? 'bg-white text-slate-900 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            Kanban
+          </Link>
+          <Link
+            href={`/admin/demands?view=table&search=${encodeURIComponent(
+              search
+            )}&serviceType=${encodeURIComponent(
+              serviceType === 'ALL' ? '' : serviceType
+            )}&showCancelled=${showCancelled ? 'true' : 'false'}`}
+            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
+              currentView === 'table'
+                ? 'bg-white text-slate-900 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            Tabela
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}

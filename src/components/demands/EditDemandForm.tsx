@@ -20,6 +20,14 @@ import {
   Save,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface PropertyOption {
   id: string
@@ -123,36 +131,56 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Propriedade / Fazenda
             </label>
-            <select
-              value={propertyId}
-              onChange={(e) => setPropertyId(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            <Select
+              value={propertyId || 'NONE'}
+              onValueChange={(val) => setPropertyId(val === 'NONE' || !val ? '' : val)}
             >
-              <option value="">Nenhuma propriedade vinculada</option>
-              {properties.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} {p.city ? `(${p.city}/${p.state})` : ''}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                <SelectValue placeholder="Nenhuma propriedade vinculada">
+                  {(() => {
+                    if (!propertyId || propertyId === 'NONE') return undefined
+                    const p = properties.find((prop) => prop.id === propertyId)
+                    return p ? `${p.name} ${p.city ? `(${p.city}/${p.state})` : ''}` : undefined
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">Nenhuma propriedade vinculada</SelectItem>
+                {properties.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name} {p.city ? `(${p.city}/${p.state})` : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Responsável Técnico
             </label>
-            <select
-              value={assignedToId}
-              onChange={(e) => setAssignedToId(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            <Select
+              value={assignedToId || 'UNASSIGNED'}
+              onValueChange={(val) => setAssignedToId(val === 'UNASSIGNED' || !val ? '' : val)}
             >
-              <option value="">Não atribuído</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.fullName || u.email}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                <SelectValue placeholder="Não atribuído">
+                  {(() => {
+                    if (!assignedToId || assignedToId === 'UNASSIGNED') return undefined
+                    const u = users.find((usr) => usr.id === assignedToId)
+                    return u ? (u.fullName || u.email) : undefined
+                  })()}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="UNASSIGNED">Não atribuído</SelectItem>
+                {users.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.fullName || u.email}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -161,33 +189,51 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Tipo de Serviço Oficial
             </label>
-            <select
+            <Select
               value={serviceType}
-              onChange={(e) => setServiceType(e.target.value as RuralServiceTypeCode)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              onValueChange={(val) => val && setServiceType(val as RuralServiceTypeCode)}
             >
-              {RURAL_SERVICE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {RURAL_SERVICES_CATALOG[type]?.label || type}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800 font-medium">
+                <SelectValue placeholder="Selecione o tipo de serviço">
+                  {RURAL_SERVICES_CATALOG[serviceType]?.label || serviceType}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {RURAL_SERVICE_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {RURAL_SERVICES_CATALOG[type]?.label || type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Prioridade
             </label>
-            <select
+            <Select
               value={priority}
-              onChange={(e) => setPriority(e.target.value as DemandPriorityCode)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 bg-white text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              onValueChange={(val) => val && setPriority(val as DemandPriorityCode)}
             >
-              <option value="BAIXA">Baixa</option>
-              <option value="MEDIA">Média</option>
-              <option value="ALTA">Alta</option>
-              <option value="URGENTE">Urgente</option>
-            </select>
+              <SelectTrigger className="w-full text-sm rounded-xl border border-slate-300 bg-white h-11 text-slate-800">
+                <SelectValue placeholder="Selecione a prioridade">
+                  {priority === 'BAIXA'
+                    ? 'Baixa'
+                    : priority === 'MEDIA'
+                    ? 'Média'
+                    : priority === 'ALTA'
+                    ? 'Alta'
+                    : 'Urgente'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="BAIXA">Baixa</SelectItem>
+                <SelectItem value="MEDIA">Média</SelectItem>
+                <SelectItem value="ALTA">Alta</SelectItem>
+                <SelectItem value="URGENTE">Urgente</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -200,7 +246,7 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
               type="text"
               value={customServiceType}
               onChange={(e) => setCustomServiceType(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 h-11 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           </div>
         )}
@@ -215,7 +261,7 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
               value={proposalId}
               onChange={(e) => setProposalId(e.target.value)}
               placeholder="Ex: PRP-2026-089"
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 h-11 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           </div>
 
@@ -223,11 +269,12 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Data de Solicitação
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={requestDate}
-              onChange={(e) => setRequestDate(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              onChange={(val) => setRequestDate(val)}
+              placeholder="DD/MM/AAAA"
+              showPresets={false}
+              className="w-full h-11 text-sm rounded-xl border border-slate-300 bg-white text-slate-800"
             />
           </div>
 
@@ -235,11 +282,12 @@ export function EditDemandForm({ demand, properties, users }: EditDemandFormProp
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
               Previsão de Entrega (SLA)
             </label>
-            <input
-              type="date"
+            <DatePicker
               value={estimatedDeliveryDate}
-              onChange={(e) => setEstimatedDeliveryDate(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-300 p-2.5 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+              onChange={(val) => setEstimatedDeliveryDate(val)}
+              placeholder="DD/MM/AAAA"
+              showPresets={true}
+              className="w-full h-11 text-sm rounded-xl border border-slate-300 bg-white text-slate-800"
             />
           </div>
         </div>
