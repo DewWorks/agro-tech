@@ -44,6 +44,11 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
     }
   }
 
+  // Operadores visualizam estritamente os dados da sua própria filial
+  if (dbUser.role === 'OPERATOR' && dbUser.branchId) {
+    whereClause.branchId = dbUser.branchId
+  }
+
   if (q) {
     whereClause.OR = [
       { name: { contains: q, mode: 'insensitive' } },
@@ -85,7 +90,8 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
       where: {
         branch: {
           organizationId: dbUser.organizationId
-        }
+        },
+        ...(dbUser.role === 'OPERATOR' && dbUser.branchId ? { branchId: dbUser.branchId } : {})
       }
     })
   ])

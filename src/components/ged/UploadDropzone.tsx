@@ -16,14 +16,20 @@ import {
 import { toast } from 'sonner'
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES, formatFileSize } from '@/lib/ged/utils'
 import { DOCUMENT_TYPE_LABELS } from '@/lib/ged/semaphore'
-import { getSignedUrlForUpload, createDocumentRecord } from '@/actions/documents'
+import { getSignedUrlForUpload, createDocumentRecord, replaceDocument } from '@/actions/documents'
 import { compressDocumentFile, CompressionResult } from '@/lib/ged/compressor'
 import { Sparkles } from 'lucide-react'
+import { useEffect } from 'react'
 
 interface UploadDropzoneProps {
   producerId: string
   branchId: string
   propertyId?: string
+  replacingDocumentId?: string
+  isReplacement?: boolean
+  initialDocumentType?: string
+  initialIssueDate?: string
+  initialExpirationDate?: string
   onUploadComplete?: () => void
   onClose?: () => void
 }
@@ -40,17 +46,28 @@ export default function UploadDropzone({
   producerId,
   branchId,
   propertyId,
+  replacingDocumentId,
+  isReplacement,
+  initialDocumentType = '',
+  initialIssueDate = '',
+  initialExpirationDate = '',
   onUploadComplete,
   onClose,
 }: UploadDropzoneProps) {
   const [isDragging, setIsDragging] = useState(false)
   const [selectedFile, setSelectedFile] = useState<FileUploadState | null>(null)
   const [isCompressing, setIsCompressing] = useState(false)
-  const [documentType, setDocumentType] = useState('')
-  const [issueDate, setIssueDate] = useState('')
-  const [expirationDate, setExpirationDate] = useState('')
+  const [documentType, setDocumentType] = useState(initialDocumentType)
+  const [issueDate, setIssueDate] = useState(initialIssueDate)
+  const [expirationDate, setExpirationDate] = useState(initialExpirationDate)
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (initialDocumentType) setDocumentType(initialDocumentType)
+    if (initialIssueDate) setIssueDate(initialIssueDate)
+    if (initialExpirationDate) setExpirationDate(initialExpirationDate)
+  }, [initialDocumentType, initialIssueDate, initialExpirationDate])
 
   const validateFile = useCallback((file: File): string | null => {
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
@@ -162,26 +179,39 @@ export default function UploadDropzone({
 
       setSelectedFile(prev => prev ? { ...prev, progress: 70 } : null)
 
-      // 3. Criar registro no banco de dados
-      const recordResult = await createDocumentRecord({
-        branchId,
-        producerId,
-        propertyId,
-        documentType,
-        fileName: selectedFile.file.name,
-        fileSize: selectedFile.file.size,
-        mimeType: selectedFile.file.type,
-        storagePath: urlResult.data.storagePath,
-        issueDate: issueDate || null,
-        expirationDate: expirationDate || null,
-      })
+      // 3. Criar registro no banco de dados (ou substituir via transação)
+      let recordResult: { success?: boolean; error?: string; data?: any }
+
+      if (isReplacement && replacingDocumentId) {
+        recordResult = await replaceDocument(replacingDocumentId, {
+          fileName: selectedFile.file.name,
+          fileSize: selectedFile.file.size,
+          mimeType: selectedFile.file.type,
+          storagePath: urlResult.data.storagePath,
+          issueDate: issueDate || null,
+          expirationDate: expirationDate || null,
+        })
+      } else {
+        recordResult = await createDocumentRecord({
+          branchId,
+          producerId,
+          propertyId,
+          documentType,
+          fileName: selectedFile.file.name,
+          fileSize: selectedFile.file.size,
+          mimeType: selectedFile.file.type,
+          storagePath: urlResult.data.storagePath,
+          issueDate: issueDate || null,
+          expirationDate: expirationDate || null,
+        })
+      }
 
       if (recordResult.error) {
         throw new Error(recordResult.error)
       }
 
       setSelectedFile(prev => prev ? { ...prev, progress: 100, status: 'success' } : null)
-      toast.success('Documento enviado com sucesso!')
+      toast.success(isReplacement ? 'Documento substituído com sucesso!' : 'Documento enviado com sucesso!')
 
       // Reset após 1.5s
       setTimeout(() => {
@@ -209,6 +239,15 @@ export default function UploadDropzone({
 
   return (
     <div className="space-y-4">
+      {isReplacement && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800">
+          <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0" />
+          <span>
+            <strong>Modo de Substituição:</strong> O novo arquivo substituirá a versão anterior, mantendo a rastreabilidade e compliance bancário.
+          </span>
+        </div>
+      )}
+
       {/* Drop Zone */}
       <div
         onDragOver={handleDragOver}

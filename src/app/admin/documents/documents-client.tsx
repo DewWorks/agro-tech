@@ -6,9 +6,10 @@ import DocumentTable, { type DocumentRow } from '@/components/ged/DocumentTable'
 import DocumentToolbar from '@/components/ged/DocumentToolbar'
 import DocumentPreviewModal from '@/components/ged/DocumentPreviewModal'
 import UploadDropzone from '@/components/ged/UploadDropzone'
-import { listDocuments, getSignedUrlForDownload } from '@/actions/documents'
+import { listDocuments, getSignedUrlForDownload, archiveDocument } from '@/actions/documents'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import { format } from 'date-fns'
 
 interface DocumentsClientProps {
   initialTree: TreeProducer[]
@@ -34,11 +35,12 @@ export default function DocumentsClient({
   // Modals
   const [previewDoc, setPreviewDoc] = useState<DocumentRow | null>(null)
   const [showUpload, setShowUpload] = useState(false)
+  const [replacingDoc, setReplacingDoc] = useState<DocumentRow | null>(null)
 
   // Get selected producer's branchId for upload
   const selectedProducer = useMemo(
-    () => tree.find(p => p.id === selectedProducerId),
-    [tree, selectedProducerId]
+    () => tree.find(p => p.id === (replacingDoc?.producer?.id || selectedProducerId)),
+    [tree, selectedProducerId, replacingDoc]
   )
 
   // Filter documents based on current selection and filters
@@ -104,9 +106,25 @@ export default function DocumentsClient({
   }
 
   const handleReplace = (doc: DocumentRow) => {
-    // For now, open upload modal with pre-selected producer
-    setSelectedProducerId(doc.producer?.id || null)
+    setReplacingDoc(doc)
+    if (doc.producer?.id) {
+      setSelectedProducerId(doc.producer.id)
+    }
     setShowUpload(true)
+  }
+
+  const handleArchive = async (doc: DocumentRow) => {
+    try {
+      const result = await archiveDocument(doc.id)
+      if (result.success) {
+        toast.success(`Documento "${doc.fileName}" arquivado com sucesso.`)
+        refreshDocuments()
+      } else {
+        toast.error(result.error || 'Erro ao arquivar documento.')
+      }
+    } catch {
+      toast.error('Erro inesperado ao arquivar documento.')
+    }
   }
 
   const refreshDocuments = useCallback(async () => {
@@ -120,6 +138,7 @@ export default function DocumentsClient({
 
   const handleUploadComplete = () => {
     setShowUpload(false)
+    setReplacingDoc(null)
     refreshDocuments()
   }
 
@@ -148,7 +167,10 @@ export default function DocumentsClient({
             onStatusFilterChange={setStatusFilter}
             typeFilter={typeFilter}
             onTypeFilterChange={setTypeFilter}
-            onNewDocument={() => setShowUpload(true)}
+            onNewDocument={() => {
+              setReplacingDoc(null)
+              setShowUpload(true)
+            }}
             selectedCount={0}
           />
 
@@ -159,6 +181,7 @@ export default function DocumentsClient({
               onView={handleView}
               onDownload={handleDownload}
               onReplace={handleReplace}
+              onArchive={handleArchive}
               showProducerColumn={!selectedProducerId}
             />
           </div>
@@ -172,18 +195,30 @@ export default function DocumentsClient({
         onClose={() => setPreviewDoc(null)}
       />
 
-      {/* Upload Dialog */}
-      <Dialog open={showUpload} onOpenChange={setShowUpload}>
+      {/* Upload / Replace Dialog */}
+      <Dialog open={showUpload} onOpenChange={(open) => {
+        setShowUpload(open)
+        if (!open) setReplacingDoc(null)
+      }}>
         <DialogContent className="max-w-xl">
           <DialogTitle className="text-lg font-semibold text-[#1B4D3E]">
-            Enviar Novo Documento
+            {replacingDoc ? `Substituir Documento: ${replacingDoc.fileName}` : 'Enviar Novo Documento'}
           </DialogTitle>
           {selectedProducer ? (
             <UploadDropzone
               producerId={selectedProducer.id}
               branchId={selectedProducer.branchId}
+              propertyId={replacingDoc?.property?.id || undefined}
+              replacingDocumentId={replacingDoc?.id}
+              isReplacement={!!replacingDoc}
+              initialDocumentType={replacingDoc?.documentType}
+              initialIssueDate={replacingDoc?.issueDate ? format(new Date(replacingDoc.issueDate), 'yyyy-MM-dd') : ''}
+              initialExpirationDate={replacingDoc?.expirationDate ? format(new Date(replacingDoc.expirationDate), 'yyyy-MM-dd') : ''}
               onUploadComplete={handleUploadComplete}
-              onClose={() => setShowUpload(false)}
+              onClose={() => {
+                setShowUpload(false)
+                setReplacingDoc(null)
+              }}
             />
           ) : (
             <div className="p-6 text-center text-muted-foreground">

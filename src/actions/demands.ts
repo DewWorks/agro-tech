@@ -40,6 +40,11 @@ export async function getDemands(filters: DemandFilters = {}) {
 
     const where: any = {}
 
+    // Isolamento multi-tenant por organização e filial
+    if (dbUser.organizationId && dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating) {
+      where.branch = { organizationId: dbUser.organizationId }
+    }
+
     // Isolamento multi-tenant por filial
     if (filters.branchId) {
       where.branchId = filters.branchId
@@ -208,12 +213,17 @@ export async function getDemands(filters: DemandFilters = {}) {
 export async function getDemandById(id: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
     }
 
-    const demand = await prisma.serviceDemand.findUnique({
-      where: { id },
+    const demand = await prisma.serviceDemand.findFirst({
+      where: {
+        id,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { branch: { organizationId: dbUser.organizationId } }
+          : {}),
+      },
       include: {
         creator: {
           select: {
@@ -272,7 +282,7 @@ export async function getDemandById(id: string) {
     })
 
     if (!demand) {
-      throw new Error('Demanda não encontrada.')
+      throw new Error('Demanda não encontrada ou permissão negada.')
     }
 
     const sla = calculateSlaInfo(
@@ -449,8 +459,22 @@ export async function createDemand(rawData: any) {
 export async function updateDemand(id: string, rawData: any) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
+    }
+
+    const existingDemand = await prisma.serviceDemand.findFirst({
+      where: {
+        id,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { branch: { organizationId: dbUser.organizationId } }
+          : {}),
+      },
+      select: { id: true, branchId: true },
+    })
+
+    if (!existingDemand) {
+      throw new Error('Demanda não encontrada ou permissão negada.')
     }
 
     const parsed = updateDemandSchema.parse(rawData)
@@ -507,17 +531,22 @@ export async function updateDemandStatus(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const parsed = updateDemandStatusSchema.parse({ status: newStatus, notes })
 
-    const existing = await prisma.serviceDemand.findUnique({
-      where: { id },
+    const existing = await prisma.serviceDemand.findFirst({
+      where: {
+        id,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { branch: { organizationId: dbUser.organizationId } }
+          : {}),
+      },
     })
     if (!existing) {
-      throw new Error('Demanda não encontrada.')
+      throw new Error('Demanda não encontrada ou permissão negada.')
     }
 
     const updateData: any = {
@@ -608,8 +637,22 @@ export async function toggleChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
+    }
+
+    const existingItem = await prisma.demandChecklistItem.findFirst({
+      where: {
+        id: itemId,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { demand: { branch: { organizationId: dbUser.organizationId } } }
+          : {}),
+      },
+      select: { id: true, demandId: true },
+    })
+
+    if (!existingItem) {
+      throw new Error('Item do checklist não encontrado ou permissão negada.')
     }
 
     const updated = await prisma.demandChecklistItem.update({
@@ -652,17 +695,22 @@ export async function attachDocumentToChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
     }
 
-    const item = await prisma.demandChecklistItem.findUnique({
-      where: { id: itemId },
+    const item = await prisma.demandChecklistItem.findFirst({
+      where: {
+        id: itemId,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { demand: { branch: { organizationId: dbUser.organizationId } } }
+          : {}),
+      },
       include: { demand: true },
     })
 
     if (!item) {
-      throw new Error('Item do checklist não encontrado.')
+      throw new Error('Item do checklist não encontrado ou permissão negada.')
     }
 
     const result = await prisma.$transaction(async (tx) => {
@@ -717,8 +765,22 @@ export async function attachDocumentToChecklistItem(
 export async function linkExistingGedDocument(itemId: string, documentId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
+    }
+
+    const existingItem = await prisma.demandChecklistItem.findFirst({
+      where: {
+        id: itemId,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { demand: { branch: { organizationId: dbUser.organizationId } } }
+          : {}),
+      },
+      select: { id: true, demandId: true },
+    })
+
+    if (!existingItem) {
+      throw new Error('Item do checklist não encontrado ou permissão negada.')
     }
 
     const updated = await prisma.demandChecklistItem.update({
@@ -755,12 +817,26 @@ export async function addChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     if (!title || title.trim() === '') {
       throw new Error('O título do documento é obrigatório.')
+    }
+
+    const demand = await prisma.serviceDemand.findFirst({
+      where: {
+        id: demandId,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { branch: { organizationId: dbUser.organizationId } }
+          : {}),
+      },
+      select: { id: true },
+    })
+
+    if (!demand) {
+      throw new Error('Demanda não encontrada ou permissão negada.')
     }
 
     const item = await prisma.demandChecklistItem.create({
@@ -794,8 +870,22 @@ export async function addChecklistItem(
 export async function deleteChecklistItem(itemId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
+    }
+
+    const existingItem = await prisma.demandChecklistItem.findFirst({
+      where: {
+        id: itemId,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { demand: { branch: { organizationId: dbUser.organizationId } } }
+          : {}),
+      },
+      select: { id: true, demandId: true },
+    })
+
+    if (!existingItem) {
+      throw new Error('Item do checklist não encontrado ou permissão negada.')
     }
 
     const item = await prisma.demandChecklistItem.delete({
@@ -822,8 +912,22 @@ export async function deleteChecklistItem(itemId: string) {
 export async function deleteDemand(id: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) {
-      throw new Error('Usuário não autenticado.')
+    if (!dbUser || !dbUser.organizationId) {
+      throw new Error('Usuário não autenticado ou sem organização.')
+    }
+
+    const existing = await prisma.serviceDemand.findFirst({
+      where: {
+        id,
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+          ? { branch: { organizationId: dbUser.organizationId } }
+          : {}),
+      },
+      select: { id: true },
+    })
+
+    if (!existing) {
+      throw new Error('Demanda não encontrada ou permissão negada.')
     }
 
     await prisma.serviceDemand.delete({

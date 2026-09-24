@@ -644,7 +644,7 @@ model Document {
   fileName         String
   fileSize         Int
   mimeType         String
-  storagePath      String           @unique
+  storagePath      String
   issueDate        DateTime?
   expirationDate   DateTime?
   cropYear         String?
@@ -678,6 +678,7 @@ model Document {
   @@index([branchId, complianceStatus])
   @@index([propertyId])
   @@index([expirationDate])
+  @@index([storagePath])
   @@index([isArchived, isSuperseded])
   @@map("documents")
 }

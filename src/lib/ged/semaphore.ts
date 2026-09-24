@@ -14,7 +14,14 @@ export const ALERT_WINDOWS: Record<string, number> = {
   MATRICULA: 7,
   CND_IBAMA: 15,
   CND_FEDERAL: 30,
+  CERTIDAO_INTEIRO_TEOR: 30,
+  CERTIDAO_ONUS_REAIS: 30,
+  CND_PROPRIETARIO: 30,
+  CND_CONJUGE: 30,
   OUTORGA_AGUA: 60,
+  OUTORGA_AGUA_DUI: 60,
+  LICENCA_AMBIENTAL_OPERACAO: 60,
+  LICENCA_AMBIENTAL_INSTALACAO: 60,
   DEFAULT: 60,
 }
 
@@ -54,22 +61,53 @@ export const STATUS_CONFIG: Record<DocumentStatus, {
 }
 
 /**
- * Mapa de rótulos amigáveis para cada tipo de documento.
+ * Mapa de rótulos amigáveis para cada tipo de documento (37 categorias bancárias).
  */
 export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
+  // Principais / Qualificação Base
   MATRICULA: 'Matrícula de Imóvel',
   CAR: 'CAR (Cadastro Ambiental Rural)',
-  CCIR: 'CCIR',
+  CCIR: 'CCIR (INCRA)',
   ITR: 'ITR (Imposto Territorial Rural)',
   RG_CPF: 'RG / CPF',
   CERTIDAO_CASAMENTO: 'Certidão de Casamento',
-  CONTRATO_ARRENDAMENTO: 'Contrato de Arrendamento',
+  CONTRATO_ARRENDAMENTO: 'Contrato de Arrendamento Rural',
   OUTORGA_AGUA: 'Outorga de Água',
   CND_IBAMA: 'CND IBAMA',
   CND_FEDERAL: 'CND Federal / PGFN',
   DAP_CAF: 'DAP / CAF',
-  LAUDO_TECNICO: 'Laudo Técnico',
-  OUTROS: 'Outros',
+  LAUDO_TECNICO: 'Laudo Técnico / Vistoria',
+  OUTROS: 'Outros Documentos',
+
+  // Pessoais e Fiscais Expandidos
+  AUTORIZACAO_COMPARTILHAMENTO: 'Autorização de Compartilhamento',
+  AUTORIZACAO_SCR: 'Autorização Consulta SCR (BACEN)',
+  AUTORIZACAO_SICOR: 'Autorização Consulta SICOR',
+  CPF_RG_PROPRIETARIO: 'RG / CPF do Proprietário',
+  CPF_RG_CONJUGE: 'RG / CPF do Cônjuge',
+  CND_PROPRIETARIO: 'CND do Proprietário',
+  CND_CONJUGE: 'CND do Cônjuge',
+  COMPROVANTE_RESIDENCIA: 'Comprovante de Residência',
+  IMPOSTO_RENDA: 'Declaração de Imposto de Renda',
+
+  // Propriedade e Posse
+  CERTIDAO_INTEIRO_TEOR: 'Certidão de Inteiro Teor',
+  CERTIDAO_CADEIA_DOMINIAL: 'Certidão de Cadeia Dominial',
+  CERTIDAO_ONUS_REAIS: 'Certidão de Ônus Reais',
+  TITULO_DOMINIO: 'Título de Domínio',
+  ESCRITURA_COMPRA_VENDA: 'Escritura de Compra e Venda',
+  ESCRITURA_DOACAO: 'Escritura de Doação',
+  ESCRITURA_PERMUTA: 'Escritura de Permuta',
+  ESCRITURA_CESSAO_HEREDITARIO: 'Escritura de Cessão de Direitos Hereditários',
+  ESCRITURA_INVENTARIO: 'Escritura de Inventário / Partilha',
+  INSCRICAO_ESTADUAL: 'Inscrição Estadual',
+  CONTRATO_CESSAO_USO: 'Contrato de Cessão de Uso',
+
+  // Ambientais e Técnicos
+  OUTORGA_AGUA_DUI: 'Declaração de Uso Insignificante de Água (DUI)',
+  LICENCA_AMBIENTAL_OPERACAO: 'Licença Ambiental de Operação (LO)',
+  LICENCA_AMBIENTAL_INSTALACAO: 'Licença Ambiental de Instalação (LI)',
+  LICENCA_AMBIENTAL_AEF: 'Autorização de Exploração Florestal (AEF)',
 }
 
 // ---------------------------------------------------------------
