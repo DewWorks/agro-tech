@@ -37,6 +37,10 @@ export async function listDocuments(filters: {
       isSuperseded: false,
     }
 
+    if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN' && dbUser.branchId) {
+      where.branchId = dbUser.branchId
+    }
+
     if (filters.producerId) where.producerId = filters.producerId
     if (filters.propertyId) where.propertyId = filters.propertyId
     if (filters.documentType) where.documentType = filters.documentType as DocumentType
@@ -83,13 +87,19 @@ export async function listProducerDocuments(producerId: string) {
       throw new Error('Usuário sem organização')
     }
 
+    const where: Prisma.DocumentWhereInput = {
+      producerId,
+      branch: { organizationId: dbUser.organizationId },
+      isArchived: false,
+      isSuperseded: false,
+    }
+
+    if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN' && dbUser.branchId) {
+      where.branchId = dbUser.branchId
+    }
+
     const documents = await prisma.document.findMany({
-      where: {
-        producerId,
-        branch: { organizationId: dbUser.organizationId },
-        isArchived: false,
-        isSuperseded: false,
-      },
+      where,
       include: {
         property: { select: { id: true, name: true } },
       },
@@ -125,6 +135,22 @@ export async function getSignedUrlForUpload(payload: {
   try {
     const dbUser = await getUserContext()
     if (!dbUser) throw new Error('Não autenticado')
+
+    if (dbUser.role !== 'SUPER_ADMIN') {
+      const branch = await prisma.branch.findFirst({
+        where: {
+          id: payload.branchId,
+          organizationId: dbUser.organizationId!,
+        },
+        select: { id: true },
+      })
+      if (!branch) {
+        throw new Error('Filial não encontrada ou sem permissão de acesso.')
+      }
+      if (dbUser.role !== 'OWNER' && dbUser.branchId && payload.branchId !== dbUser.branchId) {
+        throw new Error('Sem permissão para enviar documentos para outra filial.')
+      }
+    }
 
     // Validações
     if (!isAllowedMimeType(payload.mimeType)) {
@@ -172,6 +198,22 @@ export async function createDocumentRecord(metadata: {
     const dbUser = await getUserContext()
     if (!dbUser) throw new Error('Não autenticado')
 
+    if (dbUser.role !== 'SUPER_ADMIN') {
+      const branch = await prisma.branch.findFirst({
+        where: {
+          id: metadata.branchId,
+          organizationId: dbUser.organizationId!,
+        },
+        select: { id: true },
+      })
+      if (!branch) {
+        throw new Error('Filial não encontrada ou sem permissão de acesso.')
+      }
+      if (dbUser.role !== 'OWNER' && dbUser.branchId && metadata.branchId !== dbUser.branchId) {
+        throw new Error('Sem permissão para registrar documentos em outra filial.')
+      }
+    }
+
     const doc = await prisma.document.create({
       data: {
         branchId: metadata.branchId,
@@ -207,6 +249,25 @@ export async function getSignedUrlForView(storagePath: string) {
     const dbUser = await getUserContext()
     if (!dbUser) throw new Error('Não autenticado')
 
+    // Validar se o documento pertence à organização do usuário
+    if (dbUser.role !== 'SUPER_ADMIN') {
+      const doc = await prisma.document.findFirst({
+        where: {
+          storagePath,
+          branch: { organizationId: dbUser.organizationId! },
+        },
+        select: { id: true, branchId: true },
+      })
+
+      if (!doc) {
+        throw new Error('Documento não encontrado ou sem permissão de acesso.')
+      }
+
+      if (dbUser.role !== 'OWNER' && dbUser.branchId && doc.branchId !== dbUser.branchId) {
+        throw new Error('Documento pertence a outra filial. Acesso negado.')
+      }
+    }
+
     const signedUrl = await getViewSignedUrl(storagePath)
     return { success: true, data: { signedUrl } }
   } catch (error: unknown) {
@@ -222,6 +283,25 @@ export async function getSignedUrlForDownload(storagePath: string, fileName: str
   try {
     const dbUser = await getUserContext()
     if (!dbUser) throw new Error('Não autenticado')
+
+    // Validar se o documento pertence à organização do usuário
+    if (dbUser.role !== 'SUPER_ADMIN') {
+      const doc = await prisma.document.findFirst({
+        where: {
+          storagePath,
+          branch: { organizationId: dbUser.organizationId! },
+        },
+        select: { id: true, branchId: true },
+      })
+
+      if (!doc) {
+        throw new Error('Documento não encontrado ou sem permissão de acesso.')
+      }
+
+      if (dbUser.role !== 'OWNER' && dbUser.branchId && doc.branchId !== dbUser.branchId) {
+        throw new Error('Documento pertence a outra filial. Acesso negado.')
+      }
+    }
 
     const signedUrl = await getDownloadSignedUrl(storagePath, fileName)
     return { success: true, data: { signedUrl } }
@@ -247,11 +327,34 @@ export async function replaceDocument(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) throw new Error('Não autenticado')
+    if (!dbUser || !dbUser.organizationId) throw new Error('Não autenticado')
+
+    // Verificar existência e permissão do documento antigo
+    const existingDoc = await prisma.document.findFirst({
+      where: {
+        id: documentId,
+        branch: { organizationId: dbUser.organizationId },
+        ...(dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN' && dbUser.branchId
+          ? { branchId: dbUser.branchId }
+          : {}),
+      },
+      select: {
+        id: true,
+        branchId: true,
+        producerId: true,
+        propertyId: true,
+        documentType: true,
+        cropYear: true,
+      },
+    })
+
+    if (!existingDoc) {
+      throw new Error('Documento alvo não encontrado ou sem permissão para substituição.')
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       // Marcar o antigo como substituído
-      const oldDoc = await tx.document.update({
+      await tx.document.update({
         where: { id: documentId },
         data: { isSuperseded: true, updatedBy: dbUser.id },
       })
@@ -259,17 +362,17 @@ export async function replaceDocument(
       // Criar o novo registro
       const newDoc = await tx.document.create({
         data: {
-          branchId: oldDoc.branchId,
-          producerId: oldDoc.producerId,
-          propertyId: oldDoc.propertyId,
-          documentType: oldDoc.documentType,
+          branchId: existingDoc.branchId,
+          producerId: existingDoc.producerId,
+          propertyId: existingDoc.propertyId,
+          documentType: existingDoc.documentType,
           fileName: newMetadata.fileName,
           fileSize: newMetadata.fileSize,
           mimeType: newMetadata.mimeType,
           storagePath: newMetadata.storagePath,
           issueDate: newMetadata.issueDate ? new Date(newMetadata.issueDate) : null,
           expirationDate: newMetadata.expirationDate ? new Date(newMetadata.expirationDate) : null,
-          cropYear: oldDoc.cropYear,
+          cropYear: existingDoc.cropYear,
           complianceStatus: 'PENDING',
           inheritedFromId: documentId,
           isInherited: false,
@@ -295,7 +398,23 @@ export async function replaceDocument(
 export async function archiveDocument(documentId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser) throw new Error('Não autenticado')
+    if (!dbUser || !dbUser.organizationId) throw new Error('Não autenticado')
+
+    // Verificar se o documento pertence à organização e filial do usuário
+    const existingDoc = await prisma.document.findFirst({
+      where: {
+        id: documentId,
+        branch: { organizationId: dbUser.organizationId },
+        ...(dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN' && dbUser.branchId
+          ? { branchId: dbUser.branchId }
+          : {}),
+      },
+      select: { id: true },
+    })
+
+    if (!existingDoc) {
+      throw new Error('Documento não encontrado ou sem permissão para arquivamento.')
+    }
 
     await prisma.document.update({
       where: { id: documentId },
@@ -320,12 +439,17 @@ export async function getDocumentTree() {
       throw new Error('Usuário sem organização')
     }
 
+    const whereProducer: Prisma.ProducerWhereInput = {
+      branch: { organizationId: dbUser.organizationId },
+      isActive: true,
+      ...(dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN' && dbUser.branchId
+        ? { branchId: dbUser.branchId }
+        : {}),
+    }
+
     // Buscar produtores com contagem de documentos
     const producers = await prisma.producer.findMany({
-      where: {
-        branch: { organizationId: dbUser.organizationId },
-        isActive: true,
-      },
+      where: whereProducer,
       select: {
         id: true,
         name: true,

@@ -60,7 +60,9 @@ export async function updateOrganization(formData: FormData) {
       return { error: 'Permissão negada. Apenas o proprietário pode alterar os dados da organização.' }
     }
 
-    const targetOrgId = formData.get('orgId') as string || dbUser.organizationId
+    const targetOrgId = isSuperAdmin
+      ? ((formData.get('orgId') as string) || dbUser.organizationId)
+      : dbUser.organizationId
 
     if (!targetOrgId) {
       return { error: 'Organização não encontrada.' }

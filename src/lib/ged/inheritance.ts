@@ -87,7 +87,7 @@ export async function inheritDocumentsForNewSafra(
           fileName: doc.fileName,
           fileSize: doc.fileSize,
           mimeType: doc.mimeType,
-          storagePath: `inherited_${doc.storagePath}_${targetSafra.replace('/', '-')}`,
+          storagePath: doc.storagePath,
           issueDate: doc.issueDate,
           expirationDate: doc.expirationDate,
           cropYear: targetSafra,

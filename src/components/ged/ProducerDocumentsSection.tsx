@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { FileText, Loader2, Plus, Upload } from 'lucide-react'
+import { FileText, Loader2, Plus, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { toast } from 'sonner'
+import { format } from 'date-fns'
 import {
   listProducerDocuments,
   getSignedUrlForDownload,
@@ -27,6 +28,7 @@ export default function ProducerDocumentsSection({
   const [documents, setDocuments] = useState<DocumentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [previewDoc, setPreviewDoc] = useState<DocumentRow | null>(null)
+  const [replacingDoc, setReplacingDoc] = useState<DocumentRow | null>(null)
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('TODOS')
@@ -94,6 +96,12 @@ export default function ProducerDocumentsSection({
     }
   }
 
+  const handleReplace = (doc: DocumentRow) => {
+    setReplacingDoc(doc)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    toast.info(`Substituindo o documento "${doc.fileName}". Anexe a nova versão abaixo.`)
+  }
+
   if (loading) {
     return (
       <Card className="w-full">
@@ -110,19 +118,44 @@ export default function ProducerDocumentsSection({
       {/* Upload Card */}
       <Card className="w-full shadow-sm">
         <CardHeader className="pb-4 border-b">
-          <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
-            <Upload className="h-4 w-4" />
-            Novo Documento
-          </CardTitle>
-          <CardDescription className="text-xs mt-1">
-            Faça o upload seguro de documentos. Formatos aceitos: PDF, JPG, PNG.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm font-semibold text-[#1B4D3E] flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                {replacingDoc ? `Substituir Documento: ${replacingDoc.fileName}` : 'Novo Documento'}
+              </CardTitle>
+              <CardDescription className="text-xs mt-1">
+                {replacingDoc 
+                  ? 'O novo arquivo substituirá a versão anterior, mantendo a rastreabilidade e histórico de auditoria.'
+                  : 'Faça o upload seguro de documentos. Formatos aceitos: PDF, JPG, PNG, TIFF.'
+                }
+              </CardDescription>
+            </div>
+            {replacingDoc && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReplacingDoc(null)}
+                className="h-8 text-xs text-muted-foreground hover:text-gray-800"
+              >
+                <X className="h-3.5 w-3.5 mr-1" />
+                Cancelar Substituição
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="pt-6">
           <UploadDropzone
             producerId={producerId}
             branchId={branchId}
+            propertyId={replacingDoc?.property?.id || undefined}
+            replacingDocumentId={replacingDoc?.id}
+            isReplacement={!!replacingDoc}
+            initialDocumentType={replacingDoc?.documentType}
+            initialIssueDate={replacingDoc?.issueDate ? format(new Date(replacingDoc.issueDate), 'yyyy-MM-dd') : ''}
+            initialExpirationDate={replacingDoc?.expirationDate ? format(new Date(replacingDoc.expirationDate), 'yyyy-MM-dd') : ''}
             onUploadComplete={() => {
+              setReplacingDoc(null)
               fetchDocuments()
             }}
           />
@@ -157,10 +190,7 @@ export default function ProducerDocumentsSection({
                   documents={filteredDocuments}
                   onView={handleView}
                   onDownload={handleDownload}
-                  onReplace={() => {
-                    window.scrollTo({ top: 0, behavior: 'smooth' })
-                    toast.info('Utilize a área de upload acima para substituir o documento. Não se esqueça de arquivar o antigo.')
-                  }}
+                  onReplace={handleReplace}
                   onArchive={handleArchive}
                   showProducerColumn={false}
                 />
