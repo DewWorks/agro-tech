@@ -1,5 +1,6 @@
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 import { getDocumentTypeAndLabel } from '@/lib/utils/masks'
+import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 
 export interface LimiteCreditoDocumentData {
   producer: {
@@ -8,6 +9,10 @@ export interface LimiteCreditoDocumentData {
     type: 'PF' | 'PJ'
     spouseName?: string
     spouseCpf?: string
+    spouseRg?: string
+    marriageRegime?: string
+    spouseNationality?: string
+    spouseEducationLevel?: string
     representativeCpf?: string
     representativeName?: string
     phone?: string
@@ -37,6 +42,20 @@ export interface LimiteCreditoDocumentData {
       brandLocation?: string
       categories?: Record<string, number>
     }
+    livestockList?: Array<{
+      species?: string
+      category?: string
+      categoryBB?: string
+      purposeBB?: string
+      breed?: string
+      quantity: number
+      ageMonths?: number | null
+      avgWeightKg?: number | null
+      unitValue?: number | null
+      brandingType?: string | null
+      brandingLocation?: string | null
+      observation?: string | null
+    }>
   }
   organization: {
     name: string
@@ -58,6 +77,8 @@ export interface LimiteCreditoDocumentData {
     annualExpenses?: number
     existingDebts?: number
     hasFinancialModule?: boolean
+    livestockItems?: Array<any>
+    [key: string]: any
   }
 }
 
@@ -82,9 +103,22 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const landValuePerHa = opt.estimatedLandValuePerHa && opt.estimatedLandValuePerHa > 0 ? opt.estimatedLandValuePerHa : 0
   const totalLandValue = totalArea * landValuePerHa
 
-  const totalCattle = prop.livestockData?.totalCattle || 0
+  const livestockItems: any[] = prop.livestockList || opt.livestockItems || []
+  const hasLivestockItems = livestockItems.length > 0
+
+  const totalCattleFromList = livestockItems.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)
+  const totalCattle = hasLivestockItems ? totalCattleFromList : (prop.livestockData?.totalCattle || 0)
+  
   const cattleHeadValue = opt.estimatedCattleHeadValue && opt.estimatedCattleHeadValue > 0 ? opt.estimatedCattleHeadValue : 0
-  const cattleEstimatedValue = totalCattle > 0 && cattleHeadValue > 0 ? totalCattle * cattleHeadValue : 0
+  const totalValueFromList = livestockItems.reduce((acc: number, item: any) => {
+    const qty = Number(item.quantity) || 0
+    const uVal = Number(item.unitValue) || cattleHeadValue || 0
+    return acc + (qty * uVal)
+  }, 0)
+
+  const cattleEstimatedValue = hasLivestockItems 
+    ? totalValueFromList 
+    : (totalCattle > 0 && cattleHeadValue > 0 ? totalCattle * cattleHeadValue : 0)
 
   const improvementsValue = opt.improvementsValue !== undefined ? opt.improvementsValue : 0
   const machineryValue = opt.machineryValue !== undefined ? opt.machineryValue : 0
@@ -96,6 +130,26 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const debts = opt.existingDebts || 0
   const netCapacity = Math.max(0, annualRev - annualExp - debts)
   const showFinancial = opt.hasFinancialModule !== false
+
+  const formatBRL = (val: number | null | undefined): string => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val) || 0)
+  }
+
+  const formatMarriageRegime = (regime?: string | null): string => {
+    if (!regime) return 'Não informado'
+    switch (regime) {
+      case 'COMUNHAO_PARCIAL':
+        return 'Comunhão Parcial de Bens'
+      case 'COMUNHAO_UNIVERSAL':
+        return 'Comunhão Universal de Bens'
+      case 'SEPARACAO_TOTAL':
+        return 'Separação Total de Bens'
+      case 'PARTICIPACAO_FINAL':
+        return 'Participação Final nos Aquestos'
+      default:
+        return regime
+    }
+  }
 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.4; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
@@ -126,8 +180,10 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
         ` : `
           <div><strong>Cônjuge:</strong> ${p.spouseName || 'Não informado / Não aplicável'}</div>
           <div style="white-space: nowrap;"><strong>CPF Cônjuge:</strong> ${spouseDocFormatted || '-'}</div>
-          <div><strong>Estado Civil:</strong> ${p.civilStatus || 'Solteiro(a)'}</div>
+          <div><strong>Estado Civil:</strong> ${p.civilStatus || 'Solteiro(a)'}${p.spouseRg ? ` | <strong>RG Cônjuge:</strong> ${p.spouseRg}` : ''}</div>
+          <div style="white-space: nowrap;"><strong>Regime de Bens:</strong> ${formatMarriageRegime(p.marriageRegime)}</div>
           <div style="white-space: nowrap;"><strong>Telefone:</strong> ${p.phone || '-'}</div>
+          ${p.spouseNationality ? `<div><strong>Nacionalidade Cônjuge:</strong> ${p.spouseNationality}</div>` : ''}
         `}
         <div style="grid-column: span 2;"><strong>Endereço / Município:</strong> ${p.street ? p.street + ', ' : ''}${p.city || ''} - ${p.state || ''}</div>
       </div>
@@ -156,26 +212,26 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 4px 8px;">Pastagem Formada / Artificial</td>
             <td style="padding: 4px 8px; text-align: right;">${pastArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${landValuePerHa.toLocaleString('pt-BR')}</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(pastArea * landValuePerHa).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa)}</td>
+            <td style="padding: 4px 8px; text-align: right;">${formatBRL(pastArea * landValuePerHa)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 4px 8px;">Agricultura / Lavoura Anual</td>
             <td style="padding: 4px 8px; text-align: right;">${agricArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(landValuePerHa * 1.2).toLocaleString('pt-BR')}</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(agricArea * landValuePerHa * 1.2).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa * 1.2)}</td>
+            <td style="padding: 4px 8px; text-align: right;">${formatBRL(agricArea * landValuePerHa * 1.2)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
             <td style="padding: 4px 8px;">Reserva Legal e APP</td>
             <td style="padding: 4px 8px; text-align: right;">${resArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(landValuePerHa * 0.4).toLocaleString('pt-BR')}</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(resArea * landValuePerHa * 0.4).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa * 0.4)}</td>
+            <td style="padding: 4px 8px; text-align: right;">${formatBRL(resArea * landValuePerHa * 0.4)}</td>
           </tr>
           <tr style="background: #f3f4f6; font-weight: bold;">
             <td style="padding: 5px 8px;">ÁREA TOTAL DO IMÓVEL</td>
             <td style="padding: 5px 8px; text-align: right;">${totalArea.toFixed(2)} ha</td>
             <td style="padding: 5px 8px; text-align: right;">-</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E;">R$ ${totalLandValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E;">${formatBRL(totalLandValue)}</td>
           </tr>
         </tbody>
       </table>
@@ -201,7 +257,7 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
             <td style="padding: 4px 8px;">Benfeitorias, Edificações e Cercas Avaliadas</td>
             <td style="padding: 4px 8px;">Conforme Vistoria</td>
             <td style="padding: 4px 8px;">Bom Estado Geral</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${improvementsValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 4px 8px; text-align: right;">${formatBRL(improvementsValue)}</td>
           </tr>
           ` : `
           <tr>
@@ -212,18 +268,66 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
           `}
           <tr style="background: #f3f4f6; font-weight: bold;">
             <td colspan="3" style="padding: 5px 8px;">TOTAL BENFEITORIAS</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E;">R$ ${improvementsValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E;">${formatBRL(improvementsValue)}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <!-- IV. SEMOVENTES (REBANHO BOVINO) -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 12px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; display: flex; justify-content: space-between;">
+    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 12px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">
+      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
         <span>IV - Semoventes e Rebanho Bovino</span>
         <span style="font-size: 10px; color: #4b5563;">Registro ADAPEC: ${prop.livestockData?.brandRegistrationAdapec || 'Não informado / Pendente'}</span>
       </div>
+
+      ${hasLivestockItems ? `
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9.5px;">
+        <thead>
+          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 9px; text-transform: uppercase; color: #374151;">
+            <th style="padding: 5px 6px;">Categoria (BB)</th>
+            <th style="padding: 5px 6px;">Finalidade</th>
+            <th style="padding: 5px 6px;">Raça</th>
+            <th style="padding: 5px 6px; text-align: center;">Qtd (Cab.)</th>
+            <th style="padding: 5px 6px; text-align: center;">Idade</th>
+            <th style="padding: 5px 6px; text-align: center;">Peso Médio</th>
+            <th style="padding: 5px 6px; text-align: right;">Valor Unit.</th>
+            <th style="padding: 5px 6px; text-align: right;">Total Estimado</th>
+            <th style="padding: 5px 6px;">Marca e Local</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${livestockItems.map((item: any) => {
+            const qty = Number(item.quantity) || 0
+            const unitVal = Number(item.unitValue) || cattleHeadValue || 0
+            const tot = qty * unitVal
+            const catLabel = item.category || denormalizeCategoryBB(item.categoryBB) || item.categoryBB || 'Bovino'
+            const purpLabel = denormalizePurposeBB(item.purposeBB) || item.purposeBB || 'Produção'
+            const brandInfo = [item.brandingType, item.brandingLocation].filter(Boolean).join(' - ') || prop.livestockData?.brandLocation || 'Conforme Ficha'
+            return `
+            <tr style="border-bottom: 1px solid #f3f4f6; page-break-inside: avoid; break-inside: avoid;">
+              <td style="padding: 5px 6px; font-weight: 600; color: #111827;">${catLabel}</td>
+              <td style="padding: 5px 6px; color: #4b5563;">${purpLabel}</td>
+              <td style="padding: 5px 6px;">${item.breed || 'Nelore / Anelorado'}</td>
+              <td style="padding: 5px 6px; text-align: center; font-weight: bold;">${qty}</td>
+              <td style="padding: 5px 6px; text-align: center;">${item.ageMonths ? `${item.ageMonths} m` : '-'}</td>
+              <td style="padding: 5px 6px; text-align: center;">${item.avgWeightKg ? `${item.avgWeightKg} kg` : '-'}</td>
+              <td style="padding: 5px 6px; text-align: right;">${formatBRL(unitVal)}</td>
+              <td style="padding: 5px 6px; text-align: right; font-weight: 600; color: #1B4D3E;">${formatBRL(tot)}</td>
+              <td style="padding: 5px 6px; font-size: 8.5px; color: #6b7280;">${brandInfo}</td>
+            </tr>
+            `
+          }).join('')}
+          <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
+            <td colspan="3" style="padding: 5px 6px; text-transform: uppercase;">Total Rebanho Declarado</td>
+            <td style="padding: 5px 6px; text-align: center; color: #1B4D3E; font-size: 11px;">${totalCattle} cab</td>
+            <td colspan="3"></td>
+            <td style="padding: 5px 6px; text-align: right; color: #1B4D3E; font-size: 11px;">${formatBRL(cattleEstimatedValue)}</td>
+            <td></td>
+          </tr>
+        </tbody>
+      </table>
+      ` : `
       <div style="padding: 8px 10px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
         <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
           <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Matrizes / Vacas</div>
@@ -242,9 +346,10 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
           <div style="font-size: 13px; font-weight: bold; color: #1B4D3E;">${totalCattle > 0 ? Math.max(1, Math.round(totalCattle * 0.03)) : 0} cab</div>
         </div>
       </div>
+      `}
       <div style="padding: 6px 10px; background: #f3f4f6; display: flex; justify-content: space-between; font-weight: bold;">
         <span>Total de Cabeças Cadastradas: ${totalCattle} cabeças</span>
-        <span style="color: #1B4D3E;">Valor Estimado Rebanho: R$ ${cattleEstimatedValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+        <span style="color: #1B4D3E;">Valor Estimado Rebanho: ${formatBRL(cattleEstimatedValue)}</span>
       </div>
     </div>
 
@@ -257,23 +362,23 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
         </h3>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
           <span>1. Terras (Valor da Terra Nua):</span>
-          <strong>R$ ${totalLandValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</strong>
+          <strong>${formatBRL(totalLandValue)}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
           <span>2. Benfeitorias e Instalações:</span>
-          <strong>R$ ${improvementsValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</strong>
+          <strong>${formatBRL(improvementsValue)}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
           <span>3. Máquinas e Implementos:</span>
-          <strong>R$ ${machineryValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</strong>
+          <strong>${formatBRL(machineryValue)}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
           <span>4. Semoventes (Bovinos):</span>
-          <strong>R$ ${cattleEstimatedValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</strong>
+          <strong>${formatBRL(cattleEstimatedValue)}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 5px 0 0 0; font-weight: bold; color: #1B4D3E; font-size: 12px;">
           <span>PATRIMÔNIO TOTAL BRUTO:</span>
-          <span>R$ ${totalPatrimony.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+          <span>${formatBRL(totalPatrimony)}</span>
         </div>
       </div>
 
@@ -284,19 +389,19 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
         </h3>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
           <span>Receita Bruta Agropecuária Anual:</span>
-          <strong>R$ ${annualRev.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</strong>
+          <strong>${formatBRL(annualRev)}</strong>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
           <span>(-) Custos Operacionais / Custeio:</span>
-          <span style="color: #dc2626;">- R$ ${annualExp.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+          <span style="color: #dc2626;">- ${formatBRL(annualExp)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
           <span>(-) Dívidas Existentes (SCR / BACEN):</span>
-          <span style="color: #dc2626;">- R$ ${debts.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+          <span style="color: #dc2626;">- ${formatBRL(debts)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; padding: 5px 0 0 0; font-weight: bold; color: #065f46; font-size: 12px;">
           <span>CAPACIDADE LÍQUIDA ANUAL:</span>
-          <span>R$ ${netCapacity.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+          <span>${formatBRL(netCapacity)}</span>
         </div>
       </div>
       ` : ''}
@@ -319,14 +424,14 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
         <div style="color: #6b7280; font-size: 10px;">Assinatura do Proponente</div>
       </div>
 
-      <!-- Assinatura do Cônjuge (se houver) -->
+      <!-- Assinatura do Cônjuge (se houver / Outorga Uxória) -->
       ${p.spouseName ? `
       <div>
         <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
           <strong>${p.spouseName}</strong>
         </div>
         <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">CPF: ${spouseDocFormatted || '-'}</div>
-        <div style="color: #6b7280; font-size: 10px;">Assinatura do Cônjuge</div>
+        <div style="color: #6b7280; font-size: 10px;">Assinatura do Cônjuge (Outorga Uxória)</div>
       </div>
       ` : ''}
 

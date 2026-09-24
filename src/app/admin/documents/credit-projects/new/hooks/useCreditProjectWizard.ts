@@ -164,6 +164,32 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
             improvementsValue: prev.improvementsValue || totalVal,
           }))
         }
+
+        if (prop && (!saved?.livestockItems || saved.livestockItems.length === 0) && prop.livestockList && prop.livestockList.length > 0) {
+          const lvs = prop.livestockList.map((lv: any) => ({
+            id: lv.id || Math.random().toString(),
+            category: lv.category || 'Vaca',
+            categoryBB: lv.categoryBB || 'VACA',
+            purposeBB: lv.purposeBB || 'PRODUCAO_DE_CRIAS',
+            breed: lv.breed || 'Nelore',
+            quantity: Number(lv.quantity) || 0,
+            ageMonths: lv.ageMonths ? Number(lv.ageMonths) : null,
+            avgWeightKg: lv.avgWeightKg ? Number(lv.avgWeightKg) : null,
+            unitValue: Number(lv.unitValue) || 2800,
+            totalValue: (Number(lv.quantity) || 0) * (Number(lv.unitValue) || 2800),
+            brandingType: lv.brandingType || 'FERRO_QUENTE',
+            brandingLocation: lv.brandingLocation || 'PERNA_TRASEIRA_ESQUERDA',
+            observation: lv.observation || '',
+          }))
+          const totalHeads = lvs.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)
+          const totalVal = lvs.reduce((acc: number, item: any) => acc + (Number(item.totalValue) || 0), 0)
+          setCustomOptions(prev => ({
+            ...prev,
+            livestockItems: lvs,
+            livestockCattleHeads: prev.livestockCattleHeads || totalHeads,
+            livestockCattleHeadValue: prev.livestockCattleHeadValue || (totalHeads > 0 ? Math.round(totalVal / totalHeads) : 2800),
+          }))
+        }
       } catch (e) {
         // Silencioso
       } finally {
@@ -415,13 +441,18 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         type: currentProducer.type as 'PF' | 'PJ',
         spouseName: currentProducer.spouseName,
         spouseCpf: currentProducer.spouseCpf,
+        spouseRg: currentProducer.spouseRg,
+        spouseRgIssuer: currentProducer.spouseRgIssuer,
+        spouseNationality: currentProducer.spouseNationality,
+        spouseEducationLevel: currentProducer.spouseEducationLevel,
+        marriageRegime: currentProducer.marriageRegime,
         representativeCpf: customOptions.representativeCpf || currentProducer.representativeCpf || undefined,
         representativeName: customOptions.representativeName || undefined,
         phone: currentProducer.phone,
         civilStatus: currentProducer.civilStatus,
         branchName: currentProducer.branchName,
-        city: currentProperty.city,
-        state: currentProperty.state,
+        city: currentProducer.city || currentProperty.city,
+        state: currentProducer.state || currentProperty.state,
       },
       property: {
         name: currentProperty.name,
@@ -439,6 +470,13 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         preservationAreaHa: currentProperty.preserveArea || 0,
         explorationActivity: customOptions.propertyActivity || currentProperty.explorationActivity,
         accessRoute: customOptions.propertyAccessRoute || currentProperty.accessRoute,
+        livestockData: (currentProperty as any).livestockData || (currentProperty as any).livestock || {
+          totalCattle: customOptions.livestockCattleHeads || (currentProperty.livestockList?.reduce((acc: number, l: any) => acc + (Number(l.quantity) || 0), 0) ?? 0),
+          brandRegistrationAdapec: customOptions.livestockBrandAdapec,
+          brandDescription: customOptions.livestockBrandDescription,
+        },
+        livestockList: customOptions.livestockItems || currentProperty.livestockList || (currentProperty as any).livestocks || [],
+        livestocks: customOptions.livestockItems || currentProperty.livestockList || (currentProperty as any).livestocks || [],
       },
       organization: {
         name: props.defaultOrgName || 'Organização',
@@ -454,6 +492,9 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         annualRevenue: Number(customOptions.annualRevenue || 0),
         annualExpenses: Number(customOptions.annualExpenses || 0),
         existingDebts: Number(customOptions.existingDebts || 0),
+        machineryItems: customOptions.machineryItems || currentProperty.machineries || [],
+        improvementItems: customOptions.improvementItems || currentProperty.improvements || [],
+        livestockItems: customOptions.livestockItems || currentProperty.livestockList || (currentProperty as any).livestocks || [],
 
         // InovAgro
         equipmentName: customOptions.inovagroEquipment,

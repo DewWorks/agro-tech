@@ -1,5 +1,6 @@
 import React from 'react'
 import { getDocumentTypeAndLabel, formatCPF } from '@/lib/utils/masks'
+import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 
 interface DeclarationContentProps {
   templateCode: string
@@ -150,25 +151,92 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           </div>
         )
 
-      case 'IDENTIFICACAO_ANIMAIS':
+      case 'IDENTIFICACAO_ANIMAIS': {
+        const animals: any[] = property?.livestockList || options?.livestockItems || property?.livestocks || []
+        const totalHeadCount = animals.length > 0 
+          ? animals.reduce((acc, a) => acc + (Number(a.quantity) || 0), 0)
+          : (Number(property?.livestockData?.totalCattle) || Number(options?.livestockCattleHeads) || 0)
+        
+        const totalEstimatedValue = animals.length > 0
+          ? animals.reduce((acc, a) => acc + ((Number(a.quantity) || 0) * (Number(a.unitValue) || Number(options?.livestockCattleHeadValue) || 2800)), 0)
+          : totalHeadCount * (Number(options?.livestockCattleHeadValue) || 2800)
+
+        const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
+
         return (
           <div style={contentStyle}>
-            <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>IDENTIFICAÇÃO DE ANIMAIS EM GARANTIA (PENHOR PECUÁRIO)</h3>
-            <p>
-              Em relação à operação de crédito rural, apresento a seguir a identificação dos semoventes (rebanho) que constituirão a garantia de penhor em favor do Banco do Brasil S.A.
+            <h3 style={{ textAlign: 'center', marginBottom: '14px', fontWeight: 'bold' }}>IDENTIFICAÇÃO DE ANIMAIS EM GARANTIA (PENHOR PECUÁRIO)</h3>
+            <p style={{ marginBottom: '12px' }}>
+              Em relação à operação de crédito rural vinculada à propriedade <strong>{property?.name || '_________________________'}</strong>, 
+              localizada no município de <strong>{location}</strong>, apresento a seguir a discriminação do rebanho bovino oferecido em garantia de penhor ao Banco do Brasil S.A.
             </p>
-            <div style={{ marginTop: '15px', padding: '15px', border: '1px solid #e5e7eb', borderRadius: '4px', background: '#f9fafb' }}>
-              <ul style={{ listStyleType: 'none', padding: 0, margin: 0, lineHeight: '1.8' }}>
-                <li><strong>Localização dos Animais (Propriedade):</strong> {property?.name}</li>
-                <li><strong>Município/UF:</strong> {location}</li>
-                <li><strong>Quantidade Total Vinculada:</strong> {property?.livestockData?.totalCattle || '0'} cabeças</li>
-                <li><strong>Marca a Fogo / Ferro:</strong> {property?.livestockData?.brandDescription || 'Não informada'}</li>
-                <li><strong>Local da Marcação:</strong> {property?.livestockData?.brandLocation || 'Não informado'}</li>
-                <li><strong>Registro de Marca (ADAPEC/Órgão):</strong> {property?.livestockData?.brandRegistrationAdapec || 'Não informado'}</li>
-              </ul>
+
+            {animals.length > 0 ? (
+              <div style={{ marginTop: '10px', marginBottom: '14px', border: '1px solid #d1d5db', borderRadius: '4px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: '#f3f4f6', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase', color: '#111827' }}>
+                      <th style={{ padding: '6px 8px' }}>Categoria</th>
+                      <th style={{ padding: '6px 8px' }}>Finalidade</th>
+                      <th style={{ padding: '6px 8px' }}>Raça</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>Qtd (Cab.)</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>Idade</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'center' }}>Peso Médio</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Valor Unit.</th>
+                      <th style={{ padding: '6px 8px', textAlign: 'right' }}>Total</th>
+                      <th style={{ padding: '6px 8px' }}>Marca & Local</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {animals.map((item: any, idx: number) => {
+                      const qty = Number(item.quantity) || 0
+                      const unitVal = Number(item.unitValue) || Number(options?.livestockCattleHeadValue) || 2800
+                      const tot = qty * unitVal
+                      const cat = item.category || denormalizeCategoryBB(item.categoryBB) || item.categoryBB || 'Bovino'
+                      const purp = denormalizePurposeBB(item.purposeBB) || item.purposeBB || 'Produção'
+                      const brandInfo = [item.brandingType, item.brandingLocation].filter(Boolean).join(' - ') || property?.livestockData?.brandLocation || 'Conforme Vistoria'
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                          <td style={{ padding: '5px 8px', fontWeight: 600 }}>{cat}</td>
+                          <td style={{ padding: '5px 8px', color: '#4b5563' }}>{purp}</td>
+                          <td style={{ padding: '5px 8px' }}>{item.breed || 'Nelore'}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'center', fontWeight: 'bold' }}>{qty}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'center' }}>{item.ageMonths ? `${item.ageMonths}m` : '-'}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'center' }}>{item.avgWeightKg ? `${item.avgWeightKg}kg` : '-'}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right' }}>{formatBRL(unitVal)}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: '#1B4D3E' }}>{formatBRL(tot)}</td>
+                          <td style={{ padding: '5px 8px', fontSize: '9px', color: '#6b7280' }}>{brandInfo}</td>
+                        </tr>
+                      )
+                    })}
+                    <tr style={{ background: '#f9fafb', fontWeight: 'bold', borderTop: '1px solid #d1d5db' }}>
+                      <td colSpan={3} style={{ padding: '6px 8px', textTransform: 'uppercase' }}>Total em Penhor</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'center', color: '#1B4D3E' }}>{totalHeadCount} cab</td>
+                      <td colSpan={3}></td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#1B4D3E' }}>{formatBRL(totalEstimatedValue)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
+
+            <div style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '4px', background: '#f9fafb', fontSize: '11px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <div><strong>Localização do Rebanho:</strong> {property?.name}</div>
+                <div><strong>Município/UF:</strong> {location}</div>
+                <div><strong>Total Vinculado em Garantia:</strong> {totalHeadCount} cabeças</div>
+                <div><strong>Valor Total Avaliado:</strong> {formatBRL(totalEstimatedValue)}</div>
+                <div><strong>Marca a Fogo / Ferro:</strong> {property?.livestockData?.brandDescription || options?.livestockBrandDescription || 'Ferro Quente'}</div>
+                <div><strong>Local da Marcação:</strong> {property?.livestockData?.brandLocation || 'Conforme Vistoria'}</div>
+                <div style={{ gridColumn: 'span 2' }}>
+                  <strong>Registro de Marca (Órgão / ADAPEC):</strong> {property?.livestockData?.brandRegistrationAdapec || options?.livestockBrandAdapec || 'Em processo / Regular'}
+                </div>
+              </div>
             </div>
           </div>
         )
+      }
 
       default:
         return null

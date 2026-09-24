@@ -71,6 +71,7 @@ export default function ProducerMultiStepForm({
     bankAccountType: initialData?.bankAccountType || 'CORRENTE',
     spouseRg: initialData?.spouseRg || '',
     spouseRgIssuer: initialData?.spouseRgIssuer || '',
+    spouseNationality: initialData?.spouseNationality || 'Brasileira',
     spouseEducationLevel: initialData?.spouseEducationLevel || '',
 
     // Propriedade Principal

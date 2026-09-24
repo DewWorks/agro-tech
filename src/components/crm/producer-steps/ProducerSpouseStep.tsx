@@ -118,6 +118,15 @@ export function ProducerSpouseStep({
           placeholder="Ex: SSP/TO"
         />
       </div>
+
+      <div className="space-y-2">
+        <Label>Nacionalidade do Cônjuge</Label>
+        <Input 
+          value={formData.spouseNationality || 'Brasileira'}
+          onChange={(e) => handleChange('spouseNationality', e.target.value)}
+          placeholder="Ex: Brasileira"
+        />
+      </div>
     </div>
   )
 }

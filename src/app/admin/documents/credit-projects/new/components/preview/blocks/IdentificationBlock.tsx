@@ -31,8 +31,21 @@ export const IdentificationBlock = React.memo(({ producer, property }: Identific
           <>
             <div><strong>Cônjuge:</strong> {producer.spouseName || 'Não informado / Não aplicável'}</div>
             <div style={{ whiteSpace: 'nowrap' }}><strong>CPF Cônjuge:</strong> {spouseDocFormatted || '-'}</div>
-            <div><strong>Estado Civil:</strong> {producer.civilStatus || 'Solteiro(a)'}</div>
-            <div style={{ whiteSpace: 'nowrap' }}><strong>Telefone:</strong> {producer.phone || '-'}</div>
+            <div>
+              <strong>Estado Civil:</strong> {producer.civilStatus || 'Solteiro(a)'}
+              {producer.spouseRg ? ` | RG Cônjuge: ${producer.spouseRg}${producer.spouseRgIssuer ? ` (${producer.spouseRgIssuer})` : ''}` : ''}
+            </div>
+            <div style={{ whiteSpace: 'nowrap' }}>
+              <strong>Regime de Bens:</strong> {
+                producer.marriageRegime === 'COMUNHAO_PARCIAL' ? 'Comunhão Parcial de Bens' :
+                producer.marriageRegime === 'COMUNHAO_UNIVERSAL' ? 'Comunhão Universal de Bens' :
+                producer.marriageRegime === 'SEPARACAO_TOTAL' ? 'Separação Total de Bens' :
+                producer.marriageRegime === 'PARTICIPACAO_FINAL' ? 'Participação Final nos Aquestos' :
+                (producer.marriageRegime || 'Não informado / Não aplicável')
+              }
+            </div>
+            <div><strong>Telefone:</strong> {producer.phone || '-'}</div>
+            {producer.spouseNationality ? <div><strong>Nacionalidade Cônjuge:</strong> {producer.spouseNationality}</div> : <div />}
           </>
         )}
         

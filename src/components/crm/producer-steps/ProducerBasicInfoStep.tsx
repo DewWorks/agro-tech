@@ -221,7 +221,14 @@ export function ProducerBasicInfoStep({
           <Select 
             value={formData.civilStatus} 
             onValueChange={(val) => {
-              setFormData({ ...formData, civilStatus: val, marriageRegime: '' })
+              const isSpouseRequired = val === 'CASADO' || val === 'UNIAO_ESTAVEL'
+              setFormData((prev: any) => ({
+                ...prev,
+                civilStatus: val,
+                marriageRegime: isSpouseRequired
+                  ? (prev.marriageRegime || initialData?.marriageRegime || 'COMUNHAO_PARCIAL')
+                  : '',
+              }))
             }}
           >
             <SelectTrigger className="w-full bg-white">
@@ -243,6 +250,22 @@ export function ProducerBasicInfoStep({
               <SelectItem value="VIUVO">Viúvo(a)</SelectItem>
             </SelectContent>
           </Select>
+
+          {(formData.civilStatus === 'CASADO' || formData.civilStatus === 'UNIAO_ESTAVEL') && (
+            <div className="mt-3 p-3 bg-emerald-50 text-emerald-900 rounded-lg border border-emerald-200 flex items-center justify-between gap-3 text-xs">
+              <div>
+                <strong>Aba &quot;Cônjuge / Outorga&quot; habilitada.</strong>
+                <p className="text-emerald-700 mt-0.5">Preencha o regime de bens e os dados do cônjuge para a emissão de garantias legais e minutas de outorga uxória.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab && setActiveTab('CONJUGE')}
+                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-md font-semibold text-xs transition-colors shrink-0 cursor-pointer"
+              >
+                Preencher Cônjuge
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

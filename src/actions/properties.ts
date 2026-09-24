@@ -5,6 +5,13 @@ import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { getUserContext } from '@/lib/auth'
 import { OwnershipType } from '@prisma/client'
+import {
+  normalizeCategoryBB,
+  normalizePurposeBB,
+  normalizeLivestockCategory,
+  normalizeLivestockSpecies,
+  denormalizePurposeBB,
+} from '@/lib/validations/livestock-mapper'
 
 function parseCoordinate(coordStr?: string | number | null): number | null {
   if (coordStr === undefined || coordStr === null || coordStr === '') return null
@@ -181,6 +188,10 @@ export async function createProperty(data: any) {
       west
     } : null)
 
+    const calculatedHeadCount = livestocks && Array.isArray(livestocks) && livestocks.length > 0
+      ? livestocks.reduce((sum: number, l: any) => sum + (Number(l.quantity) || 0), 0)
+      : (totalHeadCount ? Number(totalHeadCount) : 0)
+
     const property = await prisma.property.create({
       data: {
         branchId,
@@ -224,8 +235,8 @@ export async function createProperty(data: any) {
 
         explorationActivity: explorationActivity || null,
 
-        livestock: (totalHeadCount || brandDescription || brandRegistrationAdapec || brandLocation) ? {
-          totalHeadCount: totalHeadCount ? Number(totalHeadCount) : 0,
+        livestock: (calculatedHeadCount || brandDescription || brandRegistrationAdapec || brandLocation) ? {
+          totalHeadCount: calculatedHeadCount,
           brandDescription: brandDescription || null,
           brandRegistrationAdapec: brandRegistrationAdapec || null,
           brandLocation: brandLocation || null,
@@ -315,22 +326,26 @@ export async function createProperty(data: any) {
 
         // Criação de rebanho se fornecido
         livestockList: livestocks && Array.isArray(livestocks) && livestocks.length > 0 ? {
-          create: livestocks.map((l: any) => ({
-            branchId,
-            species: (l.species as any) || 'BOVINO',
-            category: (l.category as any) || 'MATRIZES',
-            purpose: l.purpose || null,
-            breed: l.breed || null,
-            quantity: l.quantity ? Number(l.quantity) : 0,
-            ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
-            avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
-            unitValue: l.unitValue ? Number(l.unitValue) : 0,
-            observation: l.observation || (l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null),
-            brandingType: l.brandingType || l.markingType || null,
-            brandingLocation: l.brandingLocation || l.markingLocation || null,
-            categoryBB: l.categoryBB || null,
-            purposeBB: l.purposeBB || null,
-          }))
+          create: livestocks.map((l: any) => {
+            const catBB = normalizeCategoryBB(l.categoryBB || l.category)
+            const purBB = normalizePurposeBB(l.purposeBB || l.purpose)
+            return {
+              branchId,
+              species: normalizeLivestockSpecies(l.species, catBB),
+              category: normalizeLivestockCategory(l.category, catBB),
+              categoryBB: catBB,
+              purposeBB: purBB,
+              purpose: l.purpose || denormalizePurposeBB(purBB),
+              breed: l.breed || null,
+              quantity: Number(l.quantity) || 0,
+              ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
+              avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
+              unitValue: Number(l.unitValue) || 0,
+              observation: l.observation || (l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null),
+              brandingType: l.brandingType || l.markingType || null,
+              brandingLocation: l.brandingLocation || l.markingLocation || null,
+            }
+          })
         } : undefined,
       }
     })
@@ -494,6 +509,10 @@ export async function updateProperty(id: string, data: any) {
           west
         } : existing.confrontants)
 
+    const totalHeadCountResolved = livestocks && Array.isArray(livestocks)
+      ? livestocks.reduce((sum: number, l: any) => sum + (Number(l.quantity) || 0), 0)
+      : (totalHeadCount !== undefined ? (totalHeadCount ? Number(totalHeadCount) : 0) : ((existing.livestock as any)?.totalHeadCount || 0))
+
     const txOps: any[] = [
       prisma.property.update({
         where: { id },
@@ -545,7 +564,7 @@ export async function updateProperty(id: string, data: any) {
 
           livestock: {
             ...(existing.livestock as any || {}),
-            totalHeadCount: totalHeadCount !== undefined ? (totalHeadCount ? Number(totalHeadCount) : 0) : ((existing.livestock as any)?.totalHeadCount || 0),
+            totalHeadCount: totalHeadCountResolved,
             brandDescription: brandDescription !== undefined ? (brandDescription || null) : ((existing.livestock as any)?.brandDescription || null),
             brandRegistrationAdapec: brandRegistrationAdapec !== undefined ? (brandRegistrationAdapec || null) : ((existing.livestock as any)?.brandRegistrationAdapec || null),
             brandLocation: brandLocation !== undefined ? (brandLocation || null) : ((existing.livestock as any)?.brandLocation || null),
@@ -645,23 +664,27 @@ export async function updateProperty(id: string, data: any) {
       if (livestocks.length > 0) {
         txOps.push(
           prisma.livestock.createMany({
-            data: livestocks.map((l: any) => ({
-              branchId: branchId || existing.branchId,
-              propertyId: id,
-              species: (l.species as any) || 'BOVINO',
-              category: (l.category as any) || 'MATRIZES',
-              purpose: l.purpose || null,
-              breed: l.breed || null,
-              quantity: l.quantity ? Number(l.quantity) : 0,
-              ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
-              avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
-              unitValue: l.unitValue ? Number(l.unitValue) : 0,
-              observation: l.observation || (l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null),
-              brandingType: l.brandingType || l.markingType || null,
-              brandingLocation: l.brandingLocation || l.markingLocation || null,
-              categoryBB: l.categoryBB || null,
-              purposeBB: l.purposeBB || null,
-            }))
+            data: livestocks.map((l: any) => {
+              const catBB = normalizeCategoryBB(l.categoryBB || l.category)
+              const purBB = normalizePurposeBB(l.purposeBB || l.purpose)
+              return {
+                branchId: branchId || existing.branchId,
+                propertyId: id,
+                species: normalizeLivestockSpecies(l.species, catBB),
+                category: normalizeLivestockCategory(l.category, catBB),
+                categoryBB: catBB,
+                purposeBB: purBB,
+                purpose: l.purpose || denormalizePurposeBB(purBB),
+                breed: l.breed || null,
+                quantity: Number(l.quantity) || 0,
+                ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
+                avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
+                unitValue: Number(l.unitValue) || 0,
+                observation: l.observation || (l.markingType ? `Marcação: ${l.markingType} (${l.markingLocation || ''})` : null),
+                brandingType: l.brandingType || l.markingType || null,
+                brandingLocation: l.brandingLocation || l.markingLocation || null,
+              }
+            })
           })
         )
       }

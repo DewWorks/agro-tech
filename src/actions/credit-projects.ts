@@ -11,6 +11,13 @@ import {
   generateProjetoCusteioSafraHtml,
   CreditTemplateMeta
 } from '@/lib/document-templates'
+import {
+  normalizeCategoryBB,
+  normalizePurposeBB,
+  normalizeLivestockCategory,
+  normalizeLivestockSpecies,
+  denormalizePurposeBB,
+} from '@/lib/validations/livestock-mapper'
 
 export async function getCreditTemplatesList(): Promise<CreditTemplateMeta[]> {
   const user = await getUserContext()
@@ -45,6 +52,11 @@ export async function getProducersWithPropertiesForCredit() {
       type: true,
       spouseName: true,
       spouseCpf: true,
+      spouseRg: true,
+      spouseRgIssuer: true,
+      spouseNationality: true,
+      spouseEducationLevel: true,
+      marriageRegime: true,
       phone: true,
       email: true,
       civilStatus: true,
@@ -74,6 +86,7 @@ export async function getProducersWithPropertiesForCredit() {
               preserveArea: true,
               explorationActivity: true,
               possessionData: true,
+              livestock: true,
               machineries: {
                 select: {
                   id: true,
@@ -93,6 +106,24 @@ export async function getProducersWithPropertiesForCredit() {
                   quantity: true,
                   unitValue: true,
                 }
+              },
+              livestockList: {
+                select: {
+                  id: true,
+                  species: true,
+                  category: true,
+                  categoryBB: true,
+                  purpose: true,
+                  purposeBB: true,
+                  breed: true,
+                  quantity: true,
+                  ageMonths: true,
+                  avgWeightKg: true,
+                  unitValue: true,
+                  brandingType: true,
+                  brandingLocation: true,
+                  observation: true,
+                }
               }
             }
           }
@@ -109,6 +140,11 @@ export async function getProducersWithPropertiesForCredit() {
     type: p.type,
     spouseName: p.spouseName || undefined,
     spouseCpf: p.spouseCpf || undefined,
+    spouseRg: p.spouseRg || undefined,
+    spouseRgIssuer: p.spouseRgIssuer || undefined,
+    spouseNationality: p.spouseNationality || undefined,
+    spouseEducationLevel: p.spouseEducationLevel || undefined,
+    marriageRegime: p.marriageRegime || undefined,
     phone: p.phone || undefined,
     email: p.email || undefined,
     civilStatus: p.civilStatus || undefined,
@@ -116,6 +152,8 @@ export async function getProducersWithPropertiesForCredit() {
     branchName: p.branch?.name || 'Matriz',
     properties: p.properties.map(link => {
       const poss = (link.property.possessionData as any) || {}
+      const lsList = link.property.livestockList || []
+      const calculatedHeads = lsList.reduce((acc, l) => acc + (Number(l.quantity) || 0), 0)
       return {
         id: link.property.id,
         name: link.property.propertyName || link.property.name || 'Propriedade Sem Nome',
@@ -132,6 +170,10 @@ export async function getProducersWithPropertiesForCredit() {
         preserveArea: link.property.preserveArea ? Number(link.property.preserveArea) : 0,
         explorationActivity: link.property.explorationActivity || undefined,
         accessRoute: poss.accessRoute || undefined,
+        totalHeadCount: calculatedHeads || (link.property.livestock as any)?.totalHeadCount || 0,
+        brandDescription: (link.property.livestock as any)?.brandDescription || undefined,
+        brandRegistrationAdapec: (link.property.livestock as any)?.brandRegistrationAdapec || undefined,
+        brandLocation: (link.property.livestock as any)?.brandLocation || undefined,
         machineries: (link.property.machineries || []).map(m => ({
           id: m.id,
           type: m.specification || 'Trator de Pneus',
@@ -149,6 +191,22 @@ export async function getProducersWithPropertiesForCredit() {
           quantity: Number(imp.quantity) || 0,
           unitValue: Number(imp.unitValue) || 0,
           totalValue: (Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0),
+        })),
+        livestocks: lsList.map(l => ({
+          id: l.id,
+          species: l.species,
+          category: l.categoryBB || l.category,
+          categoryBB: l.categoryBB || l.category,
+          purpose: l.purposeBB || l.purpose,
+          purposeBB: l.purposeBB || l.purpose,
+          breed: l.breed || 'Nelore',
+          quantity: Number(l.quantity) || 0,
+          ageMonths: l.ageMonths || 0,
+          avgWeightKg: Number(l.avgWeightKg) || 0,
+          unitValue: Number(l.unitValue) || 0,
+          totalValue: (Number(l.quantity) || 0) * (Number(l.unitValue) || 0),
+          markingType: l.brandingType || 'Ferro Quente',
+          markingLocation: l.brandingLocation || 'Perna Traseira Direita',
         })),
       }
     })
@@ -170,7 +228,12 @@ export async function resolveCreditProjectDocument(
   if (!producer) throw new Error('Produtor não encontrado.')
 
   const property = await prisma.property.findUnique({
-    where: { id: propertyId }
+    where: { id: propertyId },
+    include: {
+      livestockList: true,
+      machineries: true,
+      improvementsList: true,
+    }
   })
   if (!property) throw new Error('Propriedade não encontrada.')
 
@@ -203,6 +266,9 @@ export async function resolveCreditProjectDocument(
   // Parse JSON fields
   const livestock = (property.livestock as any) || {}
   const possessionData = (property.possessionData as any) || {}
+  const totalHeadsFromDb = property.livestockList && property.livestockList.length > 0
+    ? property.livestockList.reduce((acc, l) => acc + (Number(l.quantity) || 0), 0)
+    : (livestock.totalHeadCount ? Number(livestock.totalHeadCount) : (livestock.totalCattle ? Number(livestock.totalCattle) : 0))
 
   // Buscar documentos reais do GED vinculados ao produtor/imóvel
   const attachedDocs = await prisma.document.findMany({
@@ -252,6 +318,11 @@ export async function resolveCreditProjectDocument(
         type: producer.type as 'PF' | 'PJ',
         spouseName: producer.spouseName || undefined,
         spouseCpf: producer.spouseCpf || undefined,
+        spouseRg: producer.spouseRg || undefined,
+        spouseRgIssuer: producer.spouseRgIssuer || undefined,
+        spouseNationality: producer.spouseNationality || undefined,
+        spouseEducationLevel: producer.spouseEducationLevel || undefined,
+        marriageRegime: producer.marriageRegime || undefined,
         representativeCpf: options.representativeCpf || producer.representativeCpf || undefined,
         phone: producer.phone || undefined,
         civilStatus: producer.civilStatus || undefined,
@@ -279,11 +350,15 @@ export async function resolveCreditProjectDocument(
         explorationActivity: options.propertyActivity || property.explorationActivity || undefined,
         accessRoute: options.propertyAccessRoute || possessionData.accessRoute || undefined,
         livestockData: {
-          totalCattle: livestock.totalCattle ? Number(livestock.totalCattle) : 0,
-          brandRegistrationAdapec: livestock.brandRegistrationAdapec || undefined,
-          brandDescription: livestock.brandDescription || undefined,
-          brandLocation: livestock.brandLocation || undefined,
-        }
+          totalCattle: totalHeadsFromDb,
+          brandRegistrationAdapec: livestock.brandRegistrationAdapec || (property.livestock as any)?.brandRegistrationAdapec || undefined,
+          brandDescription: livestock.brandDescription || (property.livestock as any)?.brandDescription || undefined,
+          brandLocation: livestock.brandLocation || (property.livestock as any)?.brandLocation || undefined,
+        },
+        livestockList: property.livestockList || [],
+        livestocks: property.livestockList || [],
+        machineries: property.machineries || [],
+        improvementsList: property.improvementsList || [],
       },
       attachedDocs: attachedDocs.map(d => ({
         documentType: d.documentType,
@@ -486,6 +561,36 @@ export async function saveCreditProjectData(
           })
         }
       }
+
+      // Sincronizar Semoventes com o cadastro relacional da fazenda
+      if (payload.livestockItems && Array.isArray(payload.livestockItems)) {
+        await prisma.livestock.deleteMany({ where: { propertyId } })
+        if (payload.livestockItems.length > 0) {
+          await prisma.livestock.createMany({
+            data: payload.livestockItems.map((l: any) => {
+              const catBB = normalizeCategoryBB(l.categoryBB || l.category)
+              const purBB = normalizePurposeBB(l.purposeBB || l.purpose)
+              return {
+                branchId,
+                propertyId,
+                species: normalizeLivestockSpecies(l.species, catBB),
+                category: normalizeLivestockCategory(l.category, catBB),
+                categoryBB: catBB,
+                purposeBB: purBB,
+                purpose: l.purpose || denormalizePurposeBB(purBB),
+                breed: l.breed || null,
+                quantity: Number(l.quantity) || 0,
+                ageMonths: l.ageMonths ? Number(l.ageMonths) : null,
+                avgWeightKg: l.avgWeightKg ? Number(l.avgWeightKg) : null,
+                unitValue: Number(l.unitValue) || 0,
+                brandingType: l.brandingType || l.markingType || null,
+                brandingLocation: l.brandingLocation || l.markingLocation || null,
+                observation: l.observation || null,
+              }
+            })
+          })
+        }
+      }
     } catch (e) {
       console.error('Error synchronizing property data from credit form:', e)
     }
@@ -498,8 +603,13 @@ export async function saveCreditProjectData(
       if (payload.producerPhone) prodUpdate.phone = payload.producerPhone
       if (payload.producerEmail) prodUpdate.email = payload.producerEmail
       if (payload.producerCivilStatus) prodUpdate.civilStatus = payload.producerCivilStatus
+      if (payload.producerMarriageRegime) prodUpdate.marriageRegime = payload.producerMarriageRegime
       if (payload.producerSpouseName) prodUpdate.spouseName = payload.producerSpouseName
       if (payload.producerSpouseCpf) prodUpdate.spouseCpf = payload.producerSpouseCpf
+      if (payload.producerSpouseRg) prodUpdate.spouseRg = payload.producerSpouseRg
+      if (payload.producerSpouseRgIssuer) prodUpdate.spouseRgIssuer = payload.producerSpouseRgIssuer
+      if (payload.producerSpouseNationality) prodUpdate.spouseNationality = payload.producerSpouseNationality
+      if (payload.producerSpouseEducationLevel) prodUpdate.spouseEducationLevel = payload.producerSpouseEducationLevel
       if (payload.producerProfession) prodUpdate.profession = payload.producerProfession
       if (payload.representativeCpf) prodUpdate.representativeCpf = payload.representativeCpf
 

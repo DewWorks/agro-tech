@@ -1,4 +1,5 @@
 import React from 'react'
+import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 
 interface TechnicalTablesProps {
   templateCode: string
@@ -20,11 +21,20 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
     const machineryItems = options.machineryItems || []
     const improvementItems = options.improvementItems || []
     
-    const cattleHeads = options.livestockCattleHeads || property.livestockData?.totalCattle || 0
+    const livestockItems: any[] = options.livestockItems || property.livestockList || property.livestocks || []
+    const hasLivestockItems = livestockItems.length > 0
+
     const cattleHeadValue = options.livestockCattleHeadValue || 2800
-    const totalCattleValue = cattleHeads * cattleHeadValue
+    const cattleHeads = hasLivestockItems
+      ? livestockItems.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)
+      : (options.livestockCattleHeads || property.livestockData?.totalCattle || 0)
+
+    const totalCattleValue = hasLivestockItems
+      ? livestockItems.reduce((acc: number, item: any) => acc + ((Number(item.quantity) || 0) * (Number(item.unitValue) || cattleHeadValue)), 0)
+      : (cattleHeads * cattleHeadValue)
 
     const totalPatrimony = totalLandValue + improvementsVal + machineryVal + totalCattleValue
+    const formatBRL = (val: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '12px' }}>
@@ -51,30 +61,30 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
               <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                 <td style={{ padding: '4px 8px' }}>Pastagem Formada / Artificial</td>
                 <td style={{ padding: '4px 8px', textAlign: 'right' }}>{pastArea.toFixed(2)} ha</td>
-                <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {landValuePerHa.toLocaleString('pt-BR')}</td>
-                <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {(pastArea * landValuePerHa).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(landValuePerHa)}</td>
+                <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(pastArea * landValuePerHa)}</td>
               </tr>
               {agricArea > 0 && (
                 <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '4px 8px' }}>Agricultura / Lavouras Anuais</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right' }}>{agricArea.toFixed(2)} ha</td>
-                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {(landValuePerHa * 1.2).toLocaleString('pt-BR')}</td>
-                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {(agricArea * landValuePerHa * 1.2).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(landValuePerHa * 1.2)}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(agricArea * landValuePerHa * 1.2)}</td>
                 </tr>
               )}
               {resArea > 0 && (
                 <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '4px 8px' }}>Reserva Legal & APP</td>
                   <td style={{ padding: '4px 8px', textAlign: 'right' }}>{resArea.toFixed(2)} ha</td>
-                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {(landValuePerHa * 0.4).toLocaleString('pt-BR')}</td>
-                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {(resArea * landValuePerHa * 0.4).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(landValuePerHa * 0.4)}</td>
+                  <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(resArea * landValuePerHa * 0.4)}</td>
                 </tr>
               )}
               <tr style={{ background: '#f3f4f6', fontWeight: 'bold' }}>
                 <td style={{ padding: '5px 8px' }}>ÁREA TOTAL DO IMÓVEL (VTN)</td>
                 <td style={{ padding: '5px 8px', textAlign: 'right' }}>{totalArea.toFixed(2)} ha</td>
                 <td style={{ padding: '5px 8px', textAlign: 'right' }}>-</td>
-                <td style={{ padding: '5px 8px', textAlign: 'right', color: '#1B4D3E' }}>R$ {totalLandValue.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+                <td style={{ padding: '5px 8px', textAlign: 'right', color: '#1B4D3E' }}>{formatBRL(totalLandValue)}</td>
               </tr>
             </tbody>
           </table>
@@ -84,7 +94,7 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
         <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', overflow: 'hidden' }}>
           <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between' }}>
             <span>III - Benfeitorias e Instalações (Referência BB)</span>
-            <span style={{ color: '#1B4D3E' }}>Total: R$ {improvementsVal.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+            <span style={{ color: '#1B4D3E' }}>Total: {formatBRL(improvementsVal)}</span>
           </div>
           {improvementItems.length > 0 ? (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -101,8 +111,8 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
                   <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '4px 8px' }}>{item.specification}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right' }}>{item.quantity} {item.unit}</td>
-                    <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {Number(item.unitValue || 0).toLocaleString('pt-BR')}</td>
-                    <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {Number(item.totalValue || 0).toLocaleString('pt-BR')}</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(Number(item.unitValue || 0))}</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(Number(item.totalValue || 0))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -110,7 +120,7 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
           ) : (
             <div style={{ padding: '6px 10px', fontSize: '10px', color: improvementsVal > 0 ? '#111827' : '#6b7280' }}>
               {improvementsVal > 0 
-                ? `Benfeitorias e instalações gerais avaliadas no montante de R$ ${improvementsVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`
+                ? `Benfeitorias e instalações gerais avaliadas no montante de ${formatBRL(improvementsVal)}.`
                 : 'Nenhuma benfeitoria informada (R$ 0,00).'}
             </div>
           )}
@@ -120,7 +130,7 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
         <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', overflow: 'hidden' }}>
           <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between' }}>
             <span>IV - Máquinas, Veículos e Implementos</span>
-            <span style={{ color: '#1B4D3E' }}>Total: R$ {machineryVal.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</span>
+            <span style={{ color: '#1B4D3E' }}>Total: {formatBRL(machineryVal)}</span>
           </div>
           {machineryItems.length > 0 ? (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -138,7 +148,7 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
                     <td style={{ padding: '4px 8px' }}>{m.type} - {m.brand} {m.model}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'center' }}>{m.year}</td>
                     <td style={{ padding: '4px 8px' }}>{m.chassi || 'N/I'}</td>
-                    <td style={{ padding: '4px 8px', textAlign: 'right' }}>R$ {Number(m.value || 0).toLocaleString('pt-BR')}</td>
+                    <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(Number(m.value || 0))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -146,34 +156,88 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
           ) : (
             <div style={{ padding: '6px 10px', fontSize: '10px', color: machineryVal > 0 ? '#111827' : '#6b7280' }}>
               {machineryVal > 0 
-                ? `Frota e parque de maquinários avaliados no montante de R$ ${machineryVal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`
+                ? `Frota e parque de maquinários avaliados no montante de ${formatBRL(machineryVal)}.`
                 : 'Nenhum maquinário cadastrado (R$ 0,00).'}
             </div>
           )}
         </div>
 
-        {/* SEMOVENTES / REBANHO & RESUMO PATRIMONIAL */}
+        {/* V - SEMOVENTES E REBANHO BOVINO */}
+        <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', overflow: 'hidden', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>V - Semoventes e Rebanho Bovino</span>
+            <span style={{ color: '#1B4D3E' }}>Total ({cattleHeads} cab): {formatBRL(totalCattleValue)}</span>
+          </div>
+          {hasLivestockItems ? (
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '9.5px' }}>
+              <thead>
+                <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', fontSize: '9px', textTransform: 'uppercase', color: '#374151' }}>
+                  <th style={{ padding: '5px 6px' }}>Categoria (BB)</th>
+                  <th style={{ padding: '5px 6px' }}>Finalidade</th>
+                  <th style={{ padding: '5px 6px' }}>Raça</th>
+                  <th style={{ padding: '5px 6px', textAlign: 'center' }}>Qtd (Cab.)</th>
+                  <th style={{ padding: '5px 6px', textAlign: 'center' }}>Idade</th>
+                  <th style={{ padding: '5px 6px', textAlign: 'center' }}>Peso Médio</th>
+                  <th style={{ padding: '5px 6px', textAlign: 'right' }}>Valor Unit.</th>
+                  <th style={{ padding: '5px 6px', textAlign: 'right' }}>Total Estimado</th>
+                  <th style={{ padding: '5px 6px' }}>Marca e Local</th>
+                </tr>
+              </thead>
+              <tbody>
+                {livestockItems.map((item: any, idx: number) => {
+                  const qty = Number(item.quantity) || 0
+                  const unitVal = Number(item.unitValue) || cattleHeadValue
+                  const tot = qty * unitVal
+                  const cat = item.category || denormalizeCategoryBB(item.categoryBB) || item.categoryBB || 'Bovino'
+                  const purp = denormalizePurposeBB(item.purposeBB) || item.purposeBB || 'Produção'
+                  const brandInfo = [item.brandingType, item.brandingLocation].filter(Boolean).join(' - ') || property.livestockData?.brandLocation || 'Conforme Ficha'
+                  return (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                      <td style={{ padding: '5px 6px', fontWeight: 600, color: '#111827' }}>{cat}</td>
+                      <td style={{ padding: '5px 6px', color: '#4b5563' }}>{purp}</td>
+                      <td style={{ padding: '5px 6px' }}>{item.breed || 'Nelore'}</td>
+                      <td style={{ padding: '5px 6px', textAlign: 'center', fontWeight: 'bold' }}>{qty}</td>
+                      <td style={{ padding: '5px 6px', textAlign: 'center' }}>{item.ageMonths ? `${item.ageMonths}m` : '-'}</td>
+                      <td style={{ padding: '5px 6px', textAlign: 'center' }}>{item.avgWeightKg ? `${item.avgWeightKg}kg` : '-'}</td>
+                      <td style={{ padding: '5px 6px', textAlign: 'right' }}>{formatBRL(unitVal)}</td>
+                      <td style={{ padding: '5px 6px', textAlign: 'right', fontWeight: 600, color: '#1B4D3E' }}>{formatBRL(tot)}</td>
+                      <td style={{ padding: '5px 6px', fontSize: '8.5px', color: '#6b7280' }}>{brandInfo}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <div style={{ padding: '6px 10px', fontSize: '10px', color: cattleHeads > 0 ? '#111827' : '#6b7280' }}>
+              {cattleHeads > 0
+                ? `Rebanho com estimativa total de ${cattleHeads} cabeças avaliadas em ${formatBRL(totalCattleValue)}.`
+                : 'Nenhum animal informado (0 cabeças).'}
+            </div>
+          )}
+        </div>
+
+        {/* RESUMO PATRIMONIAL GERAL */}
         <div style={{ border: '1px solid #1B4D3E', borderRadius: '4px', overflow: 'hidden', background: '#f8fafc' }}>
           <div style={{ background: '#1B4D3E', padding: '4px 10px', fontWeight: 'bold', color: '#fff', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontSize: '10.5px' }}>
             <span>Resumo Patrimonial Geral Avaliado</span>
-            <span>R$ {totalPatrimony.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            <span>{formatBRL(totalPatrimony)}</span>
           </div>
           <div style={{ padding: '6px 10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', fontSize: '10px' }}>
             <div>
               <span style={{ color: '#64748b', display: 'block' }}>Terras (VTN):</span>
-              <strong>R$ {totalLandValue.toLocaleString('pt-BR')}</strong>
+              <strong>{formatBRL(totalLandValue)}</strong>
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block' }}>Benfeitorias:</span>
-              <strong>R$ {improvementsVal.toLocaleString('pt-BR')}</strong>
+              <strong>{formatBRL(improvementsVal)}</strong>
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block' }}>Máquinas:</span>
-              <strong>R$ {machineryVal.toLocaleString('pt-BR')}</strong>
+              <strong>{formatBRL(machineryVal)}</strong>
             </div>
             <div>
               <span style={{ color: '#64748b', display: 'block' }}>Semoventes ({cattleHeads} cab):</span>
-              <strong>R$ {totalCattleValue.toLocaleString('pt-BR')}</strong>
+              <strong>{formatBRL(totalCattleValue)}</strong>
             </div>
           </div>
         </div>
