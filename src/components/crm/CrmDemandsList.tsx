@@ -37,31 +37,31 @@ function getStatusBadge(status: DemandStatusCode) {
     case 'SOLICITADO':
       return {
         label: 'Solicitado',
-        className: 'bg-blue-50 text-blue-700 border-blue-200',
+        className: 'bg-slate-100 text-slate-700 border-slate-300',
         icon: Clock,
       }
     case 'EM_EXECUCAO':
       return {
         label: 'Em Execução',
-        className: 'bg-purple-50 text-purple-700 border-purple-200',
+        className: 'bg-slate-900 text-white border-slate-900',
         icon: PlayCircle,
       }
     case 'AGUARDANDO_DOCUMENTACAO':
       return {
         label: 'Aguardando Docs',
-        className: 'bg-amber-50 text-amber-700 border-amber-200',
+        className: 'bg-amber-50 text-amber-900 border-amber-300',
         icon: FileClock,
       }
     case 'CONCLUIDO':
       return {
         label: 'Concluído',
-        className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        className: 'bg-emerald-50 text-emerald-900 border-emerald-300',
         icon: CheckCircle2,
       }
     case 'CANCELADO':
       return {
         label: 'Cancelado',
-        className: 'bg-slate-100 text-slate-500 border-slate-200',
+        className: 'bg-rose-50 text-rose-700 border-rose-200',
         icon: AlertTriangle,
       }
     default:

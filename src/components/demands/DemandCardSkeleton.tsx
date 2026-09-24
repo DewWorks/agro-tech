@@ -21,22 +21,22 @@ export function DemandCardSkeleton({
   return (
     <div
       className={cn(
-        'relative bg-white/95 rounded-2xl border-2 border-dashed border-emerald-400 shadow-md p-4 flex flex-col justify-between overflow-hidden animate-in fade-in zoom-in-95 duration-200 transition-all select-none',
+        'relative bg-white/95 rounded-xl border-2 border-dashed border-slate-400 shadow-md p-4 flex flex-col justify-between overflow-hidden animate-in fade-in zoom-in-95 duration-200 transition-all select-none',
         className
       )}
     >
       {/* Faixa superior com Badge de Serviço e Indicador de Processamento */}
       <div className="flex items-center justify-between gap-2 mb-3">
         {serviceTitle ? (
-          <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/80 truncate max-w-[180px]">
+          <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/80 truncate max-w-[180px]">
             {serviceTitle}
           </span>
         ) : (
-          <Skeleton className="h-5 w-28 rounded-md bg-emerald-100/60" />
+          <Skeleton className="h-5 w-28 rounded-md bg-slate-100" />
         )}
 
-        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-[11px] font-semibold text-emerald-700 animate-pulse shrink-0">
-          <Loader2 className="w-3 h-3 animate-spin text-emerald-600" />
+        <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-slate-900 text-white text-[11px] font-semibold animate-pulse shrink-0">
+          <Loader2 className="w-3 h-3 animate-spin text-slate-300" />
           <span>Movendo...</span>
         </div>
       </div>

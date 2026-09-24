@@ -16,6 +16,8 @@ import {
 } from '@/lib/validations/demands'
 import { DocumentType } from '@prisma/client'
 
+export type SlaFilterOption = 'ALL' | 'WARNING_30' | 'OVERDUE' | 'ON_TRACK'
+
 export interface DemandFilters {
   branchId?: string
   producerId?: string
@@ -26,6 +28,7 @@ export interface DemandFilters {
   assignedToId?: string
   search?: string
   includeCancelled?: boolean
+  slaFilter?: SlaFilterOption | string
 }
 
 /**
@@ -149,13 +152,29 @@ export async function getDemands(filters: DemandFilters = {}) {
       ],
     })
 
+    const now = new Date()
+
     // Adiciona cálculos de SLA e progresso de documentação
     const enrichedDemands = demands.map((demand) => {
       const sla = calculateSlaInfo(
         demand.estimatedDeliveryDate,
         demand.completionDate,
-        demand.status as DemandStatusCode
+        demand.status as DemandStatusCode,
+        now
       )
+
+      // Cálculo de dias restantes conforme fórmula do SLA (<= 30 dias para aviso)
+      let daysRemaining: number | null = null
+      let isOverdue = false
+      let isWarning30 = false
+
+      if (demand.estimatedDeliveryDate && demand.status !== 'CONCLUIDO' && demand.status !== 'CANCELADO') {
+        daysRemaining = Math.ceil(
+          (new Date(demand.estimatedDeliveryDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        )
+        isOverdue = daysRemaining < 0
+        isWarning30 = daysRemaining >= 0 && daysRemaining <= 30
+      }
 
       const totalDocs = demand.checklistItems.length
       const deliveredDocs = demand.checklistItems.filter((i) => i.isDelivered).length
@@ -164,6 +183,11 @@ export async function getDemands(filters: DemandFilters = {}) {
       return {
         ...demand,
         sla,
+        slaMonitoring: {
+          daysRemaining,
+          isOverdue,
+          isWarning30,
+        },
         checklistSummary: {
           total: totalDocs,
           delivered: deliveredDocs,
@@ -174,6 +198,17 @@ export async function getDemands(filters: DemandFilters = {}) {
     })
 
     // Contadores de status para o cabeçalho / Kanban
+    const warning30Count = enrichedDemands.filter(
+      (d) => d.status !== 'CONCLUIDO' && d.status !== 'CANCELADO' && d.slaMonitoring?.isWarning30
+    ).length
+
+    const overdueCount = enrichedDemands.filter(
+      (d) =>
+        d.status !== 'CONCLUIDO' &&
+        d.status !== 'CANCELADO' &&
+        (d.slaMonitoring?.isOverdue || d.sla.status === 'ATRASADO')
+    ).length
+
     const counters = {
       total: enrichedDemands.length,
       solicitado: enrichedDemands.filter((d) => d.status === 'SOLICITADO').length,
@@ -181,12 +216,38 @@ export async function getDemands(filters: DemandFilters = {}) {
       aguardandoDocumentacao: enrichedDemands.filter((d) => d.status === 'AGUARDANDO_DOCUMENTACAO').length,
       concluido: enrichedDemands.filter((d) => d.status === 'CONCLUIDO').length,
       cancelado: enrichedDemands.filter((d) => d.status === 'CANCELADO').length,
-      atrasadas: enrichedDemands.filter((d) => d.sla.status === 'ATRASADO').length,
+      atrasadas: overdueCount,
+      warning30: warning30Count,
+    }
+
+    // Filtragem pós-cálculo por SLA caso especificado
+    let filteredDemands = enrichedDemands
+    if (filters.slaFilter && filters.slaFilter !== 'ALL') {
+      if (filters.slaFilter === 'WARNING_30') {
+        filteredDemands = enrichedDemands.filter(
+          (d) => d.status !== 'CONCLUIDO' && d.status !== 'CANCELADO' && d.slaMonitoring?.isWarning30
+        )
+      } else if (filters.slaFilter === 'OVERDUE') {
+        filteredDemands = enrichedDemands.filter(
+          (d) =>
+            d.status !== 'CONCLUIDO' &&
+            d.status !== 'CANCELADO' &&
+            (d.slaMonitoring?.isOverdue || d.sla.status === 'ATRASADO')
+        )
+      } else if (filters.slaFilter === 'ON_TRACK') {
+        filteredDemands = enrichedDemands.filter(
+          (d) =>
+            d.status !== 'CONCLUIDO' &&
+            d.status !== 'CANCELADO' &&
+            !d.slaMonitoring?.isOverdue &&
+            !d.slaMonitoring?.isWarning30
+        )
+      }
     }
 
     return {
       success: true,
-      demands: enrichedDemands,
+      demands: filteredDemands,
       counters,
     }
   } catch (error) {
@@ -202,6 +263,7 @@ export async function getDemands(filters: DemandFilters = {}) {
         concluido: 0,
         cancelado: 0,
         atrasadas: 0,
+        warning30: 0,
       },
     }
   }
@@ -248,6 +310,12 @@ export async function getDemandById(id: string) {
         },
         producer: true,
         property: true,
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         document: {
           select: {
             id: true,

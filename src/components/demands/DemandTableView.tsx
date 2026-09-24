@@ -22,13 +22,13 @@ interface DemandTableViewProps {
 function getStatusBadge(status: string) {
   switch (status) {
     case 'SOLICITADO':
-      return { label: 'Solicitado', cls: 'bg-blue-50 text-blue-700 border-blue-200' }
+      return { label: 'Solicitado', cls: 'bg-slate-100 text-slate-700 border-slate-300' }
     case 'EM_EXECUCAO':
-      return { label: 'Em Execução', cls: 'bg-purple-50 text-purple-700 border-purple-200' }
+      return { label: 'Em Execução', cls: 'bg-slate-900 text-white border-slate-900' }
     case 'AGUARDANDO_DOCUMENTACAO':
-      return { label: 'Aguardando Docs', cls: 'bg-amber-50 text-amber-800 border-amber-200' }
+      return { label: 'Aguardando Docs', cls: 'bg-amber-50 text-amber-900 border-amber-300' }
     case 'CONCLUIDO':
-      return { label: 'Concluído', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' }
+      return { label: 'Concluído', cls: 'bg-emerald-50 text-emerald-900 border-emerald-300' }
     case 'CANCELADO':
       return { label: 'Cancelado', cls: 'bg-rose-50 text-rose-700 border-rose-200' }
     default:

@@ -88,6 +88,31 @@ interface DemandCardProps {
   isMoving?: boolean
 }
 
+function getNextActionClasses(targetStatus: DemandStatusCode) {
+  switch (targetStatus) {
+    case 'EM_EXECUCAO':
+      return {
+        btn: 'text-slate-900 hover:text-white bg-slate-100 hover:bg-slate-900 border-slate-300 hover:border-slate-900',
+        arrow: 'text-slate-500 group-hover/btn:text-white',
+      }
+    case 'AGUARDANDO_DOCUMENTACAO':
+      return {
+        btn: 'text-amber-900 hover:text-amber-950 bg-amber-50 hover:bg-amber-100 border-amber-300 hover:border-amber-400',
+        arrow: 'text-amber-600',
+      }
+    case 'CONCLUIDO':
+      return {
+        btn: 'text-emerald-900 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border-emerald-300 hover:border-emerald-400',
+        arrow: 'text-emerald-600',
+      }
+    default:
+      return {
+        btn: 'text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 border-slate-300',
+        arrow: 'text-slate-400',
+      }
+  }
+}
+
 export function DemandCard({
   demand,
   onMoveStatus,
@@ -167,16 +192,16 @@ export function DemandCard({
           router.push(`/admin/demands/${demand.id}`)
         }}
         className={cn(
-          'group relative bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden cursor-pointer',
-          isDragging && 'opacity-50 ring-2 ring-emerald-500 shadow-xl',
-          isMoving && 'opacity-50 pointer-events-none scale-[0.98] border-dashed border-emerald-400 ring-2 ring-emerald-400/40',
+          'group relative bg-white rounded-xl border border-slate-200 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden cursor-pointer',
+          isDragging && 'opacity-50 ring-2 ring-slate-400 shadow-xl',
+          isMoving && 'opacity-50 pointer-events-none scale-[0.98] border-dashed border-slate-400 ring-2 ring-slate-400/40',
           !isDragging && !isMoving && 'hover:border-slate-300'
         )}
       >
         {isMoving && (
           <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-150">
             <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-bold shadow-lg">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-300" />
               <span>Transferindo etapa...</span>
             </div>
           </div>
@@ -185,7 +210,7 @@ export function DemandCard({
         <div className="p-4 pb-2">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="flex-1 min-w-0">
-              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/60 truncate max-w-full">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/80 truncate max-w-full">
                 {serviceTitle}
               </span>
             </div>
@@ -295,14 +320,14 @@ export function DemandCard({
           {(demand.proposalId || demand.document) && (
             <div className="mt-2.5 flex items-center gap-1.5 flex-wrap">
               {demand.proposalId && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md">
-                  <FileCheck2 className="w-3 h-3 text-indigo-500" />
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-md">
+                  <FileCheck2 className="w-3 h-3 text-slate-500" />
                   Prop: {demand.proposalId}
                 </span>
               )}
               {demand.document && (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-700 bg-sky-50 border border-sky-200/60 px-2 py-0.5 rounded-md truncate max-w-[180px]">
-                  <FileText className="w-3 h-3 text-sky-500" />
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-md truncate max-w-[180px]">
+                  <FileText className="w-3 h-3 text-slate-500" />
                   Doc: {demand.document.fileName}
                 </span>
               )}
@@ -340,8 +365,8 @@ export function DemandCard({
                 <span
                   className={cn(
                     demand.checklistSummary.delivered === demand.checklistSummary.total
-                      ? 'text-emerald-600'
-                      : 'text-amber-600'
+                      ? 'text-emerald-700'
+                      : 'text-amber-800'
                   )}
                 >
                   {demand.checklistSummary.delivered}/{demand.checklistSummary.total} entregues
@@ -354,7 +379,7 @@ export function DemandCard({
                     demand.checklistSummary.percentage === 100
                       ? 'bg-emerald-500'
                       : demand.checklistSummary.percentage >= 50
-                      ? 'bg-blue-500'
+                      ? 'bg-slate-800'
                       : 'bg-amber-500'
                   )}
                   style={{ width: `${demand.checklistSummary.percentage}%` }}
@@ -369,25 +394,31 @@ export function DemandCard({
           <DemandSlaBadge sla={demand.sla} />
 
           <div className="flex items-center gap-1.5">
-            {nextAction && onMoveStatus && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  onMoveStatus(demand.id, nextAction!.status)
-                }}
-                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold text-slate-700 hover:text-emerald-700 bg-white hover:bg-emerald-50/60 border border-slate-200 hover:border-emerald-200 rounded-lg shadow-2xs transition-all active:scale-95"
-                title={`Mover para ${nextAction.status}`}
-              >
-                <span>{nextAction.label}</span>
-                <ArrowRight className="w-3 h-3 text-slate-400 group-hover:text-emerald-600" />
-              </button>
-            )}
+            {nextAction && onMoveStatus && (() => {
+              const actionStyle = getNextActionClasses(nextAction.status)
+              return (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onMoveStatus(demand.id, nextAction!.status)
+                  }}
+                  className={cn(
+                    'group/btn inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-lg border shadow-2xs transition-all active:scale-95',
+                    actionStyle.btn
+                  )}
+                  title={`Mover para ${nextAction.status}`}
+                >
+                  <span>{nextAction.label}</span>
+                  <ArrowRight className={cn('w-3 h-3 transition-colors', actionStyle.arrow)} />
+                </button>
+              )
+            })()}
 
             <Link
               href={`/admin/demands/${demand.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors shadow-2xs"
+              className="inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors shadow-2xs"
               title="Abrir Central da Demanda"
             >
               <ExternalLink className="w-3.5 h-3.5" />

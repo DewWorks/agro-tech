@@ -45,6 +45,7 @@ interface ColumnDef {
   borderClass: string
   bgClass: string
   headerBg: string
+  accentBorder: string
 }
 
 const COLUMNS: ColumnDef[] = [
@@ -52,37 +53,41 @@ const COLUMNS: ColumnDef[] = [
     status: 'SOLICITADO',
     title: 'Solicitado',
     icon: Inbox,
-    badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
-    borderClass: 'border-blue-200/80',
-    bgClass: 'bg-blue-50/20',
-    headerBg: 'bg-blue-50/80 text-blue-900',
+    badgeClass: 'bg-slate-200 text-slate-800 border-slate-300',
+    borderClass: 'border-slate-200/90',
+    bgClass: 'bg-slate-50/70',
+    headerBg: 'bg-slate-100 text-slate-700 border-slate-200',
+    accentBorder: 'border-t-4 border-t-slate-400',
   },
   {
     status: 'EM_EXECUCAO',
     title: 'Em Execução',
     icon: PlayCircle,
-    badgeClass: 'bg-purple-100 text-purple-800 border-purple-200',
-    borderClass: 'border-purple-200/80',
-    bgClass: 'bg-purple-50/20',
-    headerBg: 'bg-purple-50/80 text-purple-900',
+    badgeClass: 'bg-slate-900 text-white border-slate-900',
+    borderClass: 'border-slate-200/90',
+    bgClass: 'bg-slate-50/70',
+    headerBg: 'bg-slate-100 text-slate-950 font-bold border-slate-200',
+    accentBorder: 'border-t-4 border-t-slate-900',
   },
   {
     status: 'AGUARDANDO_DOCUMENTACAO',
     title: 'Aguardando Docs',
     icon: FileClock,
-    badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
-    borderClass: 'border-amber-200/80',
-    bgClass: 'bg-amber-50/20',
-    headerBg: 'bg-amber-50/80 text-amber-900',
+    badgeClass: 'bg-amber-100 text-amber-900 border border-amber-300',
+    borderClass: 'border-slate-200/90',
+    bgClass: 'bg-slate-50/70',
+    headerBg: 'bg-amber-50 text-amber-900 border-amber-200/80',
+    accentBorder: 'border-t-4 border-t-amber-400',
   },
   {
     status: 'CONCLUIDO',
     title: 'Concluído',
     icon: CheckCircle2,
-    badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-    borderClass: 'border-emerald-200/80',
-    bgClass: 'bg-emerald-50/20',
-    headerBg: 'bg-emerald-50/80 text-emerald-900',
+    badgeClass: 'bg-emerald-100 text-emerald-900 border border-emerald-300',
+    borderClass: 'border-slate-200/90',
+    bgClass: 'bg-slate-50/70',
+    headerBg: 'bg-emerald-50 text-emerald-900 border-emerald-200/80',
+    accentBorder: 'border-t-4 border-t-emerald-600',
   },
 ]
 
@@ -296,18 +301,18 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, col.status)}
               className={cn(
-                'flex flex-col rounded-2xl border transition-all duration-200 min-h-[500px]',
+                'flex flex-col rounded-xl border transition-all duration-200 min-h-[500px] overflow-hidden',
                 col.borderClass,
                 col.bgClass,
-                isHovered && 'ring-2 ring-emerald-500/50 bg-emerald-50/30'
+                col.accentBorder,
+                isHovered && 'ring-2 ring-slate-400/50 bg-slate-100/90'
               )}
             >
               {/* Header da Coluna */}
               <div
                 className={cn(
-                  'p-3.5 border-b flex items-center justify-between rounded-t-2xl font-bold text-sm',
-                  col.headerBg,
-                  col.borderClass
+                  'p-3.5 border-b flex items-center justify-between font-bold text-sm',
+                  col.headerBg
                 )}
               >
                 <div className="flex items-center gap-2">
@@ -316,7 +321,7 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
                 </div>
                 <div className="flex items-center gap-1.5">
                   {isTargetColumn && (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-700" />
                   )}
                   <span className={cn('px-2 py-0.5 rounded-full text-xs font-black border', col.badgeClass)}>
                     {displayCount}
@@ -381,7 +386,14 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
           >
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700">
+                <div
+                  className={cn(
+                    'p-2 rounded-xl',
+                    pendingDispatch.targetStatus === 'AGUARDANDO_DOCUMENTACAO'
+                      ? 'bg-amber-100 text-amber-900'
+                      : 'bg-emerald-100 text-emerald-900'
+                  )}
+                >
                   <MessageSquare className="w-5 h-5" />
                 </div>
                 <div>
@@ -390,7 +402,14 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
                   </h3>
                   <p className="text-xs text-slate-500">
                     Mover para{' '}
-                    <span className="font-semibold text-emerald-800">
+                    <span
+                      className={cn(
+                        'font-bold',
+                        pendingDispatch.targetStatus === 'AGUARDANDO_DOCUMENTACAO'
+                          ? 'text-amber-800'
+                          : 'text-emerald-800'
+                      )}
+                    >
                       {pendingDispatch.targetStatus === 'AGUARDANDO_DOCUMENTACAO'
                         ? 'Aguardando Documentação'
                         : pendingDispatch.targetStatus === 'CONCLUIDO'
@@ -422,7 +441,7 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
               onKeyDown={handleModalKeyDown}
               placeholder={getDynamicPlaceholder(pendingDispatch.targetStatus)}
               rows={4}
-              className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder:text-slate-400 focus-visible:ring-emerald-500/20 focus-visible:border-emerald-500 mb-2 resize-none"
+              className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder:text-slate-400 focus-visible:ring-slate-400/20 focus-visible:border-slate-400 mb-2 resize-none"
             />
 
             {/* Dica Visual Sutil de Atalho (UI/UX) */}
@@ -469,7 +488,12 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
                     setPendingDispatch(null)
                     handleMoveDemand(demandId, targetStatus, note)
                   }}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer"
+                  className={cn(
+                    'px-4 py-2 text-white text-xs font-bold rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer',
+                    pendingDispatch.targetStatus === 'AGUARDANDO_DOCUMENTACAO'
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-emerald-600 hover:bg-emerald-700'
+                  )}
                 >
                   Salvar com Despacho
                 </button>

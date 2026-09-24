@@ -7,6 +7,7 @@ import { getDemands } from '@/actions/demands'
 import { DemandKanbanBoard } from '@/components/demands/DemandKanbanBoard'
 import { DemandTableView } from '@/components/demands/DemandTableView'
 import { DemandFiltersBar } from '@/components/demands/DemandFiltersBar'
+import { DemandMetricsRibbon } from '@/components/demands/DemandMetricsRibbon'
 import {
   Plus,
   Search,
@@ -22,7 +23,13 @@ import {
   ClipboardList,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { RURAL_SERVICES_CATALOG, RURAL_SERVICE_TYPES, RuralServiceTypeCode } from '@/lib/validations/demands'
+import {
+  RURAL_SERVICES_CATALOG,
+  RURAL_SERVICE_TYPES,
+  RuralServiceTypeCode,
+  DemandStatusCode,
+} from '@/lib/validations/demands'
+import { cn } from '@/lib/utils'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,6 +40,8 @@ interface DemandsPageProps {
     serviceType?: string
     branchId?: string
     showCancelled?: string
+    status?: string
+    slaFilter?: string
   }>
 }
 
@@ -68,6 +77,8 @@ export default async function DemandsPage(props: DemandsPageProps) {
   const search = searchParams.search || ''
   const serviceType = (searchParams.serviceType as RuralServiceTypeCode) || undefined
   const showCancelled = searchParams.showCancelled === 'true'
+  const statusFilter = (searchParams.status as DemandStatusCode) || undefined
+  const slaFilter = searchParams.slaFilter || 'ALL'
 
   // Para OPERATOR: aplica silenciosamente dbUser.branchId
   // Para OWNER/SUPER_ADMIN: usa o searchParams.branchId se informado, senão busca todas
@@ -77,12 +88,14 @@ export default async function DemandsPage(props: DemandsPageProps) {
       : undefined
     : dbUser.branchId || undefined
 
-  // Busca demandas incluindo ou não canceladas
+  // Busca demandas incluindo ou não canceladas (ou filtradas por status na tabela e SLA)
   const result = await getDemands({
     branchId: selectedBranchId,
     search: search || undefined,
     serviceType: serviceType || undefined,
-    includeCancelled: showCancelled,
+    status: view === 'table' ? statusFilter : undefined,
+    slaFilter: slaFilter !== 'ALL' ? slaFilter : undefined,
+    includeCancelled: statusFilter === 'CANCELADO' || showCancelled,
   })
 
   const demands = result.success ? (result.demands as any[]) : []
@@ -96,10 +109,23 @@ export default async function DemandsPage(props: DemandsPageProps) {
         concluido: 0,
         cancelado: 0,
         atrasadas: 0,
+        warning30: 0,
       }
 
+  // Demandas ativas em esteira operacional (exclui concluídas e canceladas)
+  const activeDemands = counters.solicitado + counters.emExecucao + counters.aguardandoDocumentacao
+
+  const STATUS_TABS = [
+    { key: 'ALL', label: 'Todas', count: counters.total },
+    { key: 'SOLICITADO', label: 'Solicitado', count: counters.solicitado },
+    { key: 'EM_EXECUCAO', label: 'Em Execução', count: counters.emExecucao },
+    { key: 'AGUARDANDO_DOCUMENTACAO', label: 'Aguardando Docs', count: counters.aguardandoDocumentacao },
+    { key: 'CONCLUIDO', label: 'Concluído', count: counters.concluido },
+    { key: 'CANCELADO', label: 'Cancelado', count: counters.cancelado },
+  ]
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -107,7 +133,7 @@ export default async function DemandsPage(props: DemandsPageProps) {
             <ClipboardList className="h-8 w-8" />
             Serviços & Demandas Rurais
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-1 text-xs">
             Gestão operacional de ordens de serviço, esteira documental do GED e governança de prazos.
           </p>
         </div>
@@ -118,68 +144,63 @@ export default async function DemandsPage(props: DemandsPageProps) {
         </Link>
       </div>
 
-      {/* Cards de Métricas Consolidadas */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {/* Total Geral */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total</span>
-            <Layers className="w-4 h-4 text-slate-500" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">{counters.total}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">demandas registradas</div>
-        </div>
+      {/* Modo Kanban: Fita de Métricas Executiva e Compacta com Chips Interativos */}
+      {view === 'kanban' && (
+        <DemandMetricsRibbon
+          activeCount={activeDemands}
+          overdueCount={counters.atrasadas}
+          warning30Count={counters.warning30}
+          pendingDocsCount={counters.aguardandoDocumentacao}
+          currentSlaFilter={slaFilter}
+          currentView={view}
+          currentSearch={search}
+          currentServiceType={serviceType}
+          currentBranchId={searchParams.branchId}
+          showCancelled={showCancelled}
+        />
+      )}
 
-        {/* Em Execução */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-purple-600 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider">Execução</span>
-            <PlayCircle className="w-4 h-4" />
-          </div>
-          <div className="text-2xl font-black text-purple-700">{counters.emExecucao}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">em andamento técnico</div>
+      {/* Modo Tabela: Barra Compacta de Status como Filtros Rápidos */}
+      {view === 'table' && (
+        <div className="flex items-center gap-1.5 flex-wrap text-xs pb-1">
+          <span className="text-slate-400 font-semibold mr-1 text-[11px] uppercase tracking-wider">
+            Filtrar:
+          </span>
+          {STATUS_TABS.map((tab) => {
+            const isActive = (!statusFilter && tab.key === 'ALL') || statusFilter === tab.key
+            return (
+              <Link
+                key={tab.key}
+                href={`/admin/demands?view=table&status=${tab.key === 'ALL' ? '' : tab.key}&search=${encodeURIComponent(
+                  search
+                )}&serviceType=${encodeURIComponent(
+                  serviceType || ''
+                )}&branchId=${encodeURIComponent(
+                  searchParams.branchId || ''
+                )}&slaFilter=${encodeURIComponent(
+                  slaFilter === 'ALL' ? '' : slaFilter
+                )}&showCancelled=${tab.key === 'CANCELADO' || showCancelled ? 'true' : 'false'}`}
+                className={cn(
+                  'px-3 py-1 rounded-lg text-xs font-semibold border transition-all inline-flex items-center gap-1.5 cursor-pointer',
+                  isActive
+                    ? 'bg-slate-900 text-white border-slate-900 shadow-2xs'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                )}
+              >
+                <span>{tab.label}</span>
+                <span
+                  className={cn(
+                    'text-[10px] px-1.5 py-0.2 rounded-full font-bold',
+                    isActive ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+                  )}
+                >
+                  {tab.count}
+                </span>
+              </Link>
+            )
+          })}
         </div>
-
-        {/* Aguardando Docs */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-amber-600 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider">Aguardando</span>
-            <FileClock className="w-4 h-4" />
-          </div>
-          <div className="text-2xl font-black text-amber-700">{counters.aguardandoDocumentacao}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">com pendências no GED</div>
-        </div>
-
-        {/* Atrasadas */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-rose-600 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider">Atrasadas</span>
-            <ShieldAlert className="w-4 h-4" />
-          </div>
-          <div className="text-2xl font-black text-rose-700">{counters.atrasadas}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">alerta de SLA estourado</div>
-        </div>
-
-        {/* Concluídas */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-emerald-600 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider">Concluídas</span>
-            <CheckCircle2 className="w-4 h-4" />
-          </div>
-          <div className="text-2xl font-black text-emerald-700">{counters.concluido}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">entregas finalizadas</div>
-        </div>
-
-        {/* Canceladas */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
-          <div className="flex items-center justify-between text-slate-500 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider">Canceladas</span>
-            <Ban className="w-4 h-4" />
-          </div>
-          <div className="text-2xl font-black text-slate-600">{counters.cancelado}</div>
-          <div className="text-[11px] text-slate-400 mt-0.5">arquivadas</div>
-        </div>
-      </div>
+      )}
 
       {/* Barra de Filtros e Alternância de Visualização */}
       <DemandFiltersBar
@@ -187,8 +208,10 @@ export default async function DemandsPage(props: DemandsPageProps) {
         currentSearch={search}
         currentServiceType={serviceType}
         currentBranchId={searchParams.branchId || 'ALL'}
+        currentSlaFilter={slaFilter}
         branches={branches}
         showCancelled={showCancelled}
+        cancelledCount={counters.cancelado}
       />
 
       {/* Conteúdo Principal: Kanban ou Tabela */}
