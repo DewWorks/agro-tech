@@ -47,7 +47,11 @@ function parseConservationState(val?: string | null): any {
 export async function createProperty(data: any) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Não autenticado')
+    }
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
     }
 
@@ -344,7 +348,11 @@ export async function createProperty(data: any) {
 export async function updateProperty(id: string, data: any) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Não autenticado')
+    }
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
     }
 
@@ -353,7 +361,7 @@ export async function updateProperty(id: string, data: any) {
       include: { branch: true, producers: true }
     })
 
-    if (!existing || existing.branch.organizationId !== dbUser.organizationId) {
+    if (!existing || (!isSuperAdmin && existing.branch.organizationId !== dbUser.organizationId)) {
       throw new Error('Propriedade não encontrada ou permissão negada.')
     }
 
@@ -730,7 +738,11 @@ export async function updateProperty(id: string, data: any) {
 export async function deleteProperty(id: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Não autenticado')
+    }
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
     }
 
@@ -739,7 +751,7 @@ export async function deleteProperty(id: string) {
       include: { branch: true }
     })
 
-    if (!existing || existing.branch.organizationId !== dbUser.organizationId) {
+    if (!existing || (!isSuperAdmin && existing.branch.organizationId !== dbUser.organizationId)) {
       throw new Error('Propriedade não encontrada ou permissão negada.')
     }
 
@@ -760,15 +772,19 @@ export async function deleteProperty(id: string) {
 export async function getProducersForBranch(branchId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) return []
+    if (!dbUser) return []
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) return []
 
     const producers = await prisma.producer.findMany({
       where: {
         branchId,
         isActive: true,
-        branch: {
-          organizationId: dbUser.organizationId
-        }
+        ...(!isSuperAdmin && dbUser.organizationId ? {
+          branch: {
+            organizationId: dbUser.organizationId
+          }
+        } : {})
       },
       select: {
         id: true,

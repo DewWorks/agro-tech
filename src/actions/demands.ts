@@ -16,6 +16,8 @@ import {
 } from '@/lib/validations/demands'
 import { DocumentType } from '@prisma/client'
 
+export type SlaFilterOption = 'ALL' | 'WARNING_30' | 'OVERDUE' | 'ON_TRACK'
+
 export interface DemandFilters {
   branchId?: string
   producerId?: string
@@ -26,6 +28,7 @@ export interface DemandFilters {
   assignedToId?: string
   search?: string
   includeCancelled?: boolean
+  slaFilter?: SlaFilterOption | string
 }
 
 /**
@@ -58,13 +61,6 @@ export async function getDemands(filters: DemandFilters = {}) {
 
     if (filters.propertyId) {
       where.propertyId = filters.propertyId
-    }
-
-    if (filters.status) {
-      where.status = filters.status
-    } else if (!filters.includeCancelled) {
-      // Por padrão no Kanban, não traz canceladas para manter a tela limpa
-      where.status = { not: 'CANCELADO' }
     }
 
     if (filters.serviceType) {
@@ -149,13 +145,29 @@ export async function getDemands(filters: DemandFilters = {}) {
       ],
     })
 
+    const now = new Date()
+
     // Adiciona cálculos de SLA e progresso de documentação
     const enrichedDemands = demands.map((demand) => {
       const sla = calculateSlaInfo(
         demand.estimatedDeliveryDate,
         demand.completionDate,
-        demand.status as DemandStatusCode
+        demand.status as DemandStatusCode,
+        now
       )
+
+      // Cálculo de dias restantes conforme fórmula do SLA (<= 30 dias para aviso)
+      let daysRemaining: number | null = null
+      let isOverdue = false
+      let isWarning30 = false
+
+      if (demand.estimatedDeliveryDate && demand.status !== 'CONCLUIDO' && demand.status !== 'CANCELADO') {
+        daysRemaining = Math.ceil(
+          (new Date(demand.estimatedDeliveryDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        )
+        isOverdue = daysRemaining < 0
+        isWarning30 = daysRemaining >= 0 && daysRemaining <= 30
+      }
 
       const totalDocs = demand.checklistItems.length
       const deliveredDocs = demand.checklistItems.filter((i) => i.isDelivered).length
@@ -164,6 +176,11 @@ export async function getDemands(filters: DemandFilters = {}) {
       return {
         ...demand,
         sla,
+        slaMonitoring: {
+          daysRemaining,
+          isOverdue,
+          isWarning30,
+        },
         checklistSummary: {
           total: totalDocs,
           delivered: deliveredDocs,
@@ -174,6 +191,17 @@ export async function getDemands(filters: DemandFilters = {}) {
     })
 
     // Contadores de status para o cabeçalho / Kanban
+    const warning30Count = enrichedDemands.filter(
+      (d) => d.status !== 'CONCLUIDO' && d.status !== 'CANCELADO' && d.slaMonitoring?.isWarning30
+    ).length
+
+    const overdueCount = enrichedDemands.filter(
+      (d) =>
+        d.status !== 'CONCLUIDO' &&
+        d.status !== 'CANCELADO' &&
+        (d.slaMonitoring?.isOverdue || d.sla.status === 'ATRASADO')
+    ).length
+
     const counters = {
       total: enrichedDemands.length,
       solicitado: enrichedDemands.filter((d) => d.status === 'SOLICITADO').length,
@@ -181,12 +209,46 @@ export async function getDemands(filters: DemandFilters = {}) {
       aguardandoDocumentacao: enrichedDemands.filter((d) => d.status === 'AGUARDANDO_DOCUMENTACAO').length,
       concluido: enrichedDemands.filter((d) => d.status === 'CONCLUIDO').length,
       cancelado: enrichedDemands.filter((d) => d.status === 'CANCELADO').length,
-      atrasadas: enrichedDemands.filter((d) => d.sla.status === 'ATRASADO').length,
+      atrasadas: overdueCount,
+      warning30: warning30Count,
+    }
+
+    // Filtragem por status pós-cálculo dos contadores
+    let filteredDemands = enrichedDemands
+    if (filters.status) {
+      filteredDemands = filteredDemands.filter((d) => d.status === filters.status)
+    } else if (!filters.includeCancelled) {
+      // Por padrão no Kanban, não traz canceladas para manter a tela limpa
+      filteredDemands = filteredDemands.filter((d) => d.status !== 'CANCELADO')
+    }
+
+    // Filtragem pós-cálculo por SLA caso especificado
+    if (filters.slaFilter && filters.slaFilter !== 'ALL') {
+      if (filters.slaFilter === 'WARNING_30') {
+        filteredDemands = filteredDemands.filter(
+          (d) => d.status !== 'CONCLUIDO' && d.status !== 'CANCELADO' && d.slaMonitoring?.isWarning30
+        )
+      } else if (filters.slaFilter === 'OVERDUE') {
+        filteredDemands = filteredDemands.filter(
+          (d) =>
+            d.status !== 'CONCLUIDO' &&
+            d.status !== 'CANCELADO' &&
+            (d.slaMonitoring?.isOverdue || d.sla.status === 'ATRASADO')
+        )
+      } else if (filters.slaFilter === 'ON_TRACK') {
+        filteredDemands = filteredDemands.filter(
+          (d) =>
+            d.status !== 'CONCLUIDO' &&
+            d.status !== 'CANCELADO' &&
+            !d.slaMonitoring?.isOverdue &&
+            !d.slaMonitoring?.isWarning30
+        )
+      }
     }
 
     return {
       success: true,
-      demands: enrichedDemands,
+      demands: filteredDemands,
       counters,
     }
   } catch (error) {
@@ -202,6 +264,7 @@ export async function getDemands(filters: DemandFilters = {}) {
         concluido: 0,
         cancelado: 0,
         atrasadas: 0,
+        warning30: 0,
       },
     }
   }
@@ -213,14 +276,19 @@ export async function getDemands(filters: DemandFilters = {}) {
 export async function getDemandById(id: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const demand = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -243,6 +311,12 @@ export async function getDemandById(id: string) {
         },
         producer: true,
         property: true,
+        branch: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         document: {
           select: {
             id: true,
@@ -365,6 +439,15 @@ export async function createDemand(rawData: any) {
       if (defaultBranch?.id) {
         branchId = defaultBranch.id
       }
+    } else if (!branchId && (dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating))) {
+      const anyBranch = await prisma.branch.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (anyBranch?.id) {
+        branchId = anyBranch.id
+      }
     }
 
     if (!branchId) {
@@ -459,14 +542,19 @@ export async function createDemand(rawData: any) {
 export async function updateDemand(id: string, rawData: any) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingDemand = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -531,7 +619,12 @@ export async function updateDemandStatus(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
@@ -540,7 +633,7 @@ export async function updateDemandStatus(
     const existing = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -637,14 +730,19 @@ export async function toggleChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -695,14 +793,19 @@ export async function attachDocumentToChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const item = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -765,14 +868,19 @@ export async function attachDocumentToChecklistItem(
 export async function linkExistingGedDocument(itemId: string, documentId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -817,7 +925,12 @@ export async function addChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
@@ -828,7 +941,7 @@ export async function addChecklistItem(
     const demand = await prisma.serviceDemand.findFirst({
       where: {
         id: demandId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -870,14 +983,19 @@ export async function addChecklistItem(
 export async function deleteChecklistItem(itemId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -912,14 +1030,19 @@ export async function deleteChecklistItem(itemId: string) {
 export async function deleteDemand(id: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existing = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },

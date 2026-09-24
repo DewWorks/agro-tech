@@ -10,7 +10,11 @@ import { validateCNPJ, validateCPF } from '@/lib/validations'
 export async function createProducer(data: any) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Não autenticado')
+    }
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
     }
 
@@ -178,7 +182,8 @@ export async function updateProducer(id: string, data: any) {
       include: { branch: true }
     })
 
-    if (!existingProducer || existingProducer.branch.organizationId !== dbUser.organizationId) {
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!existingProducer || (!isSuperAdmin && existingProducer.branch.organizationId !== dbUser.organizationId)) {
       throw new Error('Produtor não encontrado ou sem permissão.')
     }
 

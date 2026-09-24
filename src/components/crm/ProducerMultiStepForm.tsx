@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { createProducer, updateProducer } from '@/actions/producers'
 import { toast } from 'sonner'
-import { Loader2, User, Users, FileText, CheckCircle2, AlertTriangle, Plus, BookText, MapPin } from 'lucide-react'
+import { Loader2, User, Users, FileText, CheckCircle2, AlertTriangle, Plus, BookText, MapPin, ClipboardList } from 'lucide-react'
 import {
   validateCPF,
   validateCNPJ,
@@ -19,11 +19,22 @@ import { ProducerSpouseStep } from './producer-steps/ProducerSpouseStep'
 import { ProducerPropertyStep, type IbgeLocation } from './producer-steps/ProducerPropertyStep'
 import { ProducerLegalDataStep } from './producer-steps/ProducerLegalDataStep'
 import { ProducerQualificationStep } from './producer-steps/ProducerQualificationStep'
+import { CrmDemandsList } from './CrmDemandsList'
 
-export default function ProducerMultiStepForm({ branches, initialData }: { branches: any[], initialData?: any }) {
+export default function ProducerMultiStepForm({
+  branches,
+  initialData,
+  demands = [],
+  initialTab = 'DADOS',
+}: {
+  branches: any[]
+  initialData?: any
+  demands?: any[]
+  initialTab?: string
+}) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState('DADOS')
+  const [activeTab, setActiveTab] = useState(initialTab)
   const [isPendingTab, startTransition] = useTransition()
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -113,6 +124,9 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
     { id: 'PROPRIEDADE', label: 'Propriedade e Rebanho', icon: MapPin },
     { id: 'LEGAIS', label: 'Dados Legais', icon: BookText },
     { id: 'QUALIFICACAO', label: 'Qualificação', icon: FileText },
+    ...(initialData?.id
+      ? [{ id: 'DEMANDAS', label: `Serviços & Demandas (${demands.length})`, icon: ClipboardList }]
+      : []),
   ]
 
   const handleChange = (field: string, value: string) => {
@@ -184,12 +198,16 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
     return Object.keys(newErrors).length === 0
   }
 
+  const formTabs = tabs.filter(t => t.id !== 'DEMANDAS')
+
   const handleNext = () => {
     if (validateStep(activeTab)) {
-      const idx = tabs.findIndex(t => t.id === activeTab)
-      startTransition(() => {
-        setActiveTab(tabs[idx + 1].id)
-      })
+      const idx = formTabs.findIndex(t => t.id === activeTab)
+      if (idx !== -1 && idx + 1 < formTabs.length) {
+        startTransition(() => {
+          setActiveTab(formTabs[idx + 1].id)
+        })
+      }
     } else {
       toast.error('Corrija os campos obrigatórios antes de avançar.')
     }
@@ -198,7 +216,7 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    for (const tab of tabs) {
+    for (const tab of formTabs) {
       if (!validateStep(tab.id)) {
         setActiveTab(tab.id)
         toast.error('Corrija os campos obrigatórios antes de salvar.')
@@ -267,20 +285,13 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
               const currentIndex = tabs.findIndex(t => t.id === activeTab)
               const targetIndex = tabs.findIndex(t => t.id === tab.id)
               
-              if (targetIndex < currentIndex) {
+              if (tab.id === 'DEMANDAS' || targetIndex < currentIndex || validateStep(activeTab)) {
                 startTransition(() => {
                   setActiveTab(tab.id)
                 })
                 e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
               } else {
-                if (validateStep(activeTab)) {
-                  startTransition(() => {
-                    setActiveTab(tab.id)
-                  })
-                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })
-                } else {
-                  toast.error('Corrija os campos obrigatórios antes de mudar de aba.')
-                }
+                toast.error('Corrija os campos obrigatórios antes de mudar de aba.')
               }
             }}
             className={`flex items-center gap-2 px-3.5 py-2.5 text-xs sm:text-sm font-medium border-b-2 transition-all whitespace-nowrap shrink-0 ${
@@ -348,61 +359,73 @@ export default function ProducerMultiStepForm({ branches, initialData }: { branc
           />
         )}
 
-        <div className="flex justify-between items-center pt-6 border-t">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => router.push('/admin/crm')}
-          >
-            Cancelar
-          </Button>
+        {activeTab === 'DEMANDAS' && initialData?.id && (
+          <CrmDemandsList
+            producerId={initialData.id}
+            producerName={initialData.name}
+            initialDemands={demands}
+          />
+        )}
 
-          <div className="flex items-center gap-2">
-            {activeTab !== 'DADOS' && (
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={() => {
-                  const idx = tabs.findIndex(t => t.id === activeTab)
-                  startTransition(() => {
-                    setActiveTab(tabs[idx - 1].id)
-                  })
-                }}
-              >
-                Anterior
-              </Button>
-            )}
-            
-            {activeTab !== tabs[tabs.length - 1].id ? (
-              <Button 
-                type="button" 
-                className="bg-[#1B4D3E] hover:bg-[#13382D]"
-                onClick={handleNext}
-              >
-                Próximo Passo
-              </Button>
-            ) : (
-              <Button 
-                type="button"
-                onClick={handleSubmit}
-                disabled={loading || branches.length === 0}
-                className="bg-[#1B4D3E] hover:bg-[#13382D]"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Salvar Produtor
-                  </>
-                )}
-              </Button>
-            )}
+        {activeTab !== 'DEMANDAS' && (
+          <div className="flex justify-between items-center pt-6 border-t">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => router.push('/admin/crm')}
+            >
+              Cancelar
+            </Button>
+
+            <div className="flex items-center gap-2">
+              {activeTab !== 'DADOS' && (
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  onClick={() => {
+                    const idx = formTabs.findIndex(t => t.id === activeTab)
+                    if (idx > 0) {
+                      startTransition(() => {
+                        setActiveTab(formTabs[idx - 1].id)
+                      })
+                    }
+                  }}
+                >
+                  Anterior
+                </Button>
+              )}
+              
+              {activeTab !== formTabs[formTabs.length - 1].id ? (
+                <Button 
+                  type="button" 
+                  className="bg-[#1B4D3E] hover:bg-[#13382D]"
+                  onClick={handleNext}
+                >
+                  Próximo Passo
+                </Button>
+              ) : (
+                <Button 
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={loading || branches.length === 0}
+                  className="bg-[#1B4D3E] hover:bg-[#13382D]"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Salvar Produtor
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </form>
     </div>
   )

@@ -41,7 +41,7 @@ export function ConfirmEmitModal({
           {/* Cards Body */}
           <div className="p-6 overflow-y-auto space-y-4 max-h-[60vh]">
             
-            {/* Card 1: 👤 Proponente & Imóvel Beneficiado */}
+            {/* Card 1: Proponente & Imóvel Beneficiado */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-2">
                 <User className="h-4 w-4 text-[#1B4D3E]" />
@@ -78,7 +78,7 @@ export function ConfirmEmitModal({
               </div>
             </div>
 
-            {/* Card 2: 📑 Modelo & Enquadramento Institucional */}
+            {/* Card 2: Modelo & Enquadramento Institucional */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-2">
                 <Landmark className="h-4 w-4 text-[#1B4D3E]" />
@@ -107,7 +107,7 @@ export function ConfirmEmitModal({
               </div>
             </div>
 
-            {/* Card 3: 💰 Dimensionamento Físico & Finanças */}
+            {/* Card 3: Dimensionamento Físico & Finanças */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-2">
                 <Coins className="h-4 w-4 text-[#1B4D3E]" />
@@ -219,7 +219,7 @@ export function ConfirmEmitModal({
               )}
             </div>
 
-            {/* Card 4: ✍️ Responsabilidade Técnica & Elaboração */}
+            {/* Card 4: Responsabilidade Técnica & Elaboração */}
             <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-2xs space-y-3">
               <div className="flex items-center gap-2 text-xs font-bold text-gray-800 uppercase tracking-wide border-b border-gray-100 pb-2">
                 <Building2 className="h-4 w-4 text-[#1B4D3E]" />

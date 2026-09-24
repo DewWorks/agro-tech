@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createDemand } from '@/actions/demands'
 import {
@@ -80,8 +80,13 @@ export function NewDemandForm({
 }: NewDemandFormProps) {
   const router = useRouter()
 
-  const initialProducer = producers.find((p) => p.id === defaultProducerId)
-  const [producerId, setProducerId] = useState(defaultProducerId)
+  const producerWithProperty = defaultPropertyId
+    ? producers.find((p) => p.properties.some((prop) => prop.id === defaultPropertyId))
+    : null
+  const effectiveProducerId = defaultProducerId || producerWithProperty?.id || ''
+  const initialProducer = producers.find((p) => p.id === effectiveProducerId)
+
+  const [producerId, setProducerId] = useState(effectiveProducerId)
   const [branchId, setBranchId] = useState(
     defaultBranchId || initialProducer?.branchId || branches[0]?.id || ''
   )
@@ -93,6 +98,24 @@ export function NewDemandForm({
   const [proposalId, setProposalId] = useState('')
   const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
+
+  useEffect(() => {
+    let resolvedProdId = defaultProducerId
+    if (!resolvedProdId && defaultPropertyId) {
+      const p = producers.find((prod) => prod.properties.some((prop) => prop.id === defaultPropertyId))
+      if (p) resolvedProdId = p.id
+    }
+
+    if (resolvedProdId) {
+      setProducerId(resolvedProdId)
+      const p = producers.find((prod) => prod.id === resolvedProdId)
+      if (p?.branchId) setBranchId(p.branchId)
+    }
+
+    if (defaultPropertyId) {
+      setPropertyId(defaultPropertyId)
+    }
+  }, [defaultProducerId, defaultPropertyId, producers])
 
   // Datas
   const todayStr = new Date().toISOString().split('T')[0]

@@ -18,7 +18,7 @@ export function DeltaFormModal({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   
-  // 🔒 Prevenção de Duplo Clique usando useTransition do React 18+
+  // Prevenção de Duplo Clique usando useTransition do React 18+
   const [isPending, startTransition] = useTransition();
 
   const handleEmit = (formData: FormData) => {
@@ -87,7 +87,7 @@ export function DeltaFormModal({
               Cancelar
             </button>
             
-            {/* 🔒 Trava de Segurança UI: desabilitado e troca de cor ao enviar */}
+            {/* Trava de Segurança UI: desabilitado e troca de cor ao enviar */}
             <button 
               type="submit" 
               disabled={isPending}

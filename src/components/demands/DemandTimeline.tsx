@@ -44,26 +44,26 @@ function getStatusBadge(status: DemandStatusCode | null) {
     case 'SOLICITADO':
       return {
         label: 'Solicitado',
-        color: 'bg-blue-50 text-blue-700 border-blue-200',
-        dotColor: 'bg-blue-500',
+        color: 'bg-slate-100 text-slate-700 border-slate-300',
+        dotColor: 'bg-slate-400',
       }
     case 'EM_EXECUCAO':
       return {
         label: 'Em Execução',
-        color: 'bg-purple-50 text-purple-700 border-purple-200',
-        dotColor: 'bg-purple-500',
+        color: 'bg-slate-900 text-white border-slate-900',
+        dotColor: 'bg-slate-900',
       }
     case 'AGUARDANDO_DOCUMENTACAO':
       return {
         label: 'Aguardando Docs',
-        color: 'bg-amber-50 text-amber-800 border-amber-200',
+        color: 'bg-amber-50 text-amber-900 border-amber-300',
         dotColor: 'bg-amber-500',
       }
     case 'CONCLUIDO':
       return {
         label: 'Concluído',
-        color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        dotColor: 'bg-emerald-500',
+        color: 'bg-emerald-50 text-emerald-900 border-emerald-300',
+        dotColor: 'bg-emerald-600',
       }
     case 'CANCELADO':
       return {
@@ -90,9 +90,14 @@ export function DemandTimeline({ history, className }: DemandTimelineProps) {
   }
 
   return (
-    <div className={cn('relative pl-6 space-y-6', className)}>
+    <div
+      className={cn(
+        'relative pl-6 space-y-5 max-h-[500px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-300',
+        className
+      )}
+    >
       {/* Linha vertical conectora */}
-      <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-slate-200" />
+      <div className="absolute left-[11px] top-2 bottom-2 w-0.5 border-l-2 border-slate-200" />
 
       {history.map((item, index) => {
         const toBadge = getStatusBadge(item.toStatus)
@@ -112,7 +117,7 @@ export function DemandTimeline({ history, className }: DemandTimelineProps) {
 
         return (
           <div key={item.id} className="relative flex items-start gap-3 group">
-            {/* Ponto na timeline */}
+            {/* Ponto na timeline com a cor do status de destino */}
             <div
               className={cn(
                 'absolute -left-6 top-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-xs z-10 transition-transform group-hover:scale-125',
@@ -175,11 +180,16 @@ export function DemandTimeline({ history, className }: DemandTimelineProps) {
                 )}
               </div>
 
-              {/* Justificativa / Observação */}
+              {/* Justificativa / Observação de Despacho (Citação formal âmbar com border-l-4) */}
               {item.notes && (
-                <div className="mt-2 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-lg border border-slate-200/60 leading-relaxed font-normal">
-                  <span className="font-semibold text-slate-700">Nota/Motivo: </span>
-                  {item.notes}
+                <div className="mt-2.5 bg-amber-50/70 border-l-4 border-amber-500 p-2.5 rounded-r text-xs text-amber-950 shadow-2xs leading-relaxed">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900 mb-1">
+                    <FileText className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Despacho / Observação Registrada:</span>
+                  </div>
+                  <p className="italic text-slate-800 pl-1">
+                    "{item.notes}"
+                  </p>
                 </div>
               )}
             </div>

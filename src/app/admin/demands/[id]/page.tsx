@@ -5,9 +5,11 @@ import { getDemandById } from '@/actions/demands'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { DemandStatusStepper } from '@/components/demands/DemandStatusStepper'
-import { DemandTimeline } from '@/components/demands/DemandTimeline'
+import { DemandAuditTabs } from '@/components/demands/DemandAuditTabs'
 import { DemandChecklistSection } from '@/components/demands/DemandChecklistSection'
+import { DemandDescriptionBlock } from '@/components/demands/DemandDescriptionBlock'
 import { DemandSlaBadge } from '@/components/demands/DemandSlaBadge'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { RURAL_SERVICES_CATALOG, RuralServiceTypeCode } from '@/lib/validations/demands'
 import {
   ArrowLeft,
@@ -24,6 +26,7 @@ import {
   AlertCircle,
   FileCheck2,
   ClipboardList,
+  ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -152,8 +155,8 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
               {serviceTitle}
             </span>
             {demand.proposalId && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200/60 px-2 py-0.5 rounded-md">
-                <FileCheck2 className="w-3.5 h-3.5 text-indigo-500" />
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-slate-700 bg-slate-100 border border-slate-200/80 px-2.5 py-0.5 rounded-md">
+                <FileCheck2 className="w-3.5 h-3.5 text-slate-500" />
                 Proposta: {demand.proposalId}
               </span>
             )}
@@ -191,6 +194,12 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
               )}
             </div>
           </div>
+
+          {/* Descrição e Notas Unificados no Cabeçalho */}
+          <DemandDescriptionBlock
+            description={demand.description}
+            notes={demand.notes}
+          />
         </div>
 
         {/* Resumo Rápido de Prazos */}
@@ -210,113 +219,66 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
       {/* Stepper dos 4 Estados do Workflow */}
       <DemandStatusStepper demandId={demand.id} currentStatus={demand.status as any} />
 
-      {/* Grid Principal de Conteúdo */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* Coluna da Esquerda (2 Colunas): Checklist GED & Descrição */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Checklist Documental */}
+      {/* Abas Principais da Tela (Page-level Tabs no Design System Agro-Limit) */}
+      <Tabs defaultValue="checklist" className="w-full space-y-6">
+        <div className="border-b border-slate-200">
+          <TabsList className="bg-transparent h-auto p-0 gap-8 border-b-0">
+            <TabsTrigger
+              value="checklist"
+              className="relative pb-3 pt-1 px-1 rounded-none border-b-2 border-transparent text-sm font-bold text-slate-500 hover:text-slate-800 data-[state=active]:border-[#1B4D3E] data-[state=active]:text-[#1B4D3E] data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <FileCheck2 className="w-4 h-4" />
+              <span>Checklist Documental & Anexos do GED</span>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="auditoria"
+              className="relative pb-3 pt-1 px-1 rounded-none border-b-2 border-transparent text-sm font-bold text-slate-500 hover:text-slate-800 data-[state=active]:border-[#1B4D3E] data-[state=active]:text-[#1B4D3E] data-[state=active]:bg-transparent data-[state=active]:shadow-none transition-all flex items-center gap-2 cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Governança, Linha do Tempo & Auditoria</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                {demand.history.length} eventos
+              </span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Aba 1: Checklist Documental & Anexos do GED (Largura Total Confortável) */}
+        <TabsContent value="checklist" className="focus-visible:outline-hidden space-y-6">
           <DemandChecklistSection
             demandId={demand.id}
+            branchId={demand.branchId}
+            producerId={demand.producerId}
+            propertyId={demand.propertyId}
             items={demand.checklistItems as any}
             producerName={demand.producer.name}
             producerPhone={demand.producer.phone}
             serviceTitle={serviceTitle}
             existingGedDocs={existingGedDocs as any}
           />
+        </TabsContent>
 
-          {/* Especificações & Observações */}
-          <div className="bg-white rounded-xl p-6 border shadow-xs space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <FileText className="w-5 h-5 text-[#1B4D3E]" />
-              <h3 className="font-bold text-[#1B4D3E] text-base">Especificações da Demanda</h3>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                Descrição do Atendimento
-              </h4>
-              <p className="text-xs text-foreground leading-relaxed bg-slate-50/60 p-3.5 rounded-xl border border-slate-100 font-normal">
-                {demand.description || 'Nenhuma descrição detalhada informada.'}
-              </p>
-            </div>
-
-            {demand.notes && (
-              <div>
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                  Notas Internas
-                </h4>
-                <p className="text-xs text-foreground leading-relaxed bg-amber-50/40 p-3.5 rounded-xl border border-amber-100 font-normal">
-                  {demand.notes}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Coluna da Direita (1 Coluna): Auditoria & Linha do Tempo */}
-        <div className="space-y-6">
-          {/* Card de Metadados de Auditoria & Governança */}
-          <div className="bg-white rounded-xl p-6 border shadow-xs space-y-4">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Building2 className="w-5 h-5 text-[#1B4D3E]" />
-              <h3 className="font-bold text-[#1B4D3E] text-base">Governança & Rastreabilidade</h3>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground">Criado por:</span>
-                <span className="font-semibold text-foreground text-right">{creatorName}</span>
-              </div>
-
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground">Data de Abertura:</span>
-                <span className="font-semibold text-foreground text-right">{formattedRequestDate}</span>
-              </div>
-
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground">Responsável Atual:</span>
-                <span className="font-semibold text-foreground text-right">{assigneeName}</span>
-              </div>
-
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-muted-foreground">Início da Execução:</span>
-                <span className="font-semibold text-foreground text-right">{formattedStartDate}</span>
-              </div>
-
-              {formattedCompletionDate && (
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-muted-foreground">Conclusão Efetiva:</span>
-                  <span className="font-bold text-emerald-700 text-right">
-                    {formattedCompletionDate}
-                  </span>
-                </div>
-              )}
-
-              {demand.proposalId && (
-                <div className="flex items-start justify-between gap-2 pt-2 border-t border-slate-100">
-                  <span className="text-muted-foreground">Proposta / Dossiê:</span>
-                  <span className="font-bold text-indigo-700 text-right">{demand.proposalId}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Linha do Tempo / Histórico de Transições */}
-          <div className="bg-white rounded-xl p-6 border shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-[#1B4D3E]" />
-                <h3 className="font-bold text-[#1B4D3E] text-base">Linha do Tempo</h3>
-              </div>
-              <span className="text-xs text-muted-foreground font-semibold">
-                {demand.history.length} evento{demand.history.length > 1 ? 's' : ''}
-              </span>
-            </div>
-
-            <DemandTimeline history={demand.history as any} />
-          </div>
-        </div>
-      </div>
+        {/* Aba 2: Governança, Linha do Tempo & Auditoria (Grid Amplo 35% / 65%) */}
+        <TabsContent value="auditoria" className="focus-visible:outline-hidden">
+          <DemandAuditTabs
+            demand={{
+              id: demand.id,
+              requestDate: demand.requestDate,
+              startDate: demand.startDate,
+              estimatedDeliveryDate: demand.estimatedDeliveryDate,
+              completionDate: demand.completionDate,
+              proposalId: demand.proposalId,
+              responsibleName: demand.responsibleName,
+              branch: demand.branch,
+              creator: demand.creator,
+              assignedTo: demand.assignedTo,
+              sla: demand.sla,
+              history: demand.history as any,
+            }}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

@@ -11,6 +11,9 @@ import {
   AlertTriangle,
   Loader2,
   X,
+  FileText,
+  MessageSquare,
+  Ban,
 } from 'lucide-react'
 import { updateDemandStatus } from '@/actions/demands'
 import { DemandStatusCode } from '@/lib/validations/demands'
@@ -51,6 +54,46 @@ const STEPS: StepConfig[] = [
   },
 ]
 
+function getStepCurrentStyles(status: DemandStatusCode) {
+  switch (status) {
+    case 'SOLICITADO':
+      return {
+        container: 'bg-slate-100/80 border-slate-500 shadow-xs ring-2 ring-slate-400/20',
+        badge: 'bg-slate-800 text-white',
+        tag: 'text-slate-800 bg-slate-200 border border-slate-300',
+        title: 'text-slate-900 font-bold',
+      }
+    case 'EM_EXECUCAO':
+      return {
+        container: 'border-slate-900 bg-slate-50 text-slate-900 shadow-xs ring-2 ring-slate-900/20',
+        badge: 'bg-slate-900 text-white',
+        tag: 'text-white bg-slate-900',
+        title: 'text-slate-950 font-bold',
+      }
+    case 'AGUARDANDO_DOCUMENTACAO':
+      return {
+        container: 'border-amber-500 bg-amber-50/50 text-amber-900 shadow-xs ring-2 ring-amber-500/20',
+        badge: 'bg-amber-500 text-white',
+        tag: 'text-amber-900 bg-amber-100 border border-amber-300',
+        title: 'text-amber-950 font-bold',
+      }
+    case 'CONCLUIDO':
+      return {
+        container: 'border-emerald-600 bg-emerald-50/50 text-emerald-900 shadow-xs ring-2 ring-emerald-500/20',
+        badge: 'bg-emerald-600 text-white',
+        tag: 'text-emerald-900 bg-emerald-100 border border-emerald-300',
+        title: 'text-emerald-950 font-bold',
+      }
+    default:
+      return {
+        container: 'bg-slate-100 border-slate-400 shadow-xs',
+        badge: 'bg-slate-700 text-white',
+        tag: 'text-slate-700 bg-slate-200',
+        title: 'text-slate-900 font-bold',
+      }
+  }
+}
+
 interface DemandStatusStepperProps {
   demandId: string
   currentStatus: DemandStatusCode
@@ -67,8 +110,30 @@ export function DemandStatusStepper({
   const [targetReopenStatus, setTargetReopenStatus] = useState<DemandStatusCode>('EM_EXECUCAO')
   const [reopenReason, setReopenReason] = useState('')
 
+  // Modal de despacho ao avançar etapa
+  const [dispatchModalOpen, setDispatchModalOpen] = useState(false)
+  const [targetDispatchStatus, setTargetDispatchStatus] = useState<DemandStatusCode>('AGUARDANDO_DOCUMENTACAO')
+  const [dispatchNote, setDispatchNote] = useState('')
+
   const currentIndex = STEPS.findIndex((s) => s.status === currentStatus)
   const isCancelled = currentStatus === 'CANCELADO'
+
+  const executeStatusChange = async (targetStatus: DemandStatusCode, notes?: string | null) => {
+    try {
+      setIsUpdating(true)
+      const res = await updateDemandStatus(demandId, targetStatus, notes)
+      if (!res.success) {
+        throw new Error(typeof res.error === 'string' ? res.error : 'Erro ao alterar status')
+      }
+
+      toast.success(`Demanda movida para "${targetStatus}" com sucesso.`)
+      if (onStatusChange) onStatusChange(targetStatus)
+    } catch (err: any) {
+      toast.error(err.message || 'Falha ao alterar status')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   const handleStepClick = async (targetStatus: DemandStatusCode) => {
     if (targetStatus === currentStatus || isUpdating) return
@@ -81,20 +146,15 @@ export function DemandStatusStepper({
       return
     }
 
-    try {
-      setIsUpdating(true)
-      const res = await updateDemandStatus(demandId, targetStatus)
-      if (!res.success) {
-        throw new Error(typeof res.error === 'string' ? res.error : 'Erro ao alterar status')
-      }
-
-      toast.success(`Demanda movida para "${targetStatus}" com sucesso.`)
-      if (onStatusChange) onStatusChange(targetStatus)
-    } catch (err: any) {
-      toast.error(err.message || 'Falha ao alterar status')
-    } finally {
-      setIsUpdating(false)
+    // Se avançar para AGUARDANDO_DOCUMENTACAO ou CONCLUIDO, abre modal de despacho
+    if (targetStatus === 'AGUARDANDO_DOCUMENTACAO' || targetStatus === 'CONCLUIDO') {
+      setTargetDispatchStatus(targetStatus)
+      setDispatchNote('')
+      setDispatchModalOpen(true)
+      return
     }
+
+    await executeStatusChange(targetStatus, null)
   }
 
   const handleConfirmReopen = async (e: React.FormEvent) => {
@@ -126,7 +186,7 @@ export function DemandStatusStepper({
       <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold">
-            🚫
+            <Ban className="w-5 h-5 text-rose-700 shrink-0" />
           </div>
           <div>
             <h4 className="text-sm font-bold text-rose-800">Esta demanda está CANCELADA</h4>
@@ -149,12 +209,26 @@ export function DemandStatusStepper({
 
   return (
     <>
-      <div className="bg-white rounded-2xl p-4 md:p-6 border border-slate-200/80 shadow-xs">
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-slate-700" />
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Fluxo da Ordem de Serviço Rural
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            Clique em uma etapa para avançar a esteira
+          </span>
+        </div>
+
+        {/* Linha de Conexão e Steps */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 relative">
           {STEPS.map((step, index) => {
             const isCompleted = currentIndex > index
             const isCurrent = currentIndex === index
-            const isUpcoming = currentIndex < index
+            const isFuture = currentIndex < index
+            const currentStyle = isCurrent ? getStepCurrentStyles(step.status) : null
 
             return (
               <button
@@ -163,46 +237,46 @@ export function DemandStatusStepper({
                 onClick={() => handleStepClick(step.status)}
                 disabled={isUpdating}
                 className={cn(
-                  'relative flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all duration-200 focus:outline-hidden',
-                  isCurrent &&
-                    'bg-emerald-50/70 border-emerald-500/80 ring-2 ring-emerald-500/20 shadow-xs',
+                  'group text-left p-3.5 rounded-xl border transition-all relative flex flex-col justify-between cursor-pointer',
+                  isCurrent && currentStyle?.container,
                   isCompleted &&
-                    'bg-slate-50/70 border-slate-200 hover:bg-slate-100/70 hover:border-slate-300',
-                  isUpcoming &&
-                    'bg-white border-slate-200/60 hover:bg-slate-50 hover:border-slate-300'
+                    'bg-slate-50 border-slate-200 hover:bg-slate-100/70',
+                  isFuture &&
+                    'bg-white border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-slate-50/50'
                 )}
               >
-                {/* Indicador Numérico / Ícone */}
-                <div
-                  className={cn(
-                    'w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0 transition-transform duration-200',
-                    isCurrent && 'bg-emerald-600 text-white shadow-xs scale-105',
-                    isCompleted && 'bg-emerald-100 text-emerald-700',
-                    isUpcoming && 'bg-slate-100 text-slate-400'
-                  )}
-                >
-                  {isCompleted ? (
-                    <Check className="w-4 h-4 stroke-[3]" />
-                  ) : (
-                    <span>{step.number}</span>
+                <div className="flex items-center justify-between mb-2">
+                  <div
+                    className={cn(
+                      'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black transition-colors',
+                      isCurrent && currentStyle?.badge,
+                      isCompleted && 'text-emerald-600 bg-emerald-50/60 border border-emerald-200/80',
+                      isFuture && 'bg-slate-100 text-slate-400 group-hover:text-slate-600'
+                    )}
+                  >
+                    {isCompleted ? <Check className="w-4 h-4" /> : step.number}
+                  </div>
+                  {isCurrent && (
+                    <span className={cn('text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md', currentStyle?.tag)}>
+                      Em Foco
+                    </span>
                   )}
                 </div>
 
-                {/* Textos */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={cn(
-                        'text-xs font-bold truncate',
-                        isCurrent && 'text-emerald-900',
-                        isCompleted && 'text-slate-800',
-                        isUpcoming && 'text-slate-500'
-                      )}
-                    >
-                      {step.label}
-                    </span>
+                <div>
+                  <div
+                    className={cn(
+                      'font-bold text-sm leading-tight transition-colors',
+                      isCurrent && currentStyle?.title,
+                      isCompleted && 'text-slate-700',
+                      isFuture && 'text-slate-400 group-hover:text-slate-700'
+                    )}
+                  >
+                    {step.label}
                   </div>
-                  <p className="text-[11px] text-slate-400 truncate mt-0.5">{step.description}</p>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {step.description}
+                  </div>
                 </div>
               </button>
             )
@@ -210,13 +284,114 @@ export function DemandStatusStepper({
         </div>
       </div>
 
-      {/* Modal para Reabertura de Demanda com Justificativa Obrigatória */}
+      {/* Modal de Despacho / Observação ao Avançar Etapa */}
+      {dispatchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div
+                  className={cn(
+                    'p-2 rounded-xl',
+                    targetDispatchStatus === 'AGUARDANDO_DOCUMENTACAO'
+                      ? 'bg-amber-100 text-amber-900'
+                      : 'bg-emerald-100 text-emerald-900'
+                  )}
+                >
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">
+                    Registrar Despacho / Observação
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Avançando para{' '}
+                    <span
+                      className={cn(
+                        'font-bold',
+                        targetDispatchStatus === 'AGUARDANDO_DOCUMENTACAO'
+                          ? 'text-amber-800'
+                          : 'text-emerald-800'
+                      )}
+                    >
+                      {targetDispatchStatus === 'AGUARDANDO_DOCUMENTACAO'
+                        ? 'Aguardando Documentação'
+                        : 'Concluído'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDispatchModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-3 mt-2">
+              Adicione uma nota explicativa ou despacho técnico para constar na Linha do Tempo da demanda (opcional):
+            </p>
+
+            <textarea
+              value={dispatchNote}
+              onChange={(e) => setDispatchNote(e.target.value)}
+              placeholder="Ex: Falta certidão de casamento atualizada do cartório de Taguatinga"
+              rows={4}
+              className="w-full text-xs rounded-xl border border-slate-200 p-3 text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 mb-4 resize-none"
+              autoFocus
+            />
+
+            <div className="flex items-center justify-between gap-2 flex-wrap border-t border-slate-100 pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setDispatchModalOpen(false)
+                  executeStatusChange(targetDispatchStatus, null)
+                }}
+                className="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Confirmar sem Nota
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDispatchModalOpen(false)}
+                  className="px-3.5 py-2 text-xs font-medium text-slate-500 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const note = dispatchNote.trim() || null
+                    setDispatchModalOpen(false)
+                    executeStatusChange(targetDispatchStatus, note)
+                  }}
+                  className={cn(
+                    'px-4 py-2 text-white text-xs font-bold rounded-xl transition-all shadow-2xs active:scale-95 cursor-pointer',
+                    targetDispatchStatus === 'AGUARDANDO_DOCUMENTACAO'
+                      ? 'bg-amber-600 hover:bg-amber-700'
+                      : 'bg-emerald-600 hover:bg-emerald-700'
+                  )}
+                >
+                  Salvar com Despacho
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Reabertura com Justificativa Obrigatória */}
       {reopenModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-3 text-amber-600">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
                   <AlertTriangle className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
