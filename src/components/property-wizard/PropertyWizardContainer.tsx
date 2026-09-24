@@ -23,6 +23,7 @@ import {
   defaultPropertyWizardValues,
 } from '@/lib/validations/property-wizard'
 import { createProperty, updateProperty } from '@/actions/properties'
+import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 import { WizardStepperHeader } from './WizardStepperHeader'
 import { Step1Land } from './steps/Step1Land'
 import { Step2Machinery } from './steps/Step2Machinery'
@@ -172,23 +173,27 @@ export function PropertyWizardContainer({
         isArtificialPasture: Boolean(imp.isArtificialPasture || imp.specification === 'Pastagem Artificial'),
       })) || [],
 
-      livestocks: initialData.livestockList?.map((l: any) => ({
-        id: l.id,
-        species: l.species || 'BOVINO',
-        category: l.category || 'MATRIZES',
-        categoryBB: l.categoryBB || '',
-        purpose: l.purpose || 'Cria',
-        purposeBB: l.purposeBB || '',
-        breed: l.breed || 'Nelore',
-        geneticGrade: '1/2 Sangue',
-        quantity: Number(l.quantity) || 0,
-        ageMonths: l.ageMonths || 0,
-        avgWeightKg: Number(l.avgWeightKg) || 0,
-        unitValue: Number(l.unitValue) || 0,
-        totalValue: (Number(l.quantity) || 0) * (Number(l.unitValue) || 0),
-        markingType: l.brandingType || 'Ferro Quente',
-        markingLocation: l.brandingLocation || 'Perna Traseira Direita',
-      })) || [],
+      livestocks: (initialData.livestockList || initialData.livestocks)?.map((l: any) => {
+        const cat = denormalizeCategoryBB(l.categoryBB || l.category)
+        const pur = denormalizePurposeBB(l.purposeBB || l.purpose)
+        return {
+          id: l.id,
+          species: l.species || 'BOVINO',
+          category: cat,
+          categoryBB: cat,
+          purpose: pur,
+          purposeBB: pur,
+          breed: l.breed || 'Nelore',
+          geneticGrade: '1/2 Sangue',
+          quantity: Number(l.quantity) || 0,
+          ageMonths: Number(l.ageMonths) || 0,
+          avgWeightKg: Number(l.avgWeightKg) || 0,
+          unitValue: Number(l.unitValue) || 0,
+          totalValue: (Number(l.quantity) || 0) * (Number(l.unitValue) || 0),
+          markingType: l.brandingType || l.markingType || 'Ferro Quente',
+          markingLocation: l.brandingLocation || l.markingLocation || 'Perna Traseira Direita',
+        }
+      }) || [],
 
       // Dados Financeiros e Base de Limite de Crédito
       effectiveAgroRevenue: Number(initialData.possessionData?.effectiveAgroRevenue) || 0,
@@ -365,6 +370,10 @@ export function PropertyWizardContainer({
         })),
         livestocks: (values.livestocks || []).map((l: any) => ({
           ...l,
+          category: l.category || l.categoryBB || 'Vaca',
+          categoryBB: l.categoryBB || l.category || 'Vaca',
+          purpose: l.purpose || l.purposeBB || 'Produção de Crias',
+          purposeBB: l.purposeBB || l.purpose || 'Produção de Crias',
           quantity: Number(l.quantity) || 0,
           ageMonths: Number(l.ageMonths) || 0,
           avgWeightKg: Number(l.avgWeightKg) || 0,
@@ -372,8 +381,6 @@ export function PropertyWizardContainer({
           totalValue: Math.round((Number(l.quantity) || 0) * (Number(l.unitValue) || 0) * 100) / 100,
           brandingType: l.markingType || l.brandingType || 'Ferro Quente',
           brandingLocation: l.markingLocation || l.brandingLocation || 'Perna Traseira Direita',
-          categoryBB: l.categoryBB || null,
-          purposeBB: l.purposeBB || null,
         })),
 
         // Financeiro & Base de Limite de Crédito

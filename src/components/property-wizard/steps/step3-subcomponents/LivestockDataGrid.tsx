@@ -48,8 +48,10 @@ export function LivestockDataGrid({ form }: LivestockDataGridProps) {
   const handleAddDefaultLivestock = () => {
     appendLivestock({
       species: 'BOVINO',
-      category: 'Matrizes (Vacas)',
-      purpose: 'Cria',
+      category: 'Vaca',
+      categoryBB: 'Vaca',
+      purpose: 'Produção de Crias',
+      purposeBB: 'Produção de Crias',
       breed: 'Nelore',
       geneticGrade: '1/2 Sangue',
       quantity: 100,

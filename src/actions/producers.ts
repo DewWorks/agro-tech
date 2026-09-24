@@ -50,6 +50,7 @@ export async function createProducer(data: any) {
       // Cônjuge Expandido
       spouseRg,
       spouseRgIssuer,
+      spouseNationality,
       spouseEducationLevel,
       
       propertyName,
@@ -80,48 +81,53 @@ export async function createProducer(data: any) {
     }
 
     // Regras de Outorga Uxória (Estado Civil)
-    if (type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL')) {
+    const isMarried = type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL')
+    if (isMarried) {
       if (!marriageRegime) {
         throw new Error('Para estado civil Casado ou União Estável, o Regime de Casamento é obrigatório.')
       }
+      if (!spouseName?.trim()) {
+        throw new Error('Para estado civil Casado ou União Estável, o Nome do Cônjuge é obrigatório.')
+      }
     }
+
+    const cleanSpouseCpf = spouseCpf?.replace(/[^\d]/g, '') || null
 
     const producer = await prisma.producer.create({
       data: {
         type: type as ProducerType,
         document: cleanDoc,
-        name,
-        email,
-        phone,
+        name: name?.trim() || '',
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
         birthDate: birthDate ? new Date(birthDate) : null,
-        civilStatus: civilStatus ? (civilStatus as CivilStatus) : null,
-        marriageRegime: marriageRegime ? (marriageRegime as MarriageRegime) : null,
-        spouseName,
-        spouseCpf: spouseCpf ? spouseCpf.replace(/[^\d]+/g, '') : null,
-        dapCafNumber,
-        rg,
-        rgIssuer,
-        profession,
-        nationality,
+        civilStatus: type === 'PF' && civilStatus ? (civilStatus as CivilStatus) : null,
+        marriageRegime: isMarried && marriageRegime ? (marriageRegime as MarriageRegime) : null,
+        spouseName: isMarried ? (spouseName?.trim() || null) : null,
+        spouseCpf: isMarried ? cleanSpouseCpf : null,
+        spouseRg: isMarried ? (spouseRg?.trim() || null) : null,
+        spouseRgIssuer: isMarried ? (spouseRgIssuer?.trim() || null) : null,
+        spouseNationality: isMarried ? (spouseNationality?.trim() || 'Brasileira') : null,
+        spouseEducationLevel: isMarried ? (spouseEducationLevel?.trim() || null) : null,
+        dapCafNumber: dapCafNumber?.trim() || null,
+        rg: rg?.trim() || null,
+        rgIssuer: rgIssuer?.trim() || null,
+        profession: profession?.trim() || null,
+        nationality: nationality?.trim() || 'Brasileira',
         representativeCpf: type === 'PJ' && representativeCpf ? representativeCpf.replace(/[^\d]+/g, '') : null,
         
         // Dados Bancários
-        bankName: bankName || null,
-        bankAgency: bankAgency || null,
-        bankAccount: bankAccount || null,
+        bankName: bankName?.trim() || null,
+        bankAgency: bankAgency?.trim() || null,
+        bankAccount: bankAccount?.trim() || null,
         bankAccountType: bankAccountType || 'CORRENTE',
 
         // Qualificação Civil e Escolaridade
-        educationLevel: educationLevel || null,
-        naturalness: naturalness || null,
+        educationLevel: educationLevel?.trim() || null,
+        naturalness: naturalness?.trim() || null,
         producerSize: producerSize || null,
 
-        // Cônjuge
-        spouseRg: spouseRg || null,
-        spouseRgIssuer: spouseRgIssuer || null,
-        spouseEducationLevel: spouseEducationLevel || null,
-
-        branchId, // Deve vir do form (filial onde o produtor está sendo criado)
+        branchId,
         createdBy: dbUser.id,
       }
     })
@@ -220,6 +226,7 @@ export async function updateProducer(id: string, data: any) {
       // Cônjuge Expandido
       spouseRg,
       spouseRgIssuer,
+      spouseNationality,
       spouseEducationLevel,
       
       propertyName,
@@ -248,9 +255,13 @@ export async function updateProducer(id: string, data: any) {
       throw new Error('CNPJ do produtor é inválido.')
     }
 
-    if (type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL')) {
+    const isMarried = type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL')
+    if (isMarried) {
       if (!marriageRegime) {
         throw new Error('Para estado civil Casado ou União Estável, o Regime de Casamento é obrigatório.')
+      }
+      if (!spouseName?.trim()) {
+        throw new Error('Para estado civil Casado ou União Estável, o Nome do Cônjuge é obrigatório.')
       }
       if (cleanSpouseCpf && !validateCPF(cleanSpouseCpf)) {
         throw new Error('CPF do cônjuge é inválido.')
@@ -263,36 +274,35 @@ export async function updateProducer(id: string, data: any) {
         branchId,
         type: type as ProducerType,
         document: cleanDoc,
-        name,
-        email: email || null,
-        phone: phone || null,
+        name: name?.trim() || '',
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
         birthDate: birthDate ? new Date(birthDate) : null,
-        civilStatus: type === 'PF' ? (civilStatus as CivilStatus) : null,
-        marriageRegime: type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL') ? (marriageRegime as MarriageRegime) : null,
-        spouseName: type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL') ? spouseName : null,
-        spouseCpf: type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL') ? cleanSpouseCpf : null,
-        dapCafNumber: dapCafNumber || null,
-        rg: rg || null,
-        rgIssuer: rgIssuer || null,
-        profession: profession || null,
-        nationality: nationality || null,
+        civilStatus: type === 'PF' && civilStatus ? (civilStatus as CivilStatus) : null,
+        marriageRegime: isMarried && marriageRegime ? (marriageRegime as MarriageRegime) : null,
+        spouseName: isMarried ? (spouseName?.trim() || null) : null,
+        spouseCpf: isMarried ? cleanSpouseCpf : null,
+        spouseRg: isMarried ? (spouseRg?.trim() || null) : null,
+        spouseRgIssuer: isMarried ? (spouseRgIssuer?.trim() || null) : null,
+        spouseNationality: isMarried ? (spouseNationality?.trim() || 'Brasileira') : null,
+        spouseEducationLevel: isMarried ? (spouseEducationLevel?.trim() || null) : null,
+        dapCafNumber: dapCafNumber?.trim() || null,
+        rg: rg?.trim() || null,
+        rgIssuer: rgIssuer?.trim() || null,
+        profession: profession?.trim() || null,
+        nationality: nationality?.trim() || 'Brasileira',
         representativeCpf: type === 'PJ' && representativeCpf ? representativeCpf.replace(/[^\d]+/g, '') : null,
         
         // Dados Bancários
-        bankName: bankName !== undefined ? (bankName || null) : undefined,
-        bankAgency: bankAgency !== undefined ? (bankAgency || null) : undefined,
-        bankAccount: bankAccount !== undefined ? (bankAccount || null) : undefined,
+        bankName: bankName !== undefined ? (bankName?.trim() || null) : undefined,
+        bankAgency: bankAgency !== undefined ? (bankAgency?.trim() || null) : undefined,
+        bankAccount: bankAccount !== undefined ? (bankAccount?.trim() || null) : undefined,
         bankAccountType: bankAccountType !== undefined ? (bankAccountType || null) : undefined,
 
         // Qualificação Civil e Escolaridade
-        educationLevel: educationLevel !== undefined ? (educationLevel || null) : undefined,
-        naturalness: naturalness !== undefined ? (naturalness || null) : undefined,
+        educationLevel: educationLevel !== undefined ? (educationLevel?.trim() || null) : undefined,
+        naturalness: naturalness !== undefined ? (naturalness?.trim() || null) : undefined,
         producerSize: producerSize !== undefined ? (producerSize || null) : undefined,
-
-        // Cônjuge
-        spouseRg: spouseRg !== undefined ? (spouseRg || null) : undefined,
-        spouseRgIssuer: spouseRgIssuer !== undefined ? (spouseRgIssuer || null) : undefined,
-        spouseEducationLevel: spouseEducationLevel !== undefined ? (spouseEducationLevel || null) : undefined,
 
         updatedBy: dbUser.id
       }

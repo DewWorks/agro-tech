@@ -34,6 +34,29 @@ export interface PropertyData {
     unitValue: number
     totalValue: number
   }>
+  livestockList?: Array<{
+    id?: string
+    species?: string
+    category?: string
+    categoryBB?: string
+    purposeBB?: string
+    breed?: string
+    quantity: number
+    ageMonths?: number | null
+    avgWeightKg?: number | null
+    unitValue?: number | null
+    brandingType?: string | null
+    brandingLocation?: string | null
+    observation?: string | null
+  }>
+  livestocks?: Array<any>
+  livestock?: any
+  livestockData?: {
+    totalCattle?: number
+    brandRegistrationAdapec?: string
+    brandDescription?: string
+    brandLocation?: string
+  }
 }
 
 export interface ProducerData {
@@ -43,10 +66,18 @@ export interface ProducerData {
   type: string
   spouseName?: string | null
   spouseCpf?: string | null
+  spouseRg?: string | null
+  spouseRgIssuer?: string | null
+  spouseNationality?: string | null
+  spouseEducationLevel?: string | null
+  marriageRegime?: string | null
   representativeCpf?: string | null
   phone?: string | null
   email?: string | null
   civilStatus?: string | null
+  street?: string | null
+  city?: string | null
+  state?: string | null
   branchName?: string | null
   properties: PropertyData[]
   isActive?: boolean
