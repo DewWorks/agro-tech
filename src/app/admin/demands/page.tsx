@@ -1,5 +1,8 @@
 import React from 'react'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import prisma from '@/lib/prisma'
+import { getUserContext } from '@/lib/auth'
 import { getDemands } from '@/actions/demands'
 import { DemandKanbanBoard } from '@/components/demands/DemandKanbanBoard'
 import { DemandTableView } from '@/components/demands/DemandTableView'
@@ -28,19 +31,55 @@ interface DemandsPageProps {
     view?: string
     search?: string
     serviceType?: string
+    branchId?: string
     showCancelled?: string
   }>
 }
 
 export default async function DemandsPage(props: DemandsPageProps) {
   const searchParams = await props.searchParams
+  const dbUser = await getUserContext()
+
+  if (!dbUser) {
+    redirect('/login')
+  }
+
+  const isOwnerOrSuperAdmin =
+    dbUser.role === 'OWNER' ||
+    dbUser.role === 'SUPER_ADMIN' ||
+    Boolean((dbUser as any).isSuperAdminImpersonating)
+
+  // Filiais ativas da organização (exclusivo para visualização de OWNER e SUPER_ADMIN)
+  let branches: Array<{ id: string; name: string }> = []
+  if (isOwnerOrSuperAdmin) {
+    branches = await prisma.branch.findMany({
+      where: {
+        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating && dbUser.organizationId
+          ? { organizationId: dbUser.organizationId }
+          : {}),
+        isActive: true,
+      },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    })
+  }
+
   const view = searchParams.view === 'table' ? 'table' : 'kanban'
   const search = searchParams.search || ''
   const serviceType = (searchParams.serviceType as RuralServiceTypeCode) || undefined
   const showCancelled = searchParams.showCancelled === 'true'
 
+  // Para OPERATOR: aplica silenciosamente dbUser.branchId
+  // Para OWNER/SUPER_ADMIN: usa o searchParams.branchId se informado, senão busca todas
+  const selectedBranchId = isOwnerOrSuperAdmin
+    ? searchParams.branchId && searchParams.branchId !== 'ALL'
+      ? searchParams.branchId
+      : undefined
+    : dbUser.branchId || undefined
+
   // Busca demandas incluindo ou não canceladas
   const result = await getDemands({
+    branchId: selectedBranchId,
     search: search || undefined,
     serviceType: serviceType || undefined,
     includeCancelled: showCancelled,
@@ -147,6 +186,8 @@ export default async function DemandsPage(props: DemandsPageProps) {
         currentView={view}
         currentSearch={search}
         currentServiceType={serviceType}
+        currentBranchId={searchParams.branchId || 'ALL'}
+        branches={branches}
         showCancelled={showCancelled}
       />
 

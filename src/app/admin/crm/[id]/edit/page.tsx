@@ -3,17 +3,24 @@ import Link from 'next/link'
 import ProducerMultiStepForm from '@/components/crm/ProducerMultiStepForm'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
+import { getDemands } from '@/actions/demands'
 import { redirect, notFound } from 'next/navigation'
 
-export default async function EditProducerPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditProducerPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ tab?: string }>
+}) {
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
   const dbUser = await getUserContext()
 
   if (!dbUser) {
     redirect('/login')
   }
 
-  
   if (!dbUser || !dbUser.organizationId) {
     return <div>Organização não encontrada.</div>
   }
@@ -55,9 +62,10 @@ export default async function EditProducerPage({ params }: { params: Promise<{ i
     userBranches = userBranchesData.map(ub => ub.branch)
   }
 
-  const demandsCount = await prisma.serviceDemand.count({
-    where: { producerId: id }
-  })
+  // Busca demandas vinculadas a este produtor
+  const demandsRes = await getDemands({ producerId: id, includeCancelled: true })
+  const demands = demandsRes.success ? (demandsRes.demands as any[]) : []
+  const initialTab = resolvedSearchParams.tab === 'demands' ? 'DEMANDAS' : 'DADOS'
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
@@ -74,11 +82,11 @@ export default async function EditProducerPage({ params }: { params: Promise<{ i
 
         <div className="flex items-center gap-2.5">
           <Link
-            href={`/admin/demands?search=${encodeURIComponent(producer.name)}`}
+            href={`/admin/crm/${producer.id}/edit?tab=demands`}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs"
           >
             <ClipboardList className="w-4 h-4 text-emerald-600" />
-            <span>Demandas ({demandsCount})</span>
+            <span>Demandas ({demands.length})</span>
           </Link>
           <Link
             href={`/admin/demands/new?producerId=${producer.id}`}
@@ -91,7 +99,12 @@ export default async function EditProducerPage({ params }: { params: Promise<{ i
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border p-6">
-        <ProducerMultiStepForm branches={userBranches} initialData={producer} />
+        <ProducerMultiStepForm
+          branches={userBranches}
+          initialData={producer}
+          demands={demands}
+          initialTab={initialTab}
+        />
       </div>
     </div>
   )

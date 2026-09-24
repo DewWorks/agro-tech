@@ -175,11 +175,16 @@ export function DemandTimeline({ history, className }: DemandTimelineProps) {
                 )}
               </div>
 
-              {/* Justificativa / Observação */}
+              {/* Justificativa / Observação de Despacho */}
               {item.notes && (
-                <div className="mt-2 text-xs text-slate-600 bg-slate-50/80 p-2.5 rounded-lg border border-slate-200/60 leading-relaxed font-normal">
-                  <span className="font-semibold text-slate-700">Nota/Motivo: </span>
-                  {item.notes}
+                <div className="mt-2.5 text-xs text-slate-700 bg-amber-50/60 p-3 rounded-xl border border-amber-200/80 shadow-2xs leading-relaxed font-normal">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-900 mb-1">
+                    <FileText className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Despacho / Observação Registrada:</span>
+                  </div>
+                  <p className="text-slate-800 italic pl-5 border-l-2 border-amber-300">
+                    "{item.notes}"
+                  </p>
                 </div>
               )}
             </div>

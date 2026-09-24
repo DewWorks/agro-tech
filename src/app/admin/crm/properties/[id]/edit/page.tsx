@@ -1,16 +1,20 @@
 import { MapPin, ClipboardList, Plus } from 'lucide-react'
 import Link from 'next/link'
-import PropertyMultiStepForm from '@/components/crm/PropertyMultiStepForm'
+import { PropertyTabsView } from '@/components/crm/PropertyTabsView'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
+import { getDemands } from '@/actions/demands'
 import { redirect, notFound } from 'next/navigation'
 
 export default async function EditPropertyPage({ 
-  params 
+  params,
+  searchParams,
 }: { 
-  params: Promise<{ id: string }> 
+  params: Promise<{ id: string }>
+  searchParams?: Promise<{ tab?: string }>
 }) {
   const { id } = await params
+  const resolvedSearchParams = searchParams ? await searchParams : {}
   const dbUser = await getUserContext()
 
   if (!dbUser) {
@@ -169,9 +173,9 @@ export default async function EditPropertyPage({
   const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
   const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
 
-  const propertyDemandsCount = await prisma.serviceDemand.count({
-    where: { propertyId: id }
-  })
+  // Busca demandas vinculadas a esta propriedade rural
+  const demandsRes = await getDemands({ propertyId: id, includeCancelled: true })
+  const demands = demandsRes.success ? (demandsRes.demands as any[]) : []
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -188,11 +192,11 @@ export default async function EditPropertyPage({
 
         <div className="flex items-center gap-2.5">
           <Link
-            href={`/admin/demands?search=${encodeURIComponent(property.name || property.propertyName || '')}`}
+            href={`/admin/crm/properties/${property.id}/edit?tab=demands`}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs"
           >
             <ClipboardList className="w-4 h-4 text-emerald-600" />
-            <span>Demandas ({propertyDemandsCount})</span>
+            <span>Demandas ({demands.length})</span>
           </Link>
           <Link
             href={`/admin/demands/new?propertyId=${property.id}${linkedProducers[0] ? `&producerId=${linkedProducers[0].id}` : ''}`}
@@ -204,15 +208,15 @@ export default async function EditPropertyPage({
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-xs border p-6">
-        <PropertyMultiStepForm 
-          branches={userBranches} 
-          initialData={property} 
-          producers={producers}
-          hasFinancialModule={hasFinancialModule}
-          isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
-        />
-      </div>
+      <PropertyTabsView 
+        property={property}
+        userBranches={userBranches}
+        producers={producers}
+        hasFinancialModule={hasFinancialModule}
+        isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+        demands={demands}
+        initialTab={resolvedSearchParams.tab === 'demands' ? 'DEMANDAS' : 'CADASTRO'}
+      />
     </div>
   )
 }

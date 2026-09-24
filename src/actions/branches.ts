@@ -13,7 +13,8 @@ export async function createBranch(formData: FormData) {
     if (dbUser.role !== 'OWNER' && dbUser.role !== 'SUPER_ADMIN') {
       throw new Error('Permissão negada')
     }
-    if (!dbUser.organizationId) {
+    const orgId = dbUser.organizationId || (formData.get('organizationId') as string)
+    if (!orgId) {
       throw new Error('Usuário não pertence a nenhuma organização')
     }
 
@@ -29,7 +30,7 @@ export async function createBranch(formData: FormData) {
 
     const branch = await prisma.branch.create({
       data: {
-        organizationId: dbUser.organizationId,
+        organizationId: orgId,
         name,
         cnpj,
         city,
@@ -54,8 +55,9 @@ export async function updateBranch(id: string, formData: FormData) {
       throw new Error('Permissão negada')
     }
 
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
     const branch = await prisma.branch.findUnique({ where: { id } })
-    if (!branch || branch.organizationId !== dbUser.organizationId) {
+    if (!branch || (!isSuperAdmin && branch.organizationId !== dbUser.organizationId)) {
       throw new Error('Filial não encontrada ou sem permissão.')
     }
 
@@ -92,8 +94,9 @@ export async function deleteBranch(id: string) {
       throw new Error('Permissão negada')
     }
 
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
     const branch = await prisma.branch.findUnique({ where: { id } })
-    if (!branch || branch.organizationId !== dbUser.organizationId) {
+    if (!branch || (!isSuperAdmin && branch.organizationId !== dbUser.organizationId)) {
       throw new Error('Filial não encontrada ou sem permissão.')
     }
 

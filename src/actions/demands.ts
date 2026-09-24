@@ -213,14 +213,19 @@ export async function getDemands(filters: DemandFilters = {}) {
 export async function getDemandById(id: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const demand = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -365,6 +370,15 @@ export async function createDemand(rawData: any) {
       if (defaultBranch?.id) {
         branchId = defaultBranch.id
       }
+    } else if (!branchId && (dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating))) {
+      const anyBranch = await prisma.branch.findFirst({
+        where: { isActive: true },
+        select: { id: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (anyBranch?.id) {
+        branchId = anyBranch.id
+      }
     }
 
     if (!branchId) {
@@ -459,14 +473,19 @@ export async function createDemand(rawData: any) {
 export async function updateDemand(id: string, rawData: any) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingDemand = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -531,7 +550,12 @@ export async function updateDemandStatus(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
@@ -540,7 +564,7 @@ export async function updateDemandStatus(
     const existing = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -637,14 +661,19 @@ export async function toggleChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -695,14 +724,19 @@ export async function attachDocumentToChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const item = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -765,14 +799,19 @@ export async function attachDocumentToChecklistItem(
 export async function linkExistingGedDocument(itemId: string, documentId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -817,7 +856,12 @@ export async function addChecklistItem(
 ) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
@@ -828,7 +872,7 @@ export async function addChecklistItem(
     const demand = await prisma.serviceDemand.findFirst({
       where: {
         id: demandId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -870,14 +914,19 @@ export async function addChecklistItem(
 export async function deleteChecklistItem(itemId: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -912,14 +961,19 @@ export async function deleteChecklistItem(itemId: string) {
 export async function deleteDemand(id: string) {
   try {
     const dbUser = await getUserContext()
-    if (!dbUser || !dbUser.organizationId) {
+    if (!dbUser) {
+      throw new Error('Usuário não autenticado.')
+    }
+
+    const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
+    if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
     }
 
     const existing = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating
+        ...(!isSuperAdmin && dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },

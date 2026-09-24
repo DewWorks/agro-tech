@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Ban, X } from 'lucide-react'
+import { Search, Ban, X, Building2 } from 'lucide-react'
 import {
   Select,
   SelectTrigger,
@@ -21,6 +21,8 @@ interface DemandFiltersBarProps {
   currentView: string
   currentSearch: string
   currentServiceType?: string
+  currentBranchId?: string
+  branches?: Array<{ id: string; name: string }>
   showCancelled: boolean
 }
 
@@ -28,19 +30,27 @@ export function DemandFiltersBar({
   currentView,
   currentSearch,
   currentServiceType,
+  currentBranchId,
+  branches = [],
   showCancelled,
 }: DemandFiltersBarProps) {
   const router = useRouter()
   const [search, setSearch] = useState(currentSearch)
   const [serviceType, setServiceType] = useState<string>(currentServiceType || 'ALL')
+  const [branchId, setBranchId] = useState<string>(currentBranchId || 'ALL')
 
-  const handleApplyFilters = (newServiceType?: string) => {
+  const handleApplyFilters = (newServiceType?: string, newBranchId?: string) => {
     const activeServiceType = newServiceType !== undefined ? newServiceType : serviceType
+    const activeBranchId = newBranchId !== undefined ? newBranchId : branchId
+
     const params = new URLSearchParams()
     if (currentView) params.set('view', currentView)
     if (search.trim()) params.set('search', search.trim())
     if (activeServiceType && activeServiceType !== 'ALL') {
       params.set('serviceType', activeServiceType)
+    }
+    if (activeBranchId && activeBranchId !== 'ALL') {
+      params.set('branchId', activeBranchId)
     }
     if (showCancelled) params.set('showCancelled', 'true')
     router.push(`/admin/demands?${params.toString()}`)
@@ -56,15 +66,23 @@ export function DemandFiltersBar({
   const handleServiceChange = (val: string | null) => {
     const normalized = val || 'ALL'
     setServiceType(normalized)
-    handleApplyFilters(normalized)
+    handleApplyFilters(normalized, branchId)
   }
+
+  const handleBranchChange = (val: string | null) => {
+    const normalized = val || 'ALL'
+    setBranchId(normalized)
+    handleApplyFilters(serviceType, normalized)
+  }
+
+  const hasBranchesSelect = branches.length > 0
 
   return (
     <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-      {/* Formulário de Busca e Filtro de Serviço */}
+      {/* Formulário de Busca e Filtro de Serviço & Filial */}
       <div className="flex items-center gap-2.5 flex-1 flex-wrap">
         {/* Campo de Busca */}
-        <div className="relative flex-1 min-w-[220px]">
+        <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -82,6 +100,7 @@ export function DemandFiltersBar({
                 const params = new URLSearchParams()
                 if (currentView) params.set('view', currentView)
                 if (serviceType && serviceType !== 'ALL') params.set('serviceType', serviceType)
+                if (branchId && branchId !== 'ALL') params.set('branchId', branchId)
                 if (showCancelled) params.set('showCancelled', 'true')
                 router.push(`/admin/demands?${params.toString()}`)
               }}
@@ -92,8 +111,31 @@ export function DemandFiltersBar({
           )}
         </div>
 
-        {/* Dropdown de Serviços usando o componente Select do sistema */}
-        <div className="w-[220px]">
+        {/* Dropdown de Filiais (Exclusivo para OWNER / SUPER_ADMIN) */}
+        {hasBranchesSelect && (
+          <div className="w-[180px]">
+            <Select value={branchId} onValueChange={handleBranchChange}>
+              <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white">
+                <SelectValue placeholder="Todas as Filiais">
+                  {branchId === 'ALL'
+                    ? 'Todas as Filiais'
+                    : branches.find((b) => b.id === branchId)?.name || 'Filial'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Todas as Filiais</SelectItem>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={b.id}>
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {/* Dropdown de Serviços */}
+        <div className="w-[200px]">
           <Select value={serviceType} onValueChange={handleServiceChange}>
             <SelectTrigger className="h-9 text-xs rounded-xl border-slate-200 bg-white">
               <SelectValue placeholder="Todos os Serviços">
@@ -130,6 +172,8 @@ export function DemandFiltersBar({
             search
           )}&serviceType=${encodeURIComponent(
             serviceType === 'ALL' ? '' : serviceType
+          )}&branchId=${encodeURIComponent(
+            branchId === 'ALL' ? '' : branchId
           )}&showCancelled=${showCancelled ? 'false' : 'true'}`}
           className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all inline-flex items-center gap-1.5 ${
             showCancelled
@@ -148,6 +192,8 @@ export function DemandFiltersBar({
               search
             )}&serviceType=${encodeURIComponent(
               serviceType === 'ALL' ? '' : serviceType
+            )}&branchId=${encodeURIComponent(
+              branchId === 'ALL' ? '' : branchId
             )}&showCancelled=${showCancelled ? 'true' : 'false'}`}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
               currentView === 'kanban'
@@ -162,6 +208,8 @@ export function DemandFiltersBar({
               search
             )}&serviceType=${encodeURIComponent(
               serviceType === 'ALL' ? '' : serviceType
+            )}&branchId=${encodeURIComponent(
+              branchId === 'ALL' ? '' : branchId
             )}&showCancelled=${showCancelled ? 'true' : 'false'}`}
             className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
               currentView === 'table'

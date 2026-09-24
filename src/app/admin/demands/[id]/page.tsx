@@ -217,6 +217,9 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
           {/* Checklist Documental */}
           <DemandChecklistSection
             demandId={demand.id}
+            branchId={demand.branchId}
+            producerId={demand.producerId}
+            propertyId={demand.propertyId}
             items={demand.checklistItems as any}
             producerName={demand.producer.name}
             producerPhone={demand.producer.phone}

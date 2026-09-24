@@ -20,6 +20,7 @@ import {
   FileCheck2,
   Ban,
   ExternalLink,
+  Loader2,
 } from 'lucide-react'
 import { DemandSlaBadge, SlaInfo } from './DemandSlaBadge'
 import { CancelDemandModal } from './CancelDemandModal'
@@ -84,9 +85,16 @@ interface DemandCardProps {
   onMoveStatus?: (id: string, targetStatus: DemandStatusCode) => void
   onRefresh?: () => void
   isDragging?: boolean
+  isMoving?: boolean
 }
 
-export function DemandCard({ demand, onMoveStatus, onRefresh, isDragging = false }: DemandCardProps) {
+export function DemandCard({
+  demand,
+  onMoveStatus,
+  onRefresh,
+  isDragging = false,
+  isMoving = false,
+}: DemandCardProps) {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [cancelModalOpen, setCancelModalOpen] = useState(false)
@@ -160,9 +168,19 @@ export function DemandCard({ demand, onMoveStatus, onRefresh, isDragging = false
         }}
         className={cn(
           'group relative bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden cursor-pointer',
-          isDragging ? 'opacity-50 ring-2 ring-emerald-500 shadow-xl' : 'hover:border-slate-300'
+          isDragging && 'opacity-50 ring-2 ring-emerald-500 shadow-xl',
+          isMoving && 'opacity-50 pointer-events-none scale-[0.98] border-dashed border-emerald-400 ring-2 ring-emerald-400/40',
+          !isDragging && !isMoving && 'hover:border-slate-300'
         )}
       >
+        {isMoving && (
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-150">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 text-white text-xs font-bold shadow-lg">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+              <span>Transferindo etapa...</span>
+            </div>
+          </div>
+        )}
         {/* Faixa superior com Tipo de Serviço e Menu */}
         <div className="p-4 pb-2">
           <div className="flex items-start justify-between gap-2 mb-2">
