@@ -52,7 +52,7 @@ export async function submitDeltaForm(
           where: { id: producerId },
           data: {
             ...producerUpdateData,
-            updatedBy: userId, // 🔒 Auditoria: Registro do usuário logado que alterou
+            updatedBy: userId, // Auditoria: Registro do usuário logado que alterou
           }
         });
       }
@@ -63,7 +63,7 @@ export async function submitDeltaForm(
           where: { id: propertyId },
           data: {
             ...propertyUpdateData,
-            updatedBy: userId, // 🔒 Auditoria
+            updatedBy: userId, // Auditoria
           }
         });
       }
@@ -87,7 +87,7 @@ export async function submitDeltaForm(
 
     return { success: true, generatedFormId: result.id };
   } catch (error) {
-    // 🔒 Resiliência: Rollback atômico ocorre automaticamente se falhar
+    // Resiliência: Rollback atômico ocorre automaticamente se falhar
     console.error('Erro na transação atômica do Delta Form:', error);
     throw new Error('Falha ao processar o formulário. O sistema reverteu a transação por segurança.');
   }

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Ban, X, Building2 } from 'lucide-react'
+import { Search, Ban, X, Building2, Kanban, Table, Undo2, Loader2, AlertTriangle, AlertCircle } from 'lucide-react'
 import {
   Select,
   SelectTrigger,
@@ -26,6 +26,16 @@ interface DemandFiltersBarProps {
   branches?: Array<{ id: string; name: string }>
   showCancelled: boolean
   cancelledCount?: number
+  isPending?: boolean
+  pendingAction?: 'kanban' | 'table' | 'cancelled' | 'filter' | null
+  onViewChange?: (mode: 'kanban' | 'table') => void
+  onToggleCancelled?: () => void
+  onApplyFilters?: (
+    newServiceType?: string,
+    newBranchId?: string,
+    newSlaFilter?: string,
+    newSearch?: string
+  ) => void
 }
 
 export function DemandFiltersBar({
@@ -37,29 +47,78 @@ export function DemandFiltersBar({
   branches = [],
   showCancelled,
   cancelledCount,
+  isPending = false,
+  pendingAction = null,
+  onViewChange,
+  onToggleCancelled,
+  onApplyFilters,
 }: DemandFiltersBarProps) {
   const router = useRouter()
   const [search, setSearch] = useState(currentSearch)
   const [serviceType, setServiceType] = useState<string>(currentServiceType || 'ALL')
   const [branchId, setBranchId] = useState<string>(currentBranchId || 'ALL')
   const [slaFilter, setSlaFilter] = useState<string>(currentSlaFilter || 'ALL')
+  const [viewMode, setViewMode] = useState<string>(currentView || 'kanban')
 
   React.useEffect(() => {
     setSlaFilter(currentSlaFilter || 'ALL')
   }, [currentSlaFilter])
 
+  React.useEffect(() => {
+    setViewMode(currentView || 'kanban')
+  }, [currentView])
+
+  const handleViewModeChange = (mode: 'kanban' | 'table') => {
+    setViewMode(mode)
+    if (onViewChange) {
+      onViewChange(mode)
+      return
+    }
+    const params = new URLSearchParams()
+    params.set('view', mode)
+    if (search.trim()) params.set('search', search.trim())
+    if (serviceType && serviceType !== 'ALL') params.set('serviceType', serviceType)
+    if (branchId && branchId !== 'ALL') params.set('branchId', branchId)
+    if (slaFilter && slaFilter !== 'ALL') params.set('slaFilter', slaFilter)
+    if (showCancelled) params.set('showCancelled', 'true')
+    router.push(`/admin/demands?${params.toString()}`)
+  }
+
+  const handleToggleCancelled = () => {
+    if (onToggleCancelled) {
+      onToggleCancelled()
+      return
+    }
+    const nextShowCancelled = !showCancelled
+    const params = new URLSearchParams()
+    if (currentView) params.set('view', currentView)
+    if (search.trim()) params.set('search', search.trim())
+    if (serviceType && serviceType !== 'ALL') params.set('serviceType', serviceType)
+    if (branchId && branchId !== 'ALL') params.set('branchId', branchId)
+    if (slaFilter && slaFilter !== 'ALL') params.set('slaFilter', slaFilter)
+    if (nextShowCancelled) params.set('showCancelled', 'true')
+    router.push(`/admin/demands?${params.toString()}`)
+  }
+
   const handleApplyFilters = (
     newServiceType?: string,
     newBranchId?: string,
-    newSlaFilter?: string
+    newSlaFilter?: string,
+    newSearch?: string
   ) => {
     const activeServiceType = newServiceType !== undefined ? newServiceType : serviceType
     const activeBranchId = newBranchId !== undefined ? newBranchId : branchId
     const activeSlaFilter = newSlaFilter !== undefined ? newSlaFilter : slaFilter
+    const activeSearch = newSearch !== undefined ? newSearch : search
+
+    if (onApplyFilters) {
+      onApplyFilters(activeServiceType, activeBranchId, activeSlaFilter, activeSearch)
+      return
+    }
 
     const params = new URLSearchParams()
     if (currentView) params.set('view', currentView)
-    if (search.trim()) params.set('search', search.trim())
+    if (activeSearch.trim()) params.set('search', activeSearch.trim())
     if (activeServiceType && activeServiceType !== 'ALL') {
       params.set('serviceType', activeServiceType)
     }
@@ -186,9 +245,19 @@ export function DemandFiltersBar({
                 {slaFilter === 'ALL'
                   ? 'Todos os Prazos'
                   : slaFilter === 'WARNING_30'
-                  ? 'Em Aviso (≤ 30 dias)'
+                  ? (
+                    <span className="flex items-center gap-1.5 font-medium text-amber-700">
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                      <span>Em Aviso (≤ 30 dias)</span>
+                    </span>
+                  )
                   : slaFilter === 'OVERDUE'
-                  ? 'Atrasadas'
+                  ? (
+                    <span className="flex items-center gap-1.5 font-bold text-red-600">
+                      <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                      <span>Atrasadas</span>
+                    </span>
+                  )
                   : slaFilter === 'ON_TRACK'
                   ? 'No Prazo (> 30 dias)'
                   : slaFilter}
@@ -198,13 +267,13 @@ export function DemandFiltersBar({
               <SelectItem value="ALL">Todos os Prazos</SelectItem>
               <SelectItem value="WARNING_30">
                 <div className="flex items-center gap-1.5 font-medium text-amber-700">
-                  <span>⚠️</span>
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                   <span>Em Aviso (≤ 30 dias)</span>
                 </div>
               </SelectItem>
               <SelectItem value="OVERDUE">
                 <div className="flex items-center gap-1.5 font-bold text-red-600">
-                  <span>🚨</span>
+                  <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
                   <span>Atrasadas</span>
                 </div>
               </SelectItem>
@@ -215,74 +284,86 @@ export function DemandFiltersBar({
 
         <button
           type="button"
+          disabled={isPending}
           onClick={() => handleApplyFilters()}
-          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer"
+          className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-70 text-white rounded-xl text-xs font-bold transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1.5"
         >
-          Filtrar
+          {isPending && pendingAction === 'filter' && (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          )}
+          <span>{isPending && pendingAction === 'filter' ? 'Filtrando...' : 'Filtrar'}</span>
         </button>
       </div>
 
       {/* Controles da Direita: Canceladas & View Switcher */}
       <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
         {/* Toggle Canceladas */}
-        <Link
-          href={`/admin/demands?view=${currentView}&search=${encodeURIComponent(
-            search
-          )}&serviceType=${encodeURIComponent(
-            serviceType === 'ALL' ? '' : serviceType
-          )}&branchId=${encodeURIComponent(
-            branchId === 'ALL' ? '' : branchId
-          )}&slaFilter=${encodeURIComponent(
-            slaFilter === 'ALL' ? '' : slaFilter
-          )}&showCancelled=${showCancelled ? 'false' : 'true'}`}
-          className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all inline-flex items-center gap-1.5 ${
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={handleToggleCancelled}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-70 ${
             showCancelled
-              ? 'bg-rose-50 text-rose-700 border-rose-200 shadow-2xs'
-              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+              ? 'bg-slate-900 text-white border-slate-900 shadow-xs'
+              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
           }`}
+          title={showCancelled ? 'Clique para voltar para as demandas ativas' : 'Clique para ver as demandas canceladas'}
         >
-          <Ban className="w-3.5 h-3.5" />
-          <span>{showCancelled ? 'Ocultar Canceladas' : `Ver Canceladas (${cancelledCount ?? 0})`}</span>
-        </Link>
+          {isPending && pendingAction === 'cancelled' ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-current" />
+              <span>{showCancelled ? 'Voltando...' : 'Carregando...'}</span>
+            </>
+          ) : showCancelled ? (
+            <>
+              <Undo2 className="w-3.5 h-3.5" />
+              <span>Exibindo Canceladas ({cancelledCount ?? 0})</span>
+            </>
+          ) : (
+            <>
+              <Ban className="w-3.5 h-3.5" />
+              <span>Ver Canceladas ({cancelledCount ?? 0})</span>
+            </>
+          )}
+        </button>
 
-        {/* Alternância Kanban | Tabela */}
-        <div className="bg-slate-100 p-0.5 rounded-xl border border-slate-200 flex items-center">
-          <Link
-            href={`/admin/demands?view=kanban&search=${encodeURIComponent(
-              search
-            )}&serviceType=${encodeURIComponent(
-              serviceType === 'ALL' ? '' : serviceType
-            )}&branchId=${encodeURIComponent(
-              branchId === 'ALL' ? '' : branchId
-            )}&slaFilter=${encodeURIComponent(
-              slaFilter === 'ALL' ? '' : slaFilter
-            )}&showCancelled=${showCancelled ? 'true' : 'false'}`}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-              currentView === 'kanban'
-                ? 'bg-white text-slate-900 shadow-2xs'
-                : 'text-slate-500 hover:text-slate-900'
+        {/* Alternância Kanban | Tabela (Segmented Control com Ícones e Loading) */}
+        <div className="inline-flex items-center p-1 bg-slate-100 rounded-lg border border-slate-200">
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => handleViewModeChange('kanban')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer disabled:opacity-70 ${
+              viewMode === 'kanban'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60 font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Kanban
-          </Link>
-          <Link
-            href={`/admin/demands?view=table&search=${encodeURIComponent(
-              search
-            )}&serviceType=${encodeURIComponent(
-              serviceType === 'ALL' ? '' : serviceType
-            )}&branchId=${encodeURIComponent(
-              branchId === 'ALL' ? '' : branchId
-            )}&slaFilter=${encodeURIComponent(
-              slaFilter === 'ALL' ? '' : slaFilter
-            )}&showCancelled=${showCancelled ? 'true' : 'false'}`}
-            className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-              currentView === 'table'
-                ? 'bg-white text-slate-900 shadow-2xs'
-                : 'text-slate-500 hover:text-slate-900'
+            {isPending && pendingAction === 'kanban' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-900" />
+            ) : (
+              <Kanban className="w-3.5 h-3.5" />
+            )}
+            <span>Kanban</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={() => handleViewModeChange('table')}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer disabled:opacity-70 ${
+              viewMode === 'table'
+                ? 'bg-white text-slate-900 shadow-xs border border-slate-200/60 font-semibold'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Tabela
-          </Link>
+            {isPending && pendingAction === 'table' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-900" />
+            ) : (
+              <Table className="w-3.5 h-3.5" />
+            )}
+            <span>Tabela</span>
+          </button>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { Layers, ShieldAlert, FileClock } from 'lucide-react'
+import { Layers, ShieldAlert, FileClock, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DemandMetricsRibbonProps {
@@ -119,7 +119,16 @@ export function DemandMetricsRibbon({
             : 'Clique para filtrar demandas com prazo de entrega até 30 dias'
         }
       >
-        <span>⚠️</span>
+        <AlertTriangle
+          className={cn(
+            'w-3.5 h-3.5 shrink-0',
+            currentSlaFilter === 'WARNING_30'
+              ? 'text-white'
+              : warning30Count > 0
+              ? 'text-amber-600'
+              : 'text-slate-400'
+          )}
+        />
         <span>
           <strong className="font-bold">{warning30Count}</strong> em Aviso (≤ 30 dias)
         </span>

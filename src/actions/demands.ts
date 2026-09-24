@@ -63,13 +63,6 @@ export async function getDemands(filters: DemandFilters = {}) {
       where.propertyId = filters.propertyId
     }
 
-    if (filters.status) {
-      where.status = filters.status
-    } else if (!filters.includeCancelled) {
-      // Por padrão no Kanban, não traz canceladas para manter a tela limpa
-      where.status = { not: 'CANCELADO' }
-    }
-
     if (filters.serviceType) {
       where.serviceType = filters.serviceType
     }
@@ -220,22 +213,30 @@ export async function getDemands(filters: DemandFilters = {}) {
       warning30: warning30Count,
     }
 
-    // Filtragem pós-cálculo por SLA caso especificado
+    // Filtragem por status pós-cálculo dos contadores
     let filteredDemands = enrichedDemands
+    if (filters.status) {
+      filteredDemands = filteredDemands.filter((d) => d.status === filters.status)
+    } else if (!filters.includeCancelled) {
+      // Por padrão no Kanban, não traz canceladas para manter a tela limpa
+      filteredDemands = filteredDemands.filter((d) => d.status !== 'CANCELADO')
+    }
+
+    // Filtragem pós-cálculo por SLA caso especificado
     if (filters.slaFilter && filters.slaFilter !== 'ALL') {
       if (filters.slaFilter === 'WARNING_30') {
-        filteredDemands = enrichedDemands.filter(
+        filteredDemands = filteredDemands.filter(
           (d) => d.status !== 'CONCLUIDO' && d.status !== 'CANCELADO' && d.slaMonitoring?.isWarning30
         )
       } else if (filters.slaFilter === 'OVERDUE') {
-        filteredDemands = enrichedDemands.filter(
+        filteredDemands = filteredDemands.filter(
           (d) =>
             d.status !== 'CONCLUIDO' &&
             d.status !== 'CANCELADO' &&
             (d.slaMonitoring?.isOverdue || d.sla.status === 'ATRASADO')
         )
       } else if (filters.slaFilter === 'ON_TRACK') {
-        filteredDemands = enrichedDemands.filter(
+        filteredDemands = filteredDemands.filter(
           (d) =>
             d.status !== 'CONCLUIDO' &&
             d.status !== 'CANCELADO' &&

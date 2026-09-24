@@ -19,7 +19,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
-import { MapPin, Plus, Pencil, ExternalLink, ChevronsUpDown, Check } from 'lucide-react'
+import { MapPin, Plus, Pencil, ExternalLink, ChevronsUpDown, Check, Lightbulb } from 'lucide-react'
 
 export interface IbgeLocation {
   id: number
@@ -73,8 +73,11 @@ export function ProducerPropertyStep({
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Você pode cadastrar os dados da fazenda principal diretamente nos campos abaixo. Ela será vinculada automaticamente a este produtor rural ao salvar o cadastro.
               </p>
-              <div className="text-[11px] text-emerald-800 bg-emerald-50/80 p-2.5 rounded-lg border border-emerald-200/60 mt-2">
-                💡 <strong>Dica:</strong> Para cadastrar o levantamento patrimonial aprofundado (múltiplas propriedades, maquinários, rebanho e benfeitorias), salve este produtor primeiro e acesse o módulo de Propriedades Rurais.
+              <div className="text-[11px] text-emerald-800 bg-emerald-50/80 p-2.5 rounded-lg border border-emerald-200/60 mt-2 flex items-start gap-1.5">
+                <Lightbulb className="w-3.5 h-3.5 text-emerald-700 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Dica:</strong> Para cadastrar o levantamento patrimonial aprofundado (múltiplas propriedades, maquinários, rebanho e benfeitorias), salve este produtor primeiro e acesse o módulo de Propriedades Rurais.
+                </span>
               </div>
             </div>
           </div>

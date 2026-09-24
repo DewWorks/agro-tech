@@ -85,4 +85,23 @@ describe('DemandMetricsRibbon — Chips Interativos na Fita Superior', () => {
 
     expect(pushMock).toHaveBeenCalledWith('/admin/demands?view=kanban&slaFilter=OVERDUE')
   })
+
+  it('deve utilizar ícones SVG e nenhum emoji Unicode na fita de métricas', () => {
+    const { container } = render(
+      <DemandMetricsRibbon
+        activeCount={8}
+        overdueCount={2}
+        warning30Count={3}
+        pendingDocsCount={4}
+        currentSlaFilter="WARNING_30"
+        currentView="kanban"
+      />
+    )
+
+    const emojiRegex = /[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1FA00}-\u{1FAFF}]/u
+    expect(emojiRegex.test(container.innerHTML)).toBe(false)
+    expect(container.innerHTML).not.toContain('⚠️')
+    expect(container.innerHTML).not.toContain('🚨')
+    expect(container.querySelector('svg')).toBeInTheDocument()
+  })
 })

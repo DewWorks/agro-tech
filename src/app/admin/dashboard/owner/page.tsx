@@ -24,7 +24,7 @@ interface OwnerDashboardPageProps {
 export default async function OwnerDashboardPage({ searchParams }: OwnerDashboardPageProps) {
   const user = await getUserContext();
 
-  // 🔒 Guarda de Rota: Apenas OWNER e SUPER_ADMIN possuem visão executiva
+  // Guarda de Rota: Apenas OWNER e SUPER_ADMIN possuem visão executiva
   if (!user || (user.role !== 'OWNER' && user.role !== 'SUPER_ADMIN')) {
     redirect('/admin');
   }

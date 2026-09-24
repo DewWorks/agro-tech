@@ -273,15 +273,15 @@ export function DemandChecklistSection({
     }
 
     const textLines = [
-      `🌾 *AgroTech Consultoria Rural*`,
+      `*AgroTech Consultoria Rural*`,
       `Olá, *${producerName}*!`,
       ``,
       `Para darmos andamento à sua solicitação de *${serviceTitle}*, precisamos dos seguintes documentos pendentes:`,
       ``,
-      ...pendingItems.map((item, idx) => `${idx + 1}. 📄 ${item.title}`),
+      ...pendingItems.map((item, idx) => `${idx + 1}. ${item.title}`),
       ``,
       `Por favor, nos envie fotos legíveis ou PDFs destes documentos para protocolarmos o projeto.`,
-      `Qualquer dúvida, estamos à disposição! 👍`,
+      `Qualquer dúvida, estamos à disposição!`,
     ]
 
     const fullText = textLines.join('\n')

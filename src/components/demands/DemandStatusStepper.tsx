@@ -13,6 +13,7 @@ import {
   X,
   FileText,
   MessageSquare,
+  Ban,
 } from 'lucide-react'
 import { updateDemandStatus } from '@/actions/demands'
 import { DemandStatusCode } from '@/lib/validations/demands'
@@ -185,7 +186,7 @@ export function DemandStatusStepper({
       <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center text-rose-700 font-bold">
-            🚫
+            <Ban className="w-5 h-5 text-rose-700 shrink-0" />
           </div>
           <div>
             <h4 className="text-sm font-bold text-rose-800">Esta demanda está CANCELADA</h4>

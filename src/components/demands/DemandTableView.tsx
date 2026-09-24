@@ -166,17 +166,17 @@ export function DemandTableView({ demands }: DemandTableViewProps) {
 
                   {/* Checklist GED */}
                   <td className="py-3.5 px-4">
-                    {demand.checklistSummary.total > 0 ? (
+                    {Boolean(demand.checklistSummary && demand.checklistSummary.total > 0) ? (
                       <span
                         className={cn(
                           'font-semibold text-[11px]',
-                          demand.checklistSummary.delivered === demand.checklistSummary.total
+                          demand.checklistSummary?.delivered === demand.checklistSummary?.total
                             ? 'text-emerald-600'
                             : 'text-amber-600'
                         )}
                       >
-                        {demand.checklistSummary.delivered}/{demand.checklistSummary.total} (
-                        {demand.checklistSummary.percentage}%)
+                        {demand.checklistSummary?.delivered}/{demand.checklistSummary?.total} (
+                        {demand.checklistSummary?.percentage ?? 0}%)
                       </span>
                     ) : (
                       <span className="text-slate-400 text-[11px]">—</span>

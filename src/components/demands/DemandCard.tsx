@@ -158,7 +158,7 @@ export function DemandCard({
   const handleCopySummary = (e: React.MouseEvent) => {
     e.stopPropagation()
     const textLines = [
-      `🌾 *AgroTech Consultoria Rural*`,
+      `*AgroTech Consultoria Rural*`,
       `Olá, *${demand.producer.name}*!`,
       ``,
       `Atualização sobre a sua ordem de serviço de *${serviceTitle}*:`,
@@ -169,7 +169,7 @@ export function DemandCard({
         ? `• Previsão: ${new Date(demand.estimatedDeliveryDate).toLocaleDateString('pt-BR')}`
         : '',
       ``,
-      `Qualquer dúvida, estamos à disposição! 👍`,
+      `Qualquer dúvida, estamos à disposição!`,
     ].filter(Boolean)
 
     navigator.clipboard.writeText(textLines.join('\n'))
@@ -358,18 +358,18 @@ export function DemandCard({
           </div>
 
           {/* Barra de Progresso do Checklist Documental */}
-          {demand.checklistSummary.total > 0 && (
+          {Boolean(demand.checklistSummary && demand.checklistSummary.total > 0) && (
             <div className="mt-3">
               <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
                 <span className="text-slate-500">Documentação GED</span>
                 <span
                   className={cn(
-                    demand.checklistSummary.delivered === demand.checklistSummary.total
+                    demand.checklistSummary?.delivered === demand.checklistSummary?.total
                       ? 'text-emerald-700'
                       : 'text-amber-800'
                   )}
                 >
-                  {demand.checklistSummary.delivered}/{demand.checklistSummary.total} entregues
+                  {demand.checklistSummary?.delivered}/{demand.checklistSummary?.total} entregues
                 </span>
               </div>
               <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
