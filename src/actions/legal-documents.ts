@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 
@@ -344,15 +345,11 @@ export async function saveGeneratedPdfMetadata(data: {
   templateVersion: number
   payloadSnapshot: any
   storagePdfPath: string
+  sha256Hash?: string
 }) {
   const user = await getUserContext()
   if (!user) throw new Error('Unauthorized')
 
-  // Se for super admin e não tiver branchId, podemos salvar como branchId = null, ou usar um fake branchId, ou lançar erro se o schema não permitir null.
-  // Vamos verificar o schema para GeneratedForm.branchId: se for obrigatório, usamos uma fallback ou null se for opcional.
-  // No schema, branchId no GeneratedForm é String (obrigatório se não tiver ?).
-  // Se for obrigatório, podemos pegar o branchId do producer
-  
   let branchIdToSave = user.branchId
 
   if (!branchIdToSave) {
@@ -364,7 +361,7 @@ export async function saveGeneratedPdfMetadata(data: {
     }
   }
 
-  return await prisma.generatedForm.create({
+  const result = await prisma.generatedForm.create({
     data: {
       branchId: branchIdToSave!,
       producerId: data.producerId,
@@ -373,6 +370,10 @@ export async function saveGeneratedPdfMetadata(data: {
       templateVersion: data.templateVersion,
       payloadSnapshot: data.payloadSnapshot,
       storagePdfPath: data.storagePdfPath,
+      sha256Hash: data.sha256Hash || null,
     }
   })
+
+  revalidatePath('/admin/dashboard/owner')
+  return result
 }

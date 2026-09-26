@@ -358,7 +358,9 @@ export default function UploadDropzone({
             <Label className="text-xs font-medium">Tipo de Documento *</Label>
             <Select value={documentType} onValueChange={(val) => setDocumentType(val || '')}>
               <SelectTrigger className="h-9 text-sm">
-                <SelectValue placeholder="Selecione..." />
+                <SelectValue placeholder="Selecione...">
+                  {DOCUMENT_TYPE_LABELS[documentType as keyof typeof DOCUMENT_TYPE_LABELS] || undefined}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (

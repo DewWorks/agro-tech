@@ -182,7 +182,9 @@ export function ProducerBasicInfoStep({
           value={formData.email}
           onChange={(e) => handleChange('email', e.target.value)}
           placeholder="email@exemplo.com"
+          className={errors.email ? 'border-red-500' : ''}
         />
+        {errors.email && <p className="text-xs text-red-500 font-medium">{errors.email}</p>}
       </div>
 
       <div className="space-y-2">
@@ -192,7 +194,9 @@ export function ProducerBasicInfoStep({
           onChange={(e) => handleChange('phone', e.target.value)}
           placeholder="(00) 00000-0000"
           maxLength={15}
+          className={errors.phone ? 'border-red-500' : ''}
         />
+        {errors.phone && <p className="text-xs text-red-500 font-medium">{errors.phone}</p>}
       </div>
 
       {formData.type === 'PJ' && (

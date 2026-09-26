@@ -13,6 +13,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText } from 'lucide-react'
+import { maskRegistrationNumber, maskCAR, maskCCIR, maskITR } from '@/lib/utils/masks'
 
 interface LandDocumentationCardProps {
   control: Control<any>
@@ -37,14 +38,14 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
               <FormControl>
                 <Input
                   placeholder="Ex: 2718"
+                  maxLength={8}
                   {...field}
                   onChange={(e) => {
-                    const numOnly = e.target.value.replace(/\D/g, '')
-                    field.onChange(numOnly)
+                    field.onChange(maskRegistrationNumber(e.target.value))
                   }}
                 />
               </FormControl>
-              <FormDescription>CRI - Sem letras ou pontos</FormDescription>
+              <FormDescription>CRI - 1 a 8 dígitos numéricos</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -86,14 +87,15 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
               <FormLabel>Código do CAR (Cadastro Ambiental Rural) *</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Ex: TO-1700000-ABCD.1234.EF56.7890.1234.5678.90AB"
+                  placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
                   className="font-mono uppercase text-xs"
+                  maxLength={41}
                   {...field}
-                  onChange={(e) => field.onChange(e.target.value.toUpperCase().trim())}
+                  onChange={(e) => field.onChange(maskCAR(e.target.value))}
                 />
               </FormControl>
               <FormDescription>
-                Padrão federal: UF-CódigoMunicípio-Hash.Hash.Hash.Hash.Hash.Hash.Hash
+                Padrão federal SICAR: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -105,20 +107,19 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
           name="ccir"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>CCIR (Código INCRA - 13 dígitos) *</FormLabel>
+              <FormLabel>CCIR (Código INCRA - 13 dígitos)</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Ex: 0000276332244"
-                  maxLength={13}
+                  placeholder="Ex: 000.000.000.000-0"
+                  maxLength={17}
                   className="font-mono"
                   {...field}
                   onChange={(e) => {
-                    const num = e.target.value.replace(/\D/g, '').slice(0, 13)
-                    field.onChange(num)
+                    field.onChange(maskCCIR(e.target.value))
                   }}
                 />
               </FormControl>
-              <FormDescription>{field.value?.length || 0}/13 dígitos</FormDescription>
+              <FormDescription>13 dígitos numéricos</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -129,20 +130,19 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
           name="itr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>ITR / NIRF (Receita Federal - 8 dígitos) *</FormLabel>
+              <FormLabel>ITR / NIRF (Receita Federal - 8 dígitos)</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Ex: 54444829"
-                  maxLength={8}
+                  placeholder="Ex: 0.000.000-0"
+                  maxLength={10}
                   className="font-mono"
                   {...field}
                   onChange={(e) => {
-                    const num = e.target.value.replace(/\D/g, '').slice(0, 8)
-                    field.onChange(num)
+                    field.onChange(maskITR(e.target.value))
                   }}
                 />
               </FormControl>
-              <FormDescription>{field.value?.length || 0}/8 dígitos</FormDescription>
+              <FormDescription>8 dígitos numéricos</FormDescription>
               <FormMessage />
             </FormItem>
           )}

@@ -16,43 +16,48 @@ interface PropertySelectProps {
 
 export function PropertySelect({ availableProperties, selectedPropertyId, setSelectedPropertyId, currentProperty }: PropertySelectProps) {
   const [open, setOpen] = useState(false)
+  const hasProperties = availableProperties.length > 0
 
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between">
-        <span className="flex items-center gap-1.5">
-          <MapPin className="h-3.5 w-3.5 text-[#1B4D3E]" />
-          2. Propriedade / Imóvel Beneficiado *
+    <div className="space-y-1.5 flex flex-col">
+      <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between min-h-[24px]">
+        <span className="flex items-center gap-1.5 truncate">
+          <MapPin className="h-3.5 w-3.5 text-[#1B4D3E] shrink-0" />
+          <span className="truncate">2. Propriedade / Imóvel Beneficiado *</span>
         </span>
-        {availableProperties.length > 0 && (
-          <span className="text-[10px] text-gray-500">
-            {availableProperties.length} vinculada(s)
-          </span>
-        )}
+        <span className={cn(
+          "text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0",
+          hasProperties
+            ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+            : "text-amber-700 bg-amber-50 border-amber-200"
+        )}>
+          {hasProperties ? `${availableProperties.length} vinculada(s)` : '0 vinculada(s)'}
+        </span>
       </Label>
-      {availableProperties.length === 0 ? (
-        <div className="p-3 bg-amber-50 text-amber-800 rounded-lg text-xs border border-amber-200">
-          Este produtor não possui propriedades rurais vinculadas.
-        </div>
-      ) : (
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger
-            render={
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={open}
-                className="w-full justify-between font-normal text-left text-xs h-9 px-3 bg-white border-gray-200 hover:bg-gray-50 shadow-2xs"
-              />
-            }
-          >
-            <span className="truncate">
-              {currentProperty
-                ? `${currentProperty.name}${currentProperty.registrationNumber ? ` (Matr. ${currentProperty.registrationNumber})` : ''}`
-                : "Buscar e selecionar propriedade..."}
-            </span>
-            <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
-          </PopoverTrigger>
+      <Popover open={open && hasProperties} onOpenChange={(o) => hasProperties && setOpen(o)}>
+        <PopoverTrigger
+          render={
+            <Button
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              disabled={!hasProperties}
+              className={cn(
+                "w-full justify-between font-medium text-left text-xs h-10 px-3.5 bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 rounded-xl shadow-2xs transition-all",
+                !hasProperties ? "opacity-60 bg-gray-50 cursor-not-allowed" : "cursor-pointer"
+              )}
+            />
+          }
+        >
+          <span className="truncate text-gray-800 font-medium">
+            {currentProperty
+              ? `${currentProperty.name}${currentProperty.registrationNumber ? ` (Matr. ${currentProperty.registrationNumber})` : ''}`
+              : hasProperties
+                ? "Buscar e selecionar propriedade..."
+                : "Produtor sem propriedades vinculadas"}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
+        </PopoverTrigger>
           <PopoverContent className="w-[320px] p-0 shadow-lg border-gray-200" align="start">
             <Command>
               <CommandInput placeholder="Buscar por nome, matrícula ou município..." className="text-xs" />
@@ -98,7 +103,6 @@ export function PropertySelect({ availableProperties, selectedPropertyId, setSel
             </Command>
           </PopoverContent>
         </Popover>
-      )}
     </div>
   )
 }

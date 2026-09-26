@@ -23,10 +23,13 @@ export const SignaturesBlock = React.memo(({ organization, options, producer }: 
           <div style={{ borderTop: '1px solid #111827', margin: '0 10px', paddingTop: '4px' }}>
             <strong>{producer?.name || 'Proponente'}</strong><br/>
             <span style={{ whiteSpace: 'nowrap' }}>{docLabel}: {docFormatted || '-'}</span><br/>
-            {isCnpj && producer?.representativeCpf ? (
-              <span style={{ fontSize: '9px', color: '#374151', whiteSpace: 'nowrap', display: 'inline-block' }}>
-                Rep. Legal CPF: {formatCPF(producer.representativeCpf)}
-              </span>
+            {isCnpj && (options?.representativeCpf || producer?.representativeCpf) ? (
+              <>
+                <span style={{ fontSize: '9px', color: '#374151', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                  {(options?.representativeName || producer?.representativeName || (producer?.name ? producer.name.replace(/\s*\(PJ\)\s*/i, '').trim() : '')) ? `${options?.representativeName || producer?.representativeName || producer.name.replace(/\s*\(PJ\)\s*/i, '').trim()} • ` : ''}Rep. Legal CPF: {formatCPF(options?.representativeCpf || producer.representativeCpf)}
+                </span>
+                <br/>
+              </>
             ) : null}
             <div style={{ fontSize: '9.5px', color: '#6b7280', marginTop: '2px' }}>Proponente</div>
           </div>

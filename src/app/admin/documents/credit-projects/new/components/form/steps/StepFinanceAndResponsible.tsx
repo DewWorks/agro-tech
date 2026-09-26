@@ -15,6 +15,7 @@ interface StepFinanceAndResponsibleProps {
   isLimiteCredito: boolean
   hasParamsStep: boolean
   stepRTPending: string[]
+  selectedTemplateCode?: string
 }
 
 export function StepFinanceAndResponsible({
@@ -23,8 +24,15 @@ export function StepFinanceAndResponsible({
   onBack,
   onAdvance,
   isLimiteCredito,
-  stepRTPending
+  stepRTPending,
+  selectedTemplateCode
 }: StepFinanceAndResponsibleProps) {
+  const isCreaRequired = [
+    'PROJETO_INOVAGRO',
+    'PROJETO_RENOVAGRO',
+    'PROJETO_CUSTEIO_SAFRA',
+  ].includes(selectedTemplateCode || '')
+
   const rev = Number(customOptions.annualRevenue) || 0
   const exp = Number(customOptions.annualExpenses) || 0
   const debts = Number(customOptions.existingDebts) || 0
@@ -117,21 +125,21 @@ export function StepFinanceAndResponsible({
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-700 font-medium">Nº do CREA / Região</Label>
+              <Label className="text-xs text-gray-700 font-medium">Nº do CREA / Região (Opcional)</Label>
               <Input
                 value={customOptions.creaNumber || ''}
                 onChange={(e) => setCustomOptions(prev => ({ ...prev, creaNumber: e.target.value }))}
                 className="h-10 text-xs bg-white"
-                placeholder="Ex: CREA/TO 12345-D"
+                placeholder="Opcional: Ex: CREA/TO 12345-D"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-gray-700 font-medium">Nº da ART / TRT</Label>
+              <Label className="text-xs text-gray-700 font-medium">Nº da ART / TRT (Opcional)</Label>
               <Input
                 value={customOptions.artNumber || ''}
                 onChange={(e) => setCustomOptions(prev => ({ ...prev, artNumber: e.target.value }))}
                 className="h-10 text-xs bg-white"
-                placeholder="Ex: ART 2026/0987654"
+                placeholder="Opcional: Ex: ART 2026/0987654"
               />
             </div>
           </div>
@@ -183,6 +191,7 @@ export function StepFinanceAndResponsible({
         customOptions={customOptions}
         setCustomOptions={setCustomOptions}
         pendingFields={stepRTPending}
+        isCreaRequired={isCreaRequired}
       />
 
       <div className="pt-4 border-t border-gray-100 flex justify-between">

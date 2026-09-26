@@ -15,6 +15,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Trash2 } from 'lucide-react'
 import { MACHINERY_CATEGORIES } from '@/lib/validations/property-wizard'
+import { maskChassis } from '@/lib/utils/masks'
 
 interface MachineryTableRowProps {
   index: number
@@ -108,7 +109,12 @@ export const MachineryTableRow = React.memo(function MachineryTableRow({
         <Input
           placeholder="Ex: 1BM6110JJLH00123"
           className="h-9 text-xs font-mono uppercase"
-          {...register(`machineries.${index}.chassisSerial`)}
+          maxLength={25}
+          {...register(`machineries.${index}.chassisSerial`, {
+            onChange: (e) => {
+              e.target.value = maskChassis(e.target.value)
+            },
+          })}
         />
       </TableCell>
 

@@ -90,7 +90,7 @@ export function DeclarationsClient({ producers, templates }: DeclarationsClientP
     }
   }
 
-  const handleSavePdfMetadata = async (storagePath: string) => {
+  const handleSavePdfMetadata = async (storagePath: string, sha256Hash?: string) => {
     try {
       await saveGeneratedPdfMetadata({
         producerId: selectedProducerId!,
@@ -98,7 +98,8 @@ export function DeclarationsClient({ producers, templates }: DeclarationsClientP
         templateCode: selectedTemplateCode!,
         templateVersion: templateData.version,
         payloadSnapshot: resolvedVariables,
-        storagePdfPath: storagePath
+        storagePdfPath: storagePath,
+        sha256Hash,
       })
       toast.success('Emissão registrada com sucesso!')
     } catch (error) {

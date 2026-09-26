@@ -3,6 +3,7 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePicker } from '@/components/ui/date-picker'
+import { maskRG, maskIssuerUF } from '@/lib/utils/masks'
 
 import {
   Select,
@@ -16,11 +17,13 @@ import { EDUCATION_LEVEL_OPTIONS } from '@/lib/validations/reference-data'
 interface ProducerLegalDataStepProps {
   formData: any
   handleChange: (field: string, value: string) => void
+  errors?: Record<string, string>
 }
 
 export function ProducerLegalDataStep({
   formData,
   handleChange,
+  errors = {},
 }: ProducerLegalDataStepProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -77,17 +80,23 @@ export function ProducerLegalDataStep({
             <Label>Registro Geral (RG)</Label>
             <Input 
               value={formData.rg}
-              onChange={(e) => handleChange('rg', e.target.value)}
+              onChange={(e) => handleChange('rg', maskRG(e.target.value))}
               placeholder="Ex: 0000000"
+              maxLength={14}
+              className={errors.rg ? 'border-red-500' : ''}
             />
+            {errors.rg && <p className="text-xs text-red-500 font-medium">{errors.rg}</p>}
           </div>
           <div className="space-y-2">
             <Label>Órgão Emissor do RG</Label>
             <Input 
               value={formData.rgIssuer}
-              onChange={(e) => handleChange('rgIssuer', e.target.value)}
+              onChange={(e) => handleChange('rgIssuer', maskIssuerUF(e.target.value))}
               placeholder="Ex: SSP/TO"
+              maxLength={8}
+              className={errors.rgIssuer ? 'border-red-500' : ''}
             />
+            {errors.rgIssuer && <p className="text-xs text-red-500 font-medium">{errors.rgIssuer}</p>}
           </div>
           {formData.type === 'PF' && (
             <div className="space-y-2">

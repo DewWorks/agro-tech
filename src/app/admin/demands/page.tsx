@@ -106,11 +106,11 @@ export default async function DemandsPage(props: DemandsPageProps) {
       {/* Top Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <ClipboardList className="h-8 w-8" />
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <ClipboardList className="text-[#1B4D3E] w-6 h-6" />
             Serviços & Demandas Rurais
           </h1>
-          <p className="text-muted-foreground mt-1 text-xs">
+          <p className="text-xs md:text-sm text-slate-500 mt-1">
             Gestão operacional de ordens de serviço, esteira documental do GED e governança de prazos.
           </p>
         </div>

@@ -72,16 +72,17 @@ export function StepPreviewEmission({
         </div>
 
         {/* Action Bar (Top Right) */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
           <Button
             type="button"
             variant="outline"
             size="sm"
             onClick={handleOpenSaveModal}
             disabled={isSavingDraft}
-            className="text-xs text-blue-700 border-blue-200 hover:bg-blue-50 h-9 px-3 rounded-lg"
+            className="text-xs text-blue-700 border-blue-200 hover:bg-blue-50 h-9 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+            title="Salvar rascunho dos dados deste projeto"
           >
-            <Save className="h-3.5 w-3.5 mr-1.5 text-blue-600" />
+            <Save className="h-3.5 w-3.5 text-blue-600" />
             Salvar Dados
           </Button>
 
@@ -90,9 +91,10 @@ export function StepPreviewEmission({
             variant="outline"
             size="sm"
             onClick={handleDownloadOriginalTemplate}
-            className="text-xs text-emerald-800 border-emerald-300 hover:bg-emerald-50 h-9 px-3 rounded-lg hidden sm:flex"
+            className="text-xs text-emerald-800 border-emerald-300 hover:bg-emerald-50 h-9 px-3 rounded-xl hidden sm:flex items-center gap-1.5 cursor-pointer"
+            title="Baixar arquivo DOCX/XLS original de referência"
           >
-            <Download className="h-3.5 w-3.5 mr-1.5 text-[#1B4D3E]" />
+            <Download className="h-3.5 w-3.5 text-[#1B4D3E]" />
             Modelo Base (.docx)
           </Button>
 
@@ -100,32 +102,34 @@ export function StepPreviewEmission({
             type="button"
             variant="outline"
             size="sm"
-            onClick={handlePrintIsolated}
-            className="text-xs text-gray-700 border-gray-300 hover:bg-gray-50 h-9 px-3 rounded-lg flex items-center gap-1.5"
-          >
-            <Printer className="h-3.5 w-3.5 text-gray-600" />
-            Imprimir Página Limpa
-          </Button>
-
-          <Button
-            type="button"
             onClick={() => {
-              if (!isFormValid) {
-                toast.error(`Atenção: ${validationErrors[0]}`)
+              if (!isFormValid || validationErrors.length > 0) {
+                toast.error(`Atenção: ${validationErrors[0] || 'Existem campos obrigatórios pendentes.'}`)
                 return
               }
               setIsConfirmModalOpen(true)
             }}
-            disabled={!isFormValid || isGeneratingPdf}
+            disabled={!isFormValid || validationErrors.length > 0 || isGeneratingPdf}
             className={cn(
-              "text-xs font-bold h-9 px-4 rounded-lg flex items-center gap-2 shadow-xs transition-all",
-              isFormValid 
-                ? "bg-[#1B4D3E] hover:bg-[#13382D] text-white cursor-pointer" 
-                : "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed"
+              "text-xs font-semibold h-9 px-3.5 rounded-xl flex items-center gap-1.5 transition-all border",
+              isFormValid && validationErrors.length === 0
+                ? "border-emerald-300 text-emerald-800 hover:bg-emerald-50 cursor-pointer" 
+                : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
             )}
+            title={(!isFormValid || validationErrors.length > 0) ? `Pendências: ${validationErrors.length}` : 'Conferir e validar dados antes da emissão'}
           >
-            {isGeneratingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-            {isGeneratingPdf ? 'Gerando PDF...' : 'Conferir e Emitir PDF Oficial'}
+            {isGeneratingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />}
+            {isGeneratingPdf ? 'Gerando...' : 'Conferir Dados'}
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handlePrintIsolated}
+            className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs sm:text-sm font-bold h-10 px-5 rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+            title="Imprimir documento oficial em página limpa"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir Documento Oficial
           </Button>
         </div>
       </div>
@@ -185,7 +189,6 @@ export function StepPreviewEmission({
         {documentData ? (
           <div className="w-full max-w-[820px] bg-white shadow-xl rounded-sm border border-gray-300 overflow-hidden print:shadow-none print:border-0 print:max-w-none print:w-full animate-in fade-in duration-200">
             <div 
-              ref={contentRef}
               id="printable-document"
               style={{ 
                 width: '100%', 
@@ -202,27 +205,6 @@ export function StepPreviewEmission({
             Selecione o produtor e a propriedade para gerar a pré-visualização.
           </div>
         )}
-      </div>
-
-      {/* Bottom Navigation */}
-      <div className="pt-4 border-t border-gray-100 flex justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onBack}
-          className="text-xs h-10 px-5 rounded-xl"
-        >
-          <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar para Edição
-        </Button>
-
-        <Button
-          type="button"
-          onClick={handlePrintIsolated}
-          className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs font-bold h-10 px-6 rounded-xl flex items-center gap-2 shadow-xs"
-        >
-          <Printer className="h-4 w-4" />
-          Imprimir Documento Oficial
-        </Button>
       </div>
     </div>
   )

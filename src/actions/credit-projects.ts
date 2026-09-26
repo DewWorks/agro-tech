@@ -2,6 +2,7 @@
 
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
+import { revalidatePath } from 'next/cache'
 import {
   CREDIT_TEMPLATES_REGISTRY,
   generateChecklistProfissionalHtml,
@@ -18,6 +19,13 @@ import {
   normalizeLivestockSpecies,
   denormalizePurposeBB,
 } from '@/lib/validations/livestock-mapper'
+import {
+  sanitizePayload,
+  maskRegistrationNumber,
+  maskCAR,
+  maskCCIR,
+  maskITR,
+} from '@/lib/utils/masks'
 
 export async function getCreditTemplatesList(): Promise<CreditTemplateMeta[]> {
   const user = await getUserContext()
@@ -324,6 +332,7 @@ export async function resolveCreditProjectDocument(
         spouseEducationLevel: producer.spouseEducationLevel || undefined,
         marriageRegime: producer.marriageRegime || undefined,
         representativeCpf: options.representativeCpf || producer.representativeCpf || undefined,
+        representativeName: options.representativeName || (producer.type === 'PJ' ? producer.name.replace(/\s*\(PJ\)\s*/i, '').trim() : undefined),
         phone: producer.phone || undefined,
         civilStatus: producer.civilStatus || undefined,
         profession: producer.profession || undefined,
@@ -476,19 +485,37 @@ export async function saveCreditProjectData(
     orderBy: { createdAt: 'desc' }
   })
 
+  const sanitized = sanitizePayload(payload)
+
   // Se o usuário preencheu/corrigiu dados cadastrais do imóvel no formulário, sincroniza com o cadastro da propriedade
   if (propertyId) {
     try {
       const propUpdate: any = {}
-      if (payload.propertyRegistrationNumber) propUpdate.registrationNumber = payload.propertyRegistrationNumber
-      if (payload.propertyRegistryOffice) propUpdate.registryOffice = payload.propertyRegistryOffice
-      if (payload.propertyCar) propUpdate.car = payload.propertyCar
-      if (payload.propertyCcir) propUpdate.ccir = payload.propertyCcir
-      if (payload.propertyItr) propUpdate.itr = payload.propertyItr
-      if (payload.propertyTotalArea && Number(payload.propertyTotalArea) > 0) propUpdate.totalArea = Number(payload.propertyTotalArea)
-      if (payload.propertyActivity) propUpdate.explorationActivity = payload.propertyActivity
+      if (sanitized.propertyRegistrationNumber !== undefined) {
+        propUpdate.registrationNumber = sanitized.propertyRegistrationNumber
+          ? maskRegistrationNumber(sanitized.propertyRegistrationNumber)
+          : null
+      }
+      if (sanitized.propertyRegistryOffice !== undefined) {
+        propUpdate.registryOffice = sanitized.propertyRegistryOffice || null
+      }
+      if (sanitized.propertyCar !== undefined) {
+        propUpdate.car = sanitized.propertyCar ? maskCAR(sanitized.propertyCar) : null
+      }
+      if (sanitized.propertyCcir !== undefined) {
+        propUpdate.ccir = sanitized.propertyCcir ? maskCCIR(sanitized.propertyCcir) : null
+      }
+      if (sanitized.propertyItr !== undefined) {
+        propUpdate.itr = sanitized.propertyItr ? maskITR(sanitized.propertyItr) : null
+      }
+      if (sanitized.propertyTotalArea && Number(sanitized.propertyTotalArea) > 0) {
+        propUpdate.totalArea = Number(sanitized.propertyTotalArea)
+      }
+      if (sanitized.propertyActivity !== undefined) {
+        propUpdate.explorationActivity = sanitized.propertyActivity || null
+      }
 
-      if (payload.propertyAccessRoute) {
+      if (sanitized.propertyAccessRoute !== undefined) {
         const cur = await prisma.property.findUnique({
           where: { id: propertyId },
           select: { possessionData: true }
@@ -496,11 +523,11 @@ export async function saveCreditProjectData(
         const curPoss = (cur?.possessionData as any) || {}
         propUpdate.possessionData = {
           ...curPoss,
-          accessRoute: payload.propertyAccessRoute
+          accessRoute: sanitized.propertyAccessRoute || null
         }
       }
 
-      if (payload.improvementsValue || payload.machineryValue || payload.estimatedLandValuePerHa) {
+      if (sanitized.improvementsValue !== undefined || sanitized.machineryValue !== undefined || sanitized.estimatedLandValuePerHa !== undefined) {
         const cur = await prisma.property.findUnique({
           where: { id: propertyId },
           select: { improvements: true }
@@ -508,9 +535,9 @@ export async function saveCreditProjectData(
         const curImp = (cur?.improvements as any) || {}
         propUpdate.improvements = {
           ...curImp,
-          improvementsValue: payload.improvementsValue !== undefined ? Number(payload.improvementsValue) : curImp.improvementsValue,
-          machineryValue: payload.machineryValue !== undefined ? Number(payload.machineryValue) : curImp.machineryValue,
-          estimatedLandValuePerHa: payload.estimatedLandValuePerHa !== undefined ? Number(payload.estimatedLandValuePerHa) : curImp.estimatedLandValuePerHa,
+          improvementsValue: sanitized.improvementsValue !== undefined ? Number(sanitized.improvementsValue) : curImp.improvementsValue,
+          machineryValue: sanitized.machineryValue !== undefined ? Number(sanitized.machineryValue) : curImp.machineryValue,
+          estimatedLandValuePerHa: sanitized.estimatedLandValuePerHa !== undefined ? Number(sanitized.estimatedLandValuePerHa) : curImp.estimatedLandValuePerHa,
         }
       }
 
@@ -522,11 +549,11 @@ export async function saveCreditProjectData(
       }
 
       // Sincronizar Máquinas com o cadastro relacional da fazenda
-      if (payload.machineryItems && Array.isArray(payload.machineryItems)) {
+      if (sanitized.machineryItems && Array.isArray(sanitized.machineryItems)) {
         await prisma.machinery.deleteMany({ where: { propertyId } })
-        if (payload.machineryItems.length > 0) {
+        if (sanitized.machineryItems.length > 0) {
           await prisma.machinery.createMany({
-            data: payload.machineryItems.map((m: any) => ({
+            data: sanitized.machineryItems.map((m: any) => ({
               branchId,
               propertyId,
               specification: m.type || m.category || m.specification || 'Trator de Pneus',
@@ -600,18 +627,18 @@ export async function saveCreditProjectData(
   if (producerId) {
     try {
       const prodUpdate: any = {}
-      if (payload.producerPhone) prodUpdate.phone = payload.producerPhone
-      if (payload.producerEmail) prodUpdate.email = payload.producerEmail
-      if (payload.producerCivilStatus) prodUpdate.civilStatus = payload.producerCivilStatus
-      if (payload.producerMarriageRegime) prodUpdate.marriageRegime = payload.producerMarriageRegime
-      if (payload.producerSpouseName) prodUpdate.spouseName = payload.producerSpouseName
-      if (payload.producerSpouseCpf) prodUpdate.spouseCpf = payload.producerSpouseCpf
-      if (payload.producerSpouseRg) prodUpdate.spouseRg = payload.producerSpouseRg
-      if (payload.producerSpouseRgIssuer) prodUpdate.spouseRgIssuer = payload.producerSpouseRgIssuer
-      if (payload.producerSpouseNationality) prodUpdate.spouseNationality = payload.producerSpouseNationality
-      if (payload.producerSpouseEducationLevel) prodUpdate.spouseEducationLevel = payload.producerSpouseEducationLevel
-      if (payload.producerProfession) prodUpdate.profession = payload.producerProfession
-      if (payload.representativeCpf) prodUpdate.representativeCpf = payload.representativeCpf
+      if (sanitized.producerPhone !== undefined) prodUpdate.phone = sanitized.producerPhone
+      if (sanitized.producerEmail !== undefined) prodUpdate.email = sanitized.producerEmail
+      if (sanitized.producerCivilStatus !== undefined) prodUpdate.civilStatus = sanitized.producerCivilStatus
+      if (sanitized.producerMarriageRegime !== undefined) prodUpdate.marriageRegime = sanitized.producerMarriageRegime
+      if (sanitized.producerSpouseName !== undefined) prodUpdate.spouseName = sanitized.producerSpouseName
+      if (sanitized.producerSpouseCpf !== undefined) prodUpdate.spouseCpf = sanitized.producerSpouseCpf ? sanitized.producerSpouseCpf.replace(/\D/g, '') : null
+      if (sanitized.producerSpouseRg !== undefined) prodUpdate.spouseRg = sanitized.producerSpouseRg
+      if (sanitized.producerSpouseRgIssuer !== undefined) prodUpdate.spouseRgIssuer = sanitized.producerSpouseRgIssuer
+      if (sanitized.producerSpouseNationality !== undefined) prodUpdate.spouseNationality = sanitized.producerSpouseNationality
+      if (sanitized.producerSpouseEducationLevel !== undefined) prodUpdate.spouseEducationLevel = sanitized.producerSpouseEducationLevel
+      if (sanitized.producerProfession !== undefined) prodUpdate.profession = sanitized.producerProfession
+      if (sanitized.representativeCpf !== undefined) prodUpdate.representativeCpf = sanitized.representativeCpf ? sanitized.representativeCpf.replace(/\D/g, '') : null
 
       if (Object.keys(prodUpdate).length > 0) {
         await prisma.producer.update({
@@ -628,7 +655,7 @@ export async function saveCreditProjectData(
     const updated = await prisma.generatedForm.update({
       where: { id: existing.id },
       data: {
-        payloadSnapshot: payload,
+        payloadSnapshot: sanitized,
         createdAt: new Date(),
       }
     })
@@ -641,7 +668,7 @@ export async function saveCreditProjectData(
         propertyId: propertyId || null,
         templateCode,
         templateVersion: 1,
-        payloadSnapshot: payload,
+        payloadSnapshot: sanitized,
       }
     })
     return { success: true, id: created.id }
@@ -681,12 +708,14 @@ export async function recordDocumentEmission({
   templateCode,
   payload,
   storagePdfPath,
+  sha256Hash,
 }: {
   producerId: string
   propertyId?: string
   templateCode: string
   payload: Record<string, any>
   storagePdfPath?: string
+  sha256Hash?: string
 }) {
   const user = await getUserContext()
   if (!user) throw new Error('Não autorizado')
@@ -716,9 +745,11 @@ export async function recordDocumentEmission({
       templateVersion: 1,
       payloadSnapshot: payload,
       storagePdfPath: storagePdfPath || null,
+      sha256Hash: sha256Hash || null,
     }
   })
 
-  return { success: true, id: emission.id }
+  revalidatePath('/admin/dashboard/owner')
+  return { success: true, id: emission.id, sha256Hash: emission.sha256Hash }
 }
 

@@ -14,6 +14,7 @@ export function renderDocxTemplate(templateBuffer: Buffer, data: Record<string, 
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
+    nullGetter: () => '',
   });
 
   // Substitui as tags (e.g. {{PRODUCER_NAME}}) pelos dados passados no dicionário

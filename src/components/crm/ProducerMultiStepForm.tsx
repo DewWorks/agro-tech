@@ -13,6 +13,10 @@ import {
   formatCPF,
   formatCNPJ,
   formatPhone,
+  maskRG,
+  maskIssuerUF,
+  maskBankAgency,
+  maskBankAccount,
 } from '@/lib/utils/masks'
 import { ProducerBasicInfoStep } from './producer-steps/ProducerBasicInfoStep'
 import { ProducerSpouseStep } from './producer-steps/ProducerSpouseStep'
@@ -141,6 +145,18 @@ export default function ProducerMultiStepForm({
     if (field === 'phone') {
       formattedValue = formatPhone(value)
     }
+    if (field === 'rg' || field === 'spouseRg') {
+      formattedValue = maskRG(value)
+    }
+    if (field === 'rgIssuer' || field === 'spouseRgIssuer') {
+      formattedValue = maskIssuerUF(value)
+    }
+    if (field === 'bankAgency') {
+      formattedValue = maskBankAgency(value)
+    }
+    if (field === 'bankAccount') {
+      formattedValue = maskBankAccount(value)
+    }
 
     setFormData(prev => {
       let newFormData = { ...prev, [field]: formattedValue }
@@ -162,7 +178,13 @@ export default function ProducerMultiStepForm({
     
     if (stepId === 'DADOS') {
       if (!formData.branchId) newErrors.branchId = 'A Filial é obrigatória.'
-      if (!formData.name.trim()) newErrors.name = 'O Nome / Razão Social é obrigatório.'
+      if (!formData.name?.trim()) {
+        newErrors.name = 'O Nome / Razão Social é obrigatório.'
+      } else if (formData.name.trim().length < 3) {
+        newErrors.name = 'O nome deve conter pelo menos 3 caracteres.'
+      } else if (formData.type === 'PF' && !/\S+\s+\S+/.test(formData.name.trim())) {
+        newErrors.name = 'Informe o nome e o sobrenome completos.'
+      }
       
       const cleanDoc = formData.document.replace(/[^\d]/g, '')
       if (!cleanDoc) {
@@ -183,15 +205,75 @@ export default function ProducerMultiStepForm({
           }
         }
       }
+
+      if (formData.phone?.trim()) {
+        const phoneRegex = /^\(\d{2}\)\s\d{4,5}-\d{4}$/
+        if (!phoneRegex.test(formData.phone.trim())) {
+          newErrors.phone = 'Telefone inválido. Formato: (00) 00000-0000'
+        }
+      }
+
+      if (formData.email?.trim()) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(formData.email.trim())) {
+          newErrors.email = 'E-mail inválido.'
+        }
+      }
     }
 
     if (stepId === 'CONJUGE' && requireSpouse) {
       if (!formData.marriageRegime) newErrors.marriageRegime = 'O Regime de Casamento é obrigatório.'
-      if (!formData.spouseName.trim()) newErrors.spouseName = 'O Nome do Cônjuge é obrigatório.'
+      if (!formData.spouseName?.trim()) {
+        newErrors.spouseName = 'O Nome do Cônjuge é obrigatório.'
+      } else if (formData.spouseName.trim().length < 3 || !/\S+\s+\S+/.test(formData.spouseName.trim())) {
+        newErrors.spouseName = 'Informe o nome e o sobrenome completos do cônjuge.'
+      }
       
-      const cleanSpouseDoc = formData.spouseCpf.replace(/[^\d]/g, '')
-      if (cleanSpouseDoc && !validateCPF(cleanSpouseDoc)) {
+      const cleanSpouseDoc = (formData.spouseCpf || '').replace(/[^\d]/g, '')
+      const cleanTitularDoc = (formData.document || '').replace(/[^\d]/g, '')
+      if (!cleanSpouseDoc) {
+        newErrors.spouseCpf = 'O CPF do cônjuge é obrigatório.'
+      } else if (!validateCPF(cleanSpouseDoc)) {
         newErrors.spouseCpf = 'CPF do cônjuge matematicamente inválido.'
+      } else if (cleanSpouseDoc === cleanTitularDoc) {
+        newErrors.spouseCpf = 'O CPF do cônjuge não pode ser igual ao CPF do titular.'
+      }
+
+      if (!formData.spouseRg?.trim()) {
+        newErrors.spouseRg = 'O RG do cônjuge é obrigatório.'
+      } else if (formData.spouseRg.trim().length > 14) {
+        newErrors.spouseRg = 'O RG do cônjuge deve ter no máximo 14 caracteres.'
+      }
+
+      if (formData.spouseRgIssuer?.trim() && !/^[A-Z0-9]{2,8}\/[A-Z]{2}$/i.test(formData.spouseRgIssuer.trim())) {
+        newErrors.spouseRgIssuer = 'Órgão emissor deve estar no formato ÓRGÃO/UF (Ex: SSP/TO).'
+      }
+    }
+
+    if (stepId === 'LEGAIS') {
+      if (formData.type === 'PF' && formData.birthDate) {
+        const birth = new Date(formData.birthDate)
+        const now = new Date()
+        if (birth > now) {
+          newErrors.birthDate = 'A data de nascimento não pode estar no futuro.'
+        } else {
+          let age = now.getFullYear() - birth.getFullYear()
+          const m = now.getMonth() - birth.getMonth()
+          if (m < 0 || (m === 0 && now.getDate() < birth.getDate())) {
+            age--
+          }
+          if (age < 18) {
+            newErrors.birthDate = 'O titular deve ter no mínimo 18 anos de idade.'
+          }
+        }
+      }
+
+      if (formData.rg?.trim() && (formData.rg.trim().length < 3 || formData.rg.trim().length > 14)) {
+        newErrors.rg = 'O RG deve conter entre 3 e 14 caracteres.'
+      }
+
+      if (formData.rgIssuer?.trim() && !/^[A-Z0-9]{2,8}\/[A-Z]{2}$/i.test(formData.rgIssuer.trim())) {
+        newErrors.rgIssuer = 'Órgão emissor deve estar no formato ÓRGÃO/UF (Ex: SSP/TO).'
       }
     }
 
@@ -349,6 +431,7 @@ export default function ProducerMultiStepForm({
           <ProducerLegalDataStep
             formData={formData}
             handleChange={handleChange}
+            errors={errors}
           />
         )}
 
@@ -357,6 +440,7 @@ export default function ProducerMultiStepForm({
             initialData={initialData}
             formData={formData}
             handleChange={handleChange}
+            errors={errors}
           />
         )}
 

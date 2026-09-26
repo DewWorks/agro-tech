@@ -18,13 +18,13 @@ export function ProducerSelect({ activeProducers, selectedProducerId, setSelecte
   const [open, setOpen] = useState(false)
 
   return (
-    <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between">
-        <span className="flex items-center gap-1.5">
-          <User className="h-3.5 w-3.5 text-[#1B4D3E]" />
-          1. Produtor Rural (Proponente) *
+    <div className="space-y-1.5 flex flex-col">
+      <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between min-h-[24px]">
+        <span className="flex items-center gap-1.5 truncate">
+          <User className="h-3.5 w-3.5 text-[#1B4D3E] shrink-0" />
+          <span className="truncate">1. Produtor Rural (Proponente) *</span>
         </span>
-        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+        <span className="text-[10px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 shrink-0">
           Apenas Ativos ({activeProducers.length})
         </span>
       </Label>
@@ -35,16 +35,16 @@ export function ProducerSelect({ activeProducers, selectedProducerId, setSelecte
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="w-full justify-between font-normal text-left text-xs h-9 px-3 bg-white border-gray-200 hover:bg-gray-50 shadow-2xs"
+              className="w-full justify-between font-medium text-left text-xs h-10 px-3.5 bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 rounded-xl shadow-2xs transition-all cursor-pointer"
             />
           }
         >
-          <span className="truncate">
+          <span className="truncate text-gray-800 font-medium">
             {currentProducer
               ? `${currentProducer.name} (${currentProducer.type})`
               : "Buscar e selecionar produtor..."}
           </span>
-          <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-gray-400" />
         </PopoverTrigger>
         <PopoverContent className="w-[320px] p-0 shadow-lg border-gray-200" align="start">
           <Command>

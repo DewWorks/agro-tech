@@ -33,13 +33,18 @@ export default function BranchFilterSelect({ branches, currentBranchId }: Branch
   };
 
   const selectedValue = currentBranchId || 'ALL';
+  const currentBranchName = selectedValue === 'ALL'
+    ? 'Todas as Filiais (Consolidado)'
+    : branches.find((b) => b.id === selectedValue)?.name || 'Selecionar Filial';
 
   return (
     <div className="flex items-center gap-2">
       <Building2 className="h-4 w-4 text-gray-500 hidden sm:block" />
       <Select value={selectedValue} onValueChange={handleBranchChange}>
-        <SelectTrigger className="w-[220px] h-9 text-xs bg-white border-gray-200">
-          <SelectValue placeholder="Todas as Filiais" />
+        <SelectTrigger className="w-[230px] h-9 text-xs bg-white border-gray-200">
+          <SelectValue placeholder="Todas as Filiais">
+            {currentBranchName}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="ALL" className="text-xs font-medium">
