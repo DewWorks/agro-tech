@@ -52,6 +52,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { saveCreditProjectData, recordDocumentEmission } from '@/actions/credit-projects';
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner';
 
 export default function CreditProjectWizard({ 
   producers, 
@@ -252,119 +253,107 @@ export default function CreditProjectWizard({
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       
-      {/* Top Header & Breadcrumb */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 print:hidden">
-        <div className="flex items-center gap-3 min-w-0">
-          <Link href={resolvedBackUrl} className="shrink-0">
-            <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-100 cursor-pointer shadow-2xs" title="Voltar">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-[#1B4D3E] shrink-0" />
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-[#1B4D3E]">
-                {isDeclarations ? (
-                  <>
-                    Gerador de Declarações &amp; Autorizações <span className="inline-block px-2 py-0.5 text-xs sm:text-sm font-extrabold bg-emerald-100/80 text-[#1B4D3E] rounded-md border border-emerald-300/60 align-middle">BB</span>
-                  </>
-                ) : (
-                  <>
-                    Gerador de Documentos &amp; Projetos <span className="inline-block px-2 py-0.5 text-xs sm:text-sm font-extrabold bg-emerald-100/80 text-[#1B4D3E] rounded-md border border-emerald-300/60 align-middle">BB</span>
-                  </>
-                )}
-              </h1>
-            </div>
-            {currentTemplate ? (
-              <p className="text-xs sm:text-sm font-semibold text-[#1B4D3E] mt-1 flex items-center gap-1.5 flex-wrap">
-                <FileText className="h-4 w-4 text-[#1B4D3E] shrink-0" />
-                <span className="truncate">{currentTemplate.title}</span>
-                <span className="text-[11px] text-muted-foreground font-medium">({currentTemplate.bank || 'Banco do Brasil'})</span>
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Selecione o produtor, imóvel e o modelo desejado para emitir o documento pré-preenchido.
-              </p>
+      {/* Top Header com Identidade Padronizada */}
+      <PageHeaderBanner
+        className="print:hidden"
+        badge={isDeclarations ? "GED Enterprise • Declarações & Autorizações BB" : "GED Enterprise • Documentos & Projetos BB"}
+        badgeIcon={<Sparkles className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title={isDeclarations ? 'Gerador de Declarações & Autorizações BB' : 'Gerador de Documentos & Projetos BB'}
+        description={
+          currentTemplate 
+            ? `${currentTemplate.title} (${currentTemplate.bank || 'Banco do Brasil'})`
+            : "Selecione o produtor, imóvel e o modelo desejado para emitir o documento pré-preenchido."
+        }
+        actions={
+          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">
+            <Link href={resolvedBackUrl}>
+              <Button
+                type="button"
+                variant="outline"
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold h-9 px-3 rounded-xl"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1.5" />
+                Voltar
+              </Button>
+            </Link>
+
+            {documentData && (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleOpenSaveModal}
+                  disabled={isSavingDraft || isLoadingSavedData || !selectedProducerId}
+                  className={cn(
+                    "border-blue-300 text-blue-700 bg-white hover:bg-blue-50 flex items-center gap-1.5 text-xs font-semibold cursor-pointer h-9 px-3 rounded-xl",
+                    (!isFormValid || isLoadingSavedData) && "border-amber-300 text-amber-800 bg-amber-50/50 hover:bg-amber-100/50"
+                  )}
+                  title={isLoadingSavedData ? "Carregando dados salvos..." : !isFormValid ? "Revisar dados e pendências para gravação" : "Conferir e salvar dados deste projeto"}
+                >
+                  {isSavingDraft || isLoadingSavedData ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-700" />
+                  ) : !isFormValid ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
+                  ) : (
+                    <Save className="h-3.5 w-3.5 text-blue-700" />
+                  )}
+                  Salvar Dados
+                  {!isLoadingSavedData && !isFormValid && (
+                    <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-1.5 py-0.2 rounded-full ml-0.5">
+                      {validationErrors.length}
+                    </span>
+                  )}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDownloadOriginalTemplate}
+                  className="border-emerald-300 text-emerald-900 bg-white hover:bg-emerald-50 flex items-center gap-1.5 text-xs font-semibold h-9 px-3 rounded-xl hidden sm:flex cursor-pointer"
+                  title="Baixar arquivo original Word/Excel de referência"
+                >
+                  <Download className="h-3.5 w-3.5 text-emerald-700" />
+                  Baixar Template Base
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (isLoadingSavedData) return
+                    if (!isFormValid || validationErrors.length > 0) {
+                      toast.error(`Atenção: ${validationErrors[0] || 'Existem campos obrigatórios pendentes.'}`)
+                      return
+                    }
+                    setIsConfirmModalOpen(true)
+                  }}
+                  disabled={isGeneratingPdf || isLoadingSavedData || !isFormValid || validationErrors.length > 0}
+                  className={cn(
+                    "border flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-xl transition-all",
+                    isFormValid && validationErrors.length === 0 && !isLoadingSavedData
+                      ? "border-emerald-300 text-emerald-800 bg-white hover:bg-emerald-50 cursor-pointer" 
+                      : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
+                  )}
+                  title={isLoadingSavedData ? "Carregando dados..." : (!isFormValid || validationErrors.length > 0) ? `Preencha todos os campos obrigatórios (${validationErrors.length} pendente(s))` : 'Conferir e validar dados antes da emissão'}
+                >
+                  {isGeneratingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />}
+                  {isGeneratingPdf ? 'Gerando...' : 'Conferir Dados'}
+                </Button>
+
+                <Button
+                  type="button"
+                  onClick={handlePrintIsolated}
+                  className="bg-white text-[#1B4D3E] hover:bg-emerald-50 text-xs sm:text-sm font-bold h-9 px-4 rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
+                  title="Imprimir documento oficial em página limpa"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir Oficial
+                </Button>
+              </>
             )}
           </div>
-        </div>
-
-        {/* Action Buttons */}
-        {documentData && (
-          <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleOpenSaveModal}
-              disabled={isSavingDraft || isLoadingSavedData || !selectedProducerId}
-              className={cn(
-                "border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-1.5 text-xs font-semibold cursor-pointer h-9 px-3 rounded-xl",
-                (!isFormValid || isLoadingSavedData) && "border-amber-300 text-amber-800 bg-amber-50/50 hover:bg-amber-100/50"
-              )}
-              title={isLoadingSavedData ? "Carregando dados salvos..." : !isFormValid ? "Revisar dados e pendências para gravação" : "Conferir e salvar dados deste projeto"}
-            >
-              {isSavingDraft || isLoadingSavedData ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-700" />
-              ) : !isFormValid ? (
-                <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
-              ) : (
-                <Save className="h-3.5 w-3.5 text-blue-700" />
-              )}
-              Salvar Dados
-              {!isLoadingSavedData && !isFormValid && (
-                <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-1.5 py-0.2 rounded-full ml-0.5">
-                  {validationErrors.length}
-                </span>
-              )}
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleDownloadOriginalTemplate}
-              className="border-emerald-300 text-[#1B4D3E] hover:bg-emerald-50 flex items-center gap-1.5 text-xs font-semibold h-9 px-3 rounded-xl hidden sm:flex cursor-pointer"
-              title="Baixar arquivo original Word/Excel de referência"
-            >
-              <Download className="h-3.5 w-3.5 text-[#1B4D3E]" />
-              Baixar Template Base (.docx/.xls)
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                if (isLoadingSavedData) return
-                if (!isFormValid || validationErrors.length > 0) {
-                  toast.error(`Atenção: ${validationErrors[0] || 'Existem campos obrigatórios pendentes.'}`)
-                  return
-                }
-                setIsConfirmModalOpen(true)
-              }}
-              disabled={isGeneratingPdf || isLoadingSavedData || !isFormValid || validationErrors.length > 0}
-              className={cn(
-                "border flex items-center gap-1.5 text-xs font-semibold h-9 px-3.5 rounded-xl transition-all",
-                isFormValid && validationErrors.length === 0 && !isLoadingSavedData
-                  ? "border-emerald-300 text-emerald-800 hover:bg-emerald-50 cursor-pointer" 
-                  : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
-              )}
-              title={isLoadingSavedData ? "Carregando dados..." : (!isFormValid || validationErrors.length > 0) ? `Preencha todos os campos obrigatórios (${validationErrors.length} pendente(s))` : 'Conferir e validar dados antes da emissão'}
-            >
-              {isGeneratingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />}
-              {isGeneratingPdf ? 'Gerando...' : 'Conferir Dados'}
-            </Button>
-
-            <Button
-              type="button"
-              onClick={handlePrintIsolated}
-              className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs sm:text-sm font-bold h-10 px-5 rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
-              title="Imprimir documento oficial em página limpa"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimir Documento Oficial
-            </Button>
-          </div>
-        )}
-      </div>
+        }
+      />
 
       {/* Top Selectors Bar: Produtor, Propriedade e Modelo Oficial (3 colunas) */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs space-y-4 print:hidden">

@@ -1,9 +1,12 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { NewDemandForm } from '@/components/demands/NewDemandForm'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, ArrowLeft } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,17 +104,23 @@ export default async function NewDemandPage(props: NewDemandPageProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <ClipboardList className="h-8 w-8" />
-            Abertura de Nova Demanda Rural
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Cadastre uma nova ordem de serviço técnico, projeto de crédito ou solicitação ambiental.
-          </p>
-        </div>
-      </div>
+      <PageHeaderBanner
+        badge="Hub de Demandas & Ordens Técnicas"
+        badgeIcon={<ClipboardList className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Abertura de Nova Demanda Rural"
+        description="Cadastre uma nova ordem de serviço técnico, projeto de crédito ou solicitação ambiental."
+        actions={
+          <Link href="/admin/demands">
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
+              Voltar ao Hub
+            </Button>
+          </Link>
+        }
+      />
 
       <NewDemandForm
         producers={producers}

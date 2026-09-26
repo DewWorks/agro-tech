@@ -9,7 +9,8 @@ import { ChevronLeft } from 'lucide-react'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { toggleOrganizationModule, ensureDefaultSystemModules } from '@/actions/modules'
 
-import { CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, AlertCircle, Building2 } from 'lucide-react'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function EditOrganizationPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
@@ -35,21 +36,23 @@ export default async function EditOrganizationPage({ params }: { params: Promise
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/admin/organizations">
-          <Button variant="outline" size="icon">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E]">
-            Editar Organização
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Altere os dados da organização como Super Admin.
-          </p>
-        </div>
-      </div>
+      <PageHeaderBanner
+        badge="Multi-Tenant • Gestão de Clientes"
+        badgeIcon={<Building2 className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title={`Editar: ${organization.name}`}
+        description="Altere os dados da organização como Super Admin."
+        actions={
+          <Link href="/admin/organizations">
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1.5" />
+              Voltar às Organizações
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="grid gap-6">
         <Card className="border-none shadow-sm">

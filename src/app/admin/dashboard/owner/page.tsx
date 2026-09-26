@@ -16,6 +16,7 @@ import {
   Building2,
   CheckCircle2,
 } from 'lucide-react';
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner';
 
 interface OwnerDashboardPageProps {
   searchParams: Promise<{ branchId?: string }>;
@@ -56,37 +57,21 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
-      {/* CABEÇALHO DO DASHBOARD */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200 pb-5">
-        <div>
+      {/* CABEÇALHO DO DASHBOARD PADRONIZADO */}
+      <PageHeaderBanner
+        badge={effectiveOrgName || user.organization?.name || 'Organização AgroTech'}
+        badgeIcon={<Building2 className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Dashboard Executivo"
+        description={`Visão consolidada de franquia, cotas de emissão e performance documental • ${activeBranchName}`}
+        actions={
           <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <ShieldCheck className="text-[#1B4D3E] w-6 h-6" />
-              Dashboard Executivo SaaS
-            </h1>
-            <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-              <Building2 className="h-3.5 w-3.5 text-slate-500" />
-              {effectiveOrgName || user.organization?.name || 'Organização AgroTech'}
-            </span>
+            <BranchFilterSelect branches={branches} currentBranchId={branchId} />
+            {isSuperAdmin && (
+              <OptimizeExistingDocsButton currentBranchId={branchId} />
+            )}
           </div>
-          <p className="text-xs md:text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
-            <span>Visão consolidada de franquia, cotas de emissão e performance documental</span>
-            <span className="text-slate-300">•</span>
-            <span className="font-medium text-slate-700 flex items-center gap-1">
-              <Building2 className="h-3.5 w-3.5 text-slate-400" />
-              {activeBranchName}
-            </span>
-          </p>
-        </div>
-
-        {/* CONTROLES DO CABEÇALHO */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <BranchFilterSelect branches={branches} currentBranchId={branchId} />
-          {isSuperAdmin && (
-            <OptimizeExistingDocsButton currentBranchId={branchId} />
-          )}
-        </div>
-      </div>
+        }
+      />
 
       {/* 4 CARDS DE MÉTRICAS PRINCIPAIS */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

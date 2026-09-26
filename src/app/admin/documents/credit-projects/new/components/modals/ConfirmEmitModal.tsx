@@ -555,7 +555,7 @@ export function ConfirmEmitModal({
               <div className="flex items-center gap-2.5 text-xs text-slate-600 bg-emerald-50/60 p-3 rounded-xl border border-emerald-200/60">
                 <Info className="h-4 w-4 text-emerald-700 shrink-0" />
                 <span>
-                  Ao emitir, uma cópia autenticada deste documento será arquivada automaticamente no GED corporativo com carimbo de integridade SHA-256 e rastreabilidade na esteira SaaS.
+                  Ao emitir, uma cópia autenticada deste documento será arquivada automaticamente no GED corporativo com carimbo de integridade SHA-256 e rastreabilidade na esteira.
                 </span>
               </div>
             )}

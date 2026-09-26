@@ -1,92 +1,146 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import { 
-  Building2, 
-  Users, 
-  LayoutDashboard, 
-  Home, 
-  ChevronDown, 
-  ChevronRight,
-  ShieldAlert,
-  Settings,
-  FolderTree,
-  FileText,
+import {
+  LayoutDashboard,
   Tractor,
-  Settings2,
+  ClipboardCheck,
+  FolderArchive,
+  FileSignature,
+  FileCheck,
   Landmark,
-  ClipboardList
+  Building2,
+  Users,
+  Settings,
+  Settings2,
+  ChevronDown,
+  ChevronRight,
+  LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface MenuItem {
+interface SubItem {
   title: string
-  icon: any
-  href?: string
-  badge?: string
-  subItems?: { title: string; href: string }[]
+  href: string
 }
 
-const getMenuItems = (
-  role: string, 
-  modules: string[] = [], 
+interface MenuItem {
+  title: string
+  icon: React.ElementType
+  href?: string
+  badge?: string
+  subItems?: SubItem[]
+}
+
+interface NavGroup {
+  label: string
+  items: MenuItem[]
+}
+
+interface AdminSidebarProps {
+  role: string
+  modules?: string[]
+  realRole?: string
+  globalModules?: { code: string; isActive: boolean }[]
+  organizationName?: string | null
+  user?: {
+    fullName?: string | null
+    email?: string | null
+    role?: string
+  }
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Administrador',
+  OWNER: 'Administrador (Proprietário)',
+  ADMIN: 'Gerente Operacional',
+  OPERATOR: 'Usuário do Sistema',
+}
+
+function getNavigationGroups(
+  role: string,
+  modules: string[] = [],
   realRole: string = role,
-  globalModules: { code: string, isActive: boolean }[] = []
-): MenuItem[] => {
+  globalModules: { code: string; isActive: boolean }[] = []
+): NavGroup[] {
+  // SUPER_ADMIN no painel Global SaaS (não impersonando cliente)
   if (role === 'SUPER_ADMIN') {
     return [
       {
-        title: 'SaaS / Clientes',
-        icon: Building2,
-        subItems: [
-          { title: 'Gestão de Organizações', href: '/admin/organizations' },
-          { title: 'Novo Cliente', href: '/admin/organizations/new' },
-        ]
+        label: 'Visão Geral',
+        items: [
+          {
+            title: 'Painel Geral',
+            icon: LayoutDashboard,
+            href: '/admin',
+          },
+        ],
       },
       {
-        title: 'Sistema Global',
-        icon: Settings2,
-        subItems: [
-          { title: 'Gestão de Módulos', href: '/admin/modules' },
-          { title: 'Painel GED (Global)', href: '/admin/ged-global' }
-        ]
+        label: 'Gestão SaaS & Clientes',
+        items: [
+          {
+            title: 'Organizações Clientes',
+            icon: Building2,
+            href: '/admin/organizations',
+          },
+          {
+            title: 'Serviços & Demandas',
+            icon: ClipboardCheck,
+            href: '/admin/demands',
+          },
+        ],
       },
       {
-        title: 'Limite de Crédito',
-        icon: Landmark,
-        badge: 'Super Admin',
-        subItems: [
-          { title: 'Visão Geral & Limites', href: '/admin/credit-limit' },
-        ]
+        label: 'Documental & Crédito',
+        items: [
+          {
+            title: 'Painel GED Global',
+            icon: FolderArchive,
+            href: '/admin/ged-global',
+          },
+          {
+            title: 'Projetos de Crédito',
+            icon: FileCheck,
+            href: '/admin/documents/credit-projects',
+          },
+          {
+            title: 'Limite de Crédito',
+            icon: Landmark,
+            href: '/admin/credit-limit',
+          },
+        ],
       },
       {
-        title: 'Serviços & Demandas',
-        icon: ClipboardList,
-        badge: 'Super Admin',
-        subItems: [
-          { title: 'Hub de Demandas', href: '/admin/demands' },
-          { title: 'Nova Demanda', href: '/admin/demands/new' },
-        ]
+        label: 'Governança & Sistema',
+        items: [
+          {
+            title: 'Módulos do Sistema',
+            icon: Settings2,
+            href: '/admin/modules',
+          },
+          {
+            title: 'Configurações',
+            icon: Settings,
+            subItems: [
+              { title: 'Meu Perfil', href: '/admin/settings/profile' },
+            ],
+          },
+        ],
       },
-      {
-        title: 'Configurações',
-        icon: Settings,
-        subItems: [
-          { title: 'Meu Perfil', href: '/admin/settings/profile' },
-        ]
-      }
     ]
   }
 
-  const items: MenuItem[] = []
-
+  // Verificação de módulos para clientes da organização
   const checkModule = (code: string) => {
-    // Se globalModules estiver vazio (por falha ou não passado), assume true provisoriamente
-    const isGloballyActive = globalModules.length === 0 ? true : (globalModules.find(m => m.code === code)?.isActive ?? true)
+    const isGloballyActive =
+      globalModules.length === 0
+        ? true
+        : globalModules.find((m) => m.code === code)?.isActive ?? true
     const isClientActive = modules.includes(code)
-    
+
     if (realRole !== 'SUPER_ADMIN') {
       if (isGloballyActive && isClientActive) {
         return { show: true, badge: undefined }
@@ -100,258 +154,448 @@ const getMenuItems = (
     if (!isClientActive) {
       return { show: true, badge: 'OFF Cliente' }
     }
-    
+
     return { show: true, badge: undefined }
   }
 
+  // 1. Grupo Visão Geral
+  const overviewGroup: NavGroup = {
+    label: 'Visão Geral',
+    items: [
+      {
+        title: 'Painel Geral',
+        icon: LayoutDashboard,
+        href: '/admin',
+      },
+    ],
+  }
+
+  // 2. Grupo Operação Agropecuária
+  const operationsItems: MenuItem[] = []
   const crmStatus = checkModule('CRM')
   if (crmStatus.show) {
-    items.push({
-      title: 'CRM & Produtores',
+    operationsItems.push({
+      title: 'CRM de Produtores',
       icon: Tractor,
       badge: crmStatus.badge,
       subItems: [
         { title: 'Produtores Rurais', href: '/admin/crm' },
         { title: 'Propriedades Rurais', href: '/admin/crm/properties' },
-        { title: 'Novo Produtor', href: '/admin/crm/new' },
-        { title: 'Nova Propriedade', href: '/admin/crm/properties/new' },
-      ]
-    })
-  }
-
-  const gedStatus = checkModule('GED')
-  if (gedStatus.show) {
-    items.push({
-      title: 'Gerenciador de Documentos',
-      icon: FolderTree,
-      badge: gedStatus.badge,
-      subItems: [
-        { title: 'Dashboard de Arquivos', href: '/admin/dashboard/owner' },
-        { title: 'Explorador de Arquivos', href: '/admin/ged/explorer' },
-        { title: 'Projetos de Crédito BB', href: '/admin/documents/credit-projects' },
-        { title: 'Declarações Legais', href: '/admin/documents/declarations' },
-      ]
-    })
-  }
-
-  const financialStatus = checkModule('FINANCIAL_SUMMARY')
-  if (financialStatus.show) {
-    items.push({
-      title: 'Limite de Crédito',
-      icon: Landmark,
-      badge: financialStatus.badge,
-      subItems: [
-        { title: 'Visão Geral & Limites', href: '/admin/credit-limit' },
-      ]
+      ],
     })
   }
 
   const demandsStatus = checkModule('DEMANDS')
   if (demandsStatus.show) {
-    items.push({
+    operationsItems.push({
       title: 'Serviços & Demandas',
-      icon: ClipboardList,
+      icon: ClipboardCheck,
       badge: demandsStatus.badge,
-      subItems: [
-        { title: 'Hub de Demandas', href: '/admin/demands' },
-        { title: 'Nova Demanda', href: '/admin/demands/new' },
-      ]
+      href: '/admin/demands',
     })
   }
 
-  items.push(
+  const operationsGroup: NavGroup = {
+    label: 'Operação Agropecuária',
+    items: operationsItems,
+  }
+
+  // 3. Grupo Documental & Crédito
+  const docCreditItems: MenuItem[] = []
+  const gedStatus = checkModule('GED')
+  if (gedStatus.show) {
+    docCreditItems.push({
+      title: 'GED Enterprise',
+      icon: FolderArchive,
+      badge: gedStatus.badge,
+      subItems: [
+        { title: 'Explorador de Arquivos', href: '/admin/documents' },
+        { title: 'Painel & Validades', href: '/admin/dashboard/owner' },
+      ],
+    })
+
+    docCreditItems.push({
+      title: 'Projetos de Crédito',
+      icon: FileCheck,
+      badge: gedStatus.badge,
+      href: '/admin/documents/credit-projects',
+    })
+
+    docCreditItems.push({
+      title: 'Minutas & Declarações',
+      icon: FileSignature,
+      badge: gedStatus.badge,
+      href: '/admin/documents/declarations',
+    })
+  }
+
+  const financialStatus = checkModule('FINANCIAL_SUMMARY')
+  if (financialStatus.show) {
+    docCreditItems.push({
+      title: 'Limite de Crédito',
+      icon: Landmark,
+      badge: financialStatus.badge,
+      href: '/admin/credit-limit',
+    })
+  }
+
+  const docCreditGroup: NavGroup = {
+    label: 'Documental & Crédito',
+    items: docCreditItems,
+  }
+
+  // 4. Grupo Governança & Sistema
+  const governanceItems: MenuItem[] = [
     {
       title: 'Filiais',
       icon: Building2,
-      subItems: [
-        { title: 'Ver Todas', href: '/admin/branches' },
-        { title: 'Nova Filial', href: '/admin/branches/new' },
-      ]
+      href: '/admin/branches',
     },
     {
-      title: 'Utilizadores',
+      title: 'Usuários',
       icon: Users,
-      subItems: [
-        { title: 'Equipa e Acessos', href: '/admin/users' },
-        { title: 'Novo Utilizador', href: '/admin/users/new' },
-      ]
+      href: '/admin/users',
     },
     {
       title: 'Configurações',
       icon: Settings,
       subItems: [
         { title: 'Meu Perfil', href: '/admin/settings/profile' },
-        { title: 'Minha Empresa', href: '/admin/settings/organization' },
-      ]
-    }
-  )
+        ...(role === 'OWNER'
+          ? [{ title: 'Minha Empresa', href: '/admin/settings/organization' }]
+          : []),
+      ],
+    },
+  ]
 
-  return items
+  const governanceGroup: NavGroup = {
+    label: 'Governança & Sistema',
+    items: governanceItems,
+  }
+
+  return [overviewGroup, operationsGroup, docCreditGroup, governanceGroup]
 }
 
-export default function AdminSidebar({ 
-  role, 
+/**
+ * Determina se uma rota deve ser considerada ativa comparando a URL atual com o href do item.
+ * Evita colisões de prefixo entre rotas irmãs (como /admin/documents e /admin/documents/credit-projects)
+ * e entre itens pai e filhos específicos (como /admin/crm e /admin/crm/properties).
+ */
+function isRouteActive(itemHref: string, currentPath: string): boolean {
+  if (!itemHref) return false
+
+  // 1. Painel Geral: somente correspondência estrita com '/admin'
+  if (itemHref === '/admin') {
+    return currentPath === '/admin'
+  }
+
+  // 2. Produtores Rurais (/admin/crm):
+  // Ativa se for '/admin/crm' ou rotas filhas diretas, mas NUNCA propriedades rurais
+  if (itemHref === '/admin/crm') {
+    if (currentPath === '/admin/crm') return true
+    if (currentPath.startsWith('/admin/crm/')) {
+      return !currentPath.startsWith('/admin/crm/properties')
+    }
+    return false
+  }
+
+  // 3. Propriedades Rurais (/admin/crm/properties):
+  if (itemHref === '/admin/crm/properties') {
+    return (
+      currentPath === '/admin/crm/properties' ||
+      currentPath.startsWith('/admin/crm/properties/')
+    )
+  }
+
+  // 4. GED Explorador de Arquivos (/admin/documents):
+  // Ativa se for '/admin/documents' ou '/admin/ged', mas NUNCA credit-projects ou declarations
+  if (itemHref === '/admin/documents') {
+    if (
+      currentPath.startsWith('/admin/documents/credit-projects') ||
+      currentPath.startsWith('/admin/documents/declarations')
+    ) {
+      return false
+    }
+    return (
+      currentPath === '/admin/documents' ||
+      currentPath.startsWith('/admin/documents/') ||
+      currentPath === '/admin/ged' ||
+      currentPath.startsWith('/admin/ged/')
+    )
+  }
+
+  // 5. Projetos de Crédito (/admin/documents/credit-projects):
+  if (itemHref === '/admin/documents/credit-projects') {
+    return (
+      currentPath === '/admin/documents/credit-projects' ||
+      currentPath.startsWith('/admin/documents/credit-projects/')
+    )
+  }
+
+  // 6. Minutas & Declarações (/admin/documents/declarations):
+  if (itemHref === '/admin/documents/declarations') {
+    return (
+      currentPath === '/admin/documents/declarations' ||
+      currentPath.startsWith('/admin/documents/declarations/')
+    )
+  }
+
+  // 7. Regra padrão para demais rotas
+  return currentPath === itemHref || currentPath.startsWith(itemHref + '/')
+}
+
+/**
+ * Verifica se a rota atual pertence ao grupo GED Enterprise
+ */
+function isGedGroupActive(currentPath: string): boolean {
+  if (
+    currentPath.startsWith('/admin/documents/credit-projects') ||
+    currentPath.startsWith('/admin/documents/declarations')
+  ) {
+    return false
+  }
+  return (
+    currentPath === '/admin/documents' ||
+    currentPath.startsWith('/admin/documents/') ||
+    currentPath === '/admin/dashboard/owner' ||
+    currentPath.startsWith('/admin/dashboard/owner/') ||
+    currentPath === '/admin/ged' ||
+    currentPath.startsWith('/admin/ged/')
+  )
+}
+
+function isCrmGroupActive(currentPath: string): boolean {
+  return currentPath === '/admin/crm' || currentPath.startsWith('/admin/crm/')
+}
+
+function isSettingsGroupActive(currentPath: string): boolean {
+  return currentPath.startsWith('/admin/settings')
+}
+
+export default function AdminSidebar({
+  role,
   modules = [],
   realRole,
-  globalModules = []
-}: { 
-  role: string, 
-  modules?: string[],
-  realRole?: string,
-  globalModules?: { code: string, isActive: boolean }[]
-}) {
+  globalModules = [],
+  organizationName,
+  user,
+}: AdminSidebarProps) {
   const pathname = usePathname()
   const actualRealRole = realRole || role
-  // Estado para controlar quais os menus estão expandidos
+
+  const groups = getNavigationGroups(role, modules, actualRealRole, globalModules)
+
+  // Controle de menus retráteis expandidos sincronizado com a rota ativa
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
-    'CRM & Produtores': pathname.startsWith('/admin/crm'),
-    'Filiais': pathname.startsWith('/admin/branches'),
-    'Utilizadores': pathname.startsWith('/admin/users'),
-    'Configurações': pathname.startsWith('/admin/settings'),
-    'SaaS / Clientes': pathname.startsWith('/admin/organizations'),
-    'Documentos (GED Inteligente)': pathname.startsWith('/admin/ged') || pathname.startsWith('/admin/documents'),
-    'Limite de Crédito': pathname.startsWith('/admin/credit-limit'),
-    'Módulos do Sistema': pathname.startsWith('/admin/modules'),
+    'CRM de Produtores': isCrmGroupActive(pathname),
+    'GED Enterprise': isGedGroupActive(pathname),
+    Configurações: isSettingsGroupActive(pathname),
   })
 
-  // Auto-expandir menu da rota atual ao navegar
+  // Sincronização da rota ativa ao navegar
   useEffect(() => {
-    setExpandedMenus(prev => ({
-      ...prev,
-      'CRM & Produtores': prev['CRM & Produtores'] || pathname.startsWith('/admin/crm'),
-      'Filiais': prev['Filiais'] || pathname.startsWith('/admin/branches'),
-      'Utilizadores': prev['Utilizadores'] || pathname.startsWith('/admin/users'),
-      'Configurações': prev['Configurações'] || pathname.startsWith('/admin/settings'),
-      'SaaS / Clientes': prev['SaaS / Clientes'] || pathname.startsWith('/admin/organizations'),
-      'Documentos (GED Inteligente)': prev['Documentos (GED Inteligente)'] || pathname.startsWith('/admin/ged') || pathname.startsWith('/admin/documents'),
-      'Limite de Crédito': prev['Limite de Crédito'] || pathname.startsWith('/admin/credit-limit'),
-      'Módulos do Sistema': prev['Módulos do Sistema'] || pathname.startsWith('/admin/modules'),
-    }))
+    setExpandedMenus({
+      'CRM de Produtores': isCrmGroupActive(pathname),
+      'GED Enterprise': isGedGroupActive(pathname),
+      Configurações: isSettingsGroupActive(pathname),
+    })
   }, [pathname])
 
   const toggleMenu = (title: string) => {
-    setExpandedMenus(prev => ({
+    setExpandedMenus((prev) => ({
       ...prev,
-      [title]: !prev[title]
+      [title]: !prev[title],
     }))
   }
 
-  const currentMenuItems = getMenuItems(role, modules, actualRealRole, globalModules)
+  // Extração das iniciais do usuário
+  const displayName = user?.fullName || user?.email?.split('@')[0] || 'Gestor'
+  const initials = (user?.fullName
+    ? user.fullName
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((p) => p[0].toUpperCase())
+        .join('')
+    : user?.email?.substring(0, 2).toUpperCase()) || 'AG'
+
+  const userRoleLabel = ROLE_LABELS[user?.role || role] || role
+  const orgSubtitle = organizationName || 'Gestão Agropecuária'
 
   return (
-    <div className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shadow-lg transition-all duration-300">
-      
-      {/* HEADER LOGO */}
-      <div className="p-6 border-b border-white/10 flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold tracking-wider">AGRO<span className="font-light">TECH</span></h1>
-        <div className="mt-1 text-[10px] bg-white/20 px-3 py-1 rounded-full text-white font-bold uppercase tracking-widest flex items-center gap-1">
-          <ShieldAlert size={10} />
-          Painel {role === 'SUPER_ADMIN' ? 'GLOBAL' : role}
-        </div>
+    <aside
+      className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shrink-0 shadow-xl transition-all duration-300"
+      aria-label="Menu Principal Administrativo"
+    >
+      {/* 2.A & 2.B. Identidade Institucional Tipográfica Limpa com Nome Dinâmico */}
+      <div className="p-5 border-b border-white/10">
+        <Link href="/admin" className="block group">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl font-black tracking-tight text-white leading-none">
+              Agro<span className="text-emerald-400 font-extrabold">Tech</span>
+            </span>
+            <span className="text-[10px] font-bold bg-white/10 text-emerald-300 px-1.5 py-0.5 rounded border border-white/10 uppercase tracking-widest">
+              SaaS
+            </span>
+          </div>
+          <p className="text-xs text-white/70 font-medium tracking-normal truncate mt-1.5 group-hover:text-white/90 transition-colors">
+            {orgSubtitle}
+          </p>
+        </Link>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20">
-        <nav className="px-4 py-6 space-y-6">
-          
-          {/* HOME PRINCIPAL - DESTACADA */}
-          <div className="space-y-1">
-            <p className="px-4 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Visão Geral</p>
-            <Link 
-              href="/admin" 
-              prefetch={true}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
-                pathname === '/admin' ? "bg-white/20 text-white font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white"
-              )}
-            >
-              <Home size={20} />
-              Home Admin
-            </Link>
-          </div>
+      {/* 2.C. Navegação Enxuta e Ícones Padronizados em 4 Blocos */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <nav className="p-3.5 space-y-5">
+          {groups.map((group) => {
+            if (group.items.length === 0) return null
 
-          <div className="w-full h-px bg-white/10"></div>
+            return (
+              <div key={group.label} className="space-y-1">
+                <p className="px-3 text-[10px] font-bold text-white/50 uppercase tracking-widest mb-1.5 select-none">
+                  {group.label}
+                </p>
 
-          {/* MENU PRINCIPAL COM SUBMENUS */}
-          <div className="space-y-1">
-            <p className="px-4 text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
-              {role === 'SUPER_ADMIN' ? 'Gestão de Clientes' : 'Gestão Principal'}
-            </p>
-            
-            {currentMenuItems.map((item) => {
-              const isActiveRoute = item.href ? pathname === item.href : item.subItems?.some(sub => pathname === sub.href || pathname.startsWith(sub.href))
-              const isExpanded = expandedMenus[item.title]
+                <div className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    const isDirectActive = item.href ? isRouteActive(item.href, pathname) : false
+                    const isSubItemActive = Boolean(
+                      item.subItems?.some((sub) => isRouteActive(sub.href, pathname))
+                    )
+                    const isActive = isDirectActive || isSubItemActive
+                    const isExpanded = expandedMenus[item.title]
 
-              return (
-                <div key={item.title} className="space-y-1">
-                  {item.subItems ? (
-                    // Menu com Subitens
-                    <button
-                      onClick={() => toggleMenu(item.title)}
-                      className={cn(
-                        "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
-                        isActiveRoute ? "text-white bg-white/10 font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <item.icon size={20} className={isActiveRoute ? "text-green-400" : ""} />
-                        {item.title}
+                    // Item Retrátil com Subitens
+                    if (item.subItems) {
+                      return (
+                        <div key={item.title} className="space-y-0.5">
+                          <button
+                            type="button"
+                            onClick={() => toggleMenu(item.title)}
+                            aria-expanded={isExpanded}
+                            className={cn(
+                              'w-full flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-xs font-medium cursor-pointer',
+                              isActive
+                                ? 'bg-white/15 text-white font-semibold border-l-4 border-emerald-400 pl-2.5'
+                                : 'text-white/80 hover:bg-white/10 hover:text-white'
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <Icon
+                                className={cn(
+                                  'w-4 h-4 shrink-0 transition-colors',
+                                  isActive ? 'text-emerald-300' : 'text-white/70'
+                                )}
+                              />
+                              <span className="truncate">{item.title}</span>
+                              {item.badge && (
+                                <span className="ml-1 text-[9px] uppercase font-bold bg-amber-500/20 text-amber-200 px-1.5 py-0.5 rounded border border-amber-500/30">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-white/60 shrink-0">
+                              {isExpanded ? (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              )}
+                            </div>
+                          </button>
+
+                          {isExpanded && (
+                            <div className="ml-4 pl-3 border-l border-white/20 space-y-0.5 mt-1 mb-1.5">
+                              {item.subItems.map((sub) => {
+                                const isSubActive = isRouteActive(sub.href, pathname)
+                                return (
+                                  <Link
+                                    key={sub.title}
+                                    href={sub.href}
+                                    prefetch={true}
+                                    className={cn(
+                                      'block px-3 py-1.5 rounded-lg transition-colors text-xs',
+                                      isSubActive
+                                        ? 'text-white bg-white/20 font-semibold shadow-xs border-l-2 border-emerald-400 pl-2.5'
+                                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                                    )}
+                                  >
+                                    {sub.title}
+                                  </Link>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    }
+
+                    // Item Link Direto
+                    return (
+                      <Link
+                        key={item.title}
+                        href={item.href || '#'}
+                        prefetch={true}
+                        className={cn(
+                          'flex items-center justify-between gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-xs font-medium',
+                          isDirectActive
+                            ? 'bg-white/15 text-white font-semibold shadow-xs border-l-4 border-emerald-400 pl-2.5'
+                            : 'text-white/80 hover:bg-white/10 hover:text-white'
+                        )}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Icon
+                            className={cn(
+                              'w-4 h-4 shrink-0 transition-colors',
+                              isDirectActive ? 'text-emerald-300' : 'text-white/70'
+                            )}
+                          />
+                          <span className="truncate">{item.title}</span>
+                        </div>
                         {item.badge && (
-                          <span className="ml-1 text-[9px] uppercase font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">
+                          <span className="text-[9px] uppercase font-bold bg-amber-500/20 text-amber-200 px-1.5 py-0.5 rounded border border-amber-500/30">
                             {item.badge}
                           </span>
                         )}
-                      </div>
-                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    </button>
-                  ) : (
-                    // Menu Link Direto
-                    <Link
-                      href={item.href || '#'}
-                      prefetch={true}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium",
-                        isActiveRoute ? "text-white bg-white/20 font-semibold" : "text-white/80 hover:bg-white/10 hover:text-white"
-                      )}
-                    >
-                      <item.icon size={20} className={isActiveRoute ? "text-green-400" : ""} />
-                      {item.title}
-                      {item.badge && (
-                        <span className="ml-1 text-[9px] uppercase font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">
-                          {item.badge}
-                        </span>
-                      )}
-                    </Link>
-                  )}
-
-                  {/* SUBITENS */}
-                  {item.subItems && isExpanded && (
-                    <div className="ml-4 pl-4 border-l border-white/20 space-y-1 mt-1 mb-2">
-                      {item.subItems.map((sub) => {
-                        const isSubActive = pathname === sub.href || (sub.href !== '/admin' && pathname.startsWith(sub.href + '/'))
-                        return (
-                          <Link
-                            key={sub.title}
-                            href={sub.href}
-                            prefetch={true}
-                            className={cn(
-                              "block px-4 py-2 rounded-md transition-colors text-sm",
-                              isSubActive 
-                                ? "text-white bg-white/15 font-semibold shadow-xs" 
-                                : "text-white/70 hover:text-white hover:bg-white/5"
-                            )}
-                          >
-                            {sub.title}
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  )}
+                      </Link>
+                    )
+                  })}
                 </div>
-              )
-            })}
-          </div>
+              </div>
+            )
+          })}
         </nav>
       </div>
-    </div>
+
+      {/* 2.D. Ergonomia e Rodapé com Perfil do Usuário e Logout */}
+      <div className="p-3.5 border-t border-white/10 bg-black/15">
+        <div className="flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-white/20 border border-white/20 flex items-center justify-center text-xs font-bold text-white shrink-0 shadow-inner">
+              {initials}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-white truncate leading-tight">
+                {displayName}
+              </p>
+              <p className="text-[10px] text-white/70 truncate leading-tight mt-0.5">
+                {userRoleLabel}
+              </p>
+            </div>
+          </div>
+
+          <form action="/auth/signout" method="POST" className="shrink-0">
+            <button
+              type="submit"
+              title="Encerrar Sessão"
+              aria-label="Encerrar Sessão"
+              className="p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/15 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </aside>
   )
 }

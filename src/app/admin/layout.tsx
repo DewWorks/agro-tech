@@ -27,6 +27,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         realRole={userContext.realRole} 
         modules={userContext.organization?.modules || []} 
         globalModules={globalModules.map(m => ({ code: m.code, isActive: m.isActive }))} 
+        organizationName={userContext.impersonatedOrgName || userContext.organization?.name || null}
+        user={{
+          fullName: userContext.fullName,
+          email: userContext.email,
+          role: role,
+        }}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         {userContext.isSuperAdminImpersonating && (

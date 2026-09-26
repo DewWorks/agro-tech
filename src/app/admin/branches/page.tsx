@@ -22,6 +22,7 @@ import { toggleBranchStatus } from '@/actions/branches'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import { DeleteBranchModal } from '@/components/admin/branches/DeleteBranchModal'
 import DataTableToolbar from '@/components/admin/DataTableToolbar'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function BranchesPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await props.searchParams || {}
@@ -78,22 +79,20 @@ export default async function BranchesPage(props: { searchParams: Promise<{ [key
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <Building2 className="h-8 w-8" />
-            Gestão de Filiais
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Gira as unidades da sua organização.
-          </p>
-        </div>
-        <Link href="/admin/branches/new">
-          <Button className="bg-[#1B4D3E] hover:bg-[#13382D]">
-            <Plus className="mr-2 h-4 w-4" /> Nova Filial
-          </Button>
-        </Link>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="Governança & Rede Operacional"
+        badgeIcon={<Building2 className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Gestão de Filiais"
+        description="Gira as unidades da sua organização."
+        actions={
+          <Link href="/admin/branches/new">
+            <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Nova Filial
+            </Button>
+          </Link>
+        }
+      />
 
       <DataTableToolbar 
         searchPlaceholder="Buscar por Nome, CNPJ ou Cidade..."

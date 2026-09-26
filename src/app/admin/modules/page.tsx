@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, Settings2, Pencil, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import DataTableToolbar from '@/components/admin/DataTableToolbar'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 import {
   Tooltip,
   TooltipContent,
@@ -37,22 +38,20 @@ export default async function SystemModulesPage(props: { searchParams: Promise<{
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <Settings2 className="h-8 w-8" />
-            Módulos do Sistema
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Gestão global de módulos. Ativar ou desativar módulos afetará todos os clientes da plataforma.
-          </p>
-        </div>
-        <Link href="/admin/modules/new">
-          <Button className="bg-[#1B4D3E] hover:bg-[#13382D]">
-            <Plus className="mr-2 h-4 w-4" /> Novo Módulo
-          </Button>
-        </Link>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="Configurações Globais • Módulos SaaS"
+        badgeIcon={<Settings2 className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Módulos do Sistema"
+        description="Gestão global de módulos. Ativar ou desativar módulos afetará todos os clientes da plataforma."
+        actions={
+          <Link href="/admin/modules/new">
+            <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Novo Módulo
+            </Button>
+          </Link>
+        }
+      />
 
       <DataTableToolbar 
         searchPlaceholder="Buscar por Código ou Nome..."

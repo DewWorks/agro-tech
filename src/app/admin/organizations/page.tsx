@@ -5,6 +5,7 @@ import { Plus, Building2, ExternalLink, Pencil } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { startImpersonating } from '@/actions/impersonate'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 import {
   Tooltip,
   TooltipContent,
@@ -31,22 +32,20 @@ export default async function OrganizationsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <Building2 className="h-8 w-8" />
-            Organizações Clientes
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Gestão global de assinantes e empresas do SaaS.
-          </p>
-        </div>
-        <Link href="/admin/organizations/new">
-          <Button className="bg-[#1B4D3E] hover:bg-[#13382D]">
-            <Plus className="mr-2 h-4 w-4" /> Nova Organização
-          </Button>
-        </Link>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="SaaS Multi-Tenant • Clientes Corporativos"
+        badgeIcon={<Building2 className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Organizações Clientes"
+        description="Gestão global de assinantes e empresas do SaaS."
+        actions={
+          <Link href="/admin/organizations/new">
+            <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Nova Organização
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="rounded-md border bg-white shadow-sm">
         <Table>

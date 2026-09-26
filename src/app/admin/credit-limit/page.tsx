@@ -9,6 +9,7 @@ import { CreditLimitPortfolioTable } from '@/components/credit-limit/CreditLimit
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Landmark, Plus, AlertCircle, ShieldAlert } from 'lucide-react'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function CreditLimitPage(props: {
   searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined }
@@ -67,37 +68,30 @@ export default async function CreditLimitPage(props: {
         </div>
       )}
 
-      {/* Top Header com Identidade Visual do Hub */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-linear-to-r from-[#1B4D3E] to-[#13382D] text-white p-6 sm:p-8 rounded-2xl shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">
-            <Landmark className="h-4 w-4" />
-            <span>Módulo Financeiro & Crédito Rural</span>
+      {/* Top Header com Identidade Visual Padronizada */}
+      <PageHeaderBanner
+        badge="Módulo Financeiro & Crédito Rural"
+        badgeIcon={<Landmark className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Limite de Crédito Rural"
+        description="Painel consolidado de capacidade de pagamento, garantias reais (hipotecas e penhor) e limites operacionais de crédito rural sob as regras do Manual de Crédito Rural (MCR)."
+        actions={
+          <div className="flex items-center gap-3">
             {isFinancialModuleDisabledForOrg && (
               <Badge className="bg-amber-500 text-white hover:bg-amber-600 text-[10px] font-bold">
                 OFF Cliente (Super Admin)
               </Badge>
             )}
+            <Link href="/admin/crm/properties/new">
+              <Button
+                className="bg-white text-[#1B4D3E] hover:bg-emerald-50 text-xs font-bold shadow-sm"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Novo Levantamento
+              </Button>
+            </Link>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-            Limite de Crédito Rural
-          </h1>
-          <p className="text-emerald-100/90 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Painel consolidado de capacidade de pagamento, garantias reais (hipotecas e penhor) e limites operacionais de crédito rural sob as regras do Manual de Crédito Rural (MCR).
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link href="/admin/crm/properties/new">
-            <Button
-              className="bg-white text-[#1B4D3E] hover:bg-emerald-50 text-xs font-bold shadow-sm"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Novo Levantamento
-            </Button>
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Abas de Navegação (Aba 1 Ativa) */}
       <CreditLimitNavigationTabs totalAnalyzed={data.kpis.totalAnalyzedProperties} />

@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import ProducerDocumentsSection from '@/components/ged/ProducerDocumentsSection'
 import VirtualFolderSidebar from '@/components/ged/VirtualFolderSidebar'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function GedExplorerPage({
   searchParams
@@ -38,14 +39,13 @@ export default async function GedExplorerPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E]">
-          Explorador de Arquivos
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Navegue pelas pastas virtuais de cada produtor e gerencie os seus documentos centralizadamente.
-        </p>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="GED Enterprise • Pastas Virtuais"
+        badgeIcon={<Folder className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Explorador de Arquivos"
+        description="Navegue pelas pastas virtuais de cada produtor e gerencie os seus documentos centralizadamente."
+      />
 
       <div className="flex flex-col md:flex-row gap-6 items-start">
         {/* Sidebar - Pastas Virtuais (Componente Client-side com Busca) */}

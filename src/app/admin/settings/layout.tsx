@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { User, Building2, Settings } from 'lucide-react'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -15,15 +16,13 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-          <Settings className="text-[#1B4D3E] w-6 h-6" />
-          Configurações
-        </h1>
-        <p className="text-xs md:text-sm text-slate-500 mt-1">
-          Gerencie o seu perfil e as definições da sua empresa.
-        </p>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="Governança & Preferências"
+        badgeIcon={<Settings className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Configurações"
+        description="Gerencie o seu perfil e as definições da sua empresa."
+      />
 
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">

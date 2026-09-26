@@ -21,6 +21,7 @@ import { MapPin, Plus, Pencil, FileText, CheckCircle2, AlertTriangle, ShieldChec
 import DataViewContainer, { FilterOption } from '@/components/admin/DataViewContainer'
 import CRMNavigationTabs from '@/components/crm/CRMNavigationTabs'
 import PropertyCardGrid from '@/components/crm/PropertyCardGrid'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function PropertiesPage(props: {
   searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined }
@@ -168,27 +169,19 @@ export default async function PropertiesPage(props: {
   return (
     <div className="space-y-6">
       
-      {/* Top Header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          CLIENTES & PROPRIEDADES · UNIDADE {currentBranchName}
-        </div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <MapPin className="h-8 w-8" />
-            Propriedades Rurais
-          </h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center text-xs font-semibold text-green-700 bg-green-50 px-3 py-1.5 rounded-full border border-green-200/60 shadow-xs">
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-green-600" />
-              Sincronizado
-            </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge={`Clientes & Propriedades • Unidade ${currentBranchName}`}
+        badgeIcon={<MapPin className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Propriedades Rurais"
+        description="Gestão e controle fundiário, cartorário, rebanho e documentos vinculados a cada imóvel."
+        actions={
+          <div className="flex items-center text-xs font-semibold text-emerald-100 bg-white/10 px-3 py-1.5 rounded-full border border-white/20 shadow-xs">
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-emerald-300" />
+            Sincronizado
           </div>
-        </div>
-        <p className="text-muted-foreground text-sm mt-1">
-          Gestão e controle fundiário, cartorário, rebanho e documentos vinculados a cada imóvel.
-        </p>
-      </div>
+        }
+      />
 
       {/* Navigation Tabs (Produtores Rurais / Propriedades Rurais) */}
       <CRMNavigationTabs

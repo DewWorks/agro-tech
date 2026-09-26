@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { HardDrive, FileText, Download } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import Link from 'next/link'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function GlobalGedDashboardPage() {
   const dbUser = await getUserContext()
@@ -60,16 +61,13 @@ export default async function GlobalGedDashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#1B4D3E]">
-            Painel Global GED
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Visão consolidada do armazenamento e documentos de todos os clientes.
-          </p>
-        </div>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="SaaS Multi-Tenant • Armazenamento Global"
+        badgeIcon={<HardDrive className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Painel Global GED"
+        description="Visão consolidada do armazenamento e documentos de todos os clientes."
+      />
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="h-full border shadow-sm bg-white">

@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CREDIT_TEMPLATES_REGISTRY } from '@/lib/document-templates'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function CreditProjectsHubPage() {
   const user = await getUserContext()
@@ -36,32 +37,21 @@ export default async function CreditProjectsHubPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-5">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-              <ShieldCheck className="text-[#1B4D3E] w-6 h-6" />
-              Documentos & Declarações Legais
-            </h1>
-            <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-              Padrão Banco do Brasil
-            </span>
-          </div>
-          <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Geração de declarações ambientais, fundiárias e autorizações bancárias preenchidas automaticamente.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
+      {/* Top Banner & Header Oficial */}
+      <PageHeaderBanner
+        badge="Padrão Banco do Brasil"
+        badgeIcon={<ShieldCheck className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Documentos & Declarações Legais"
+        description="Geração de declarações ambientais, fundiárias e autorizações bancárias preenchidas automaticamente."
+        actions={
           <Link href="/admin/documents/declarations/new">
-            <Button className="bg-[#1B4D3E] hover:bg-[#13382D] text-white font-bold shadow-xs px-4 h-10 text-xs flex items-center gap-2">
-              <Plus className="h-4 w-4" />
+            <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
+              <Plus className="h-5 w-5" />
               Nova Declaração
             </Button>
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Grid de Modelos Oficiais */}
       <div className="space-y-4">
