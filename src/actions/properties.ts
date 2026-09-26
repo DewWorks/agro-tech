@@ -826,7 +826,7 @@ export async function getProducersForBranch(branchId: string) {
       where: {
         branchId,
         isActive: true,
-        ...(!isSuperAdmin && dbUser.organizationId ? {
+        ...(dbUser.organizationId ? {
           branch: {
             organizationId: dbUser.organizationId
           }

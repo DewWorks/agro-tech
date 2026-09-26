@@ -44,14 +44,14 @@ export async function getDemands(filters: DemandFilters = {}) {
     const where: any = {}
 
     // Isolamento multi-tenant por organização e filial
-    if (dbUser.organizationId && dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating) {
+    if (dbUser.organizationId) {
       where.branch = { organizationId: dbUser.organizationId }
     }
 
     // Isolamento multi-tenant por filial
     if (filters.branchId) {
       where.branchId = filters.branchId
-    } else if (dbUser.branchId && dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating) {
+    } else if (dbUser.branchId && dbUser.role !== 'SUPER_ADMIN') {
       where.branchId = dbUser.branchId
     }
 
@@ -288,7 +288,7 @@ export async function getDemandById(id: string) {
     const demand = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -554,7 +554,7 @@ export async function updateDemand(id: string, rawData: any) {
     const existingDemand = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -633,7 +633,7 @@ export async function updateDemandStatus(
     const existing = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -742,7 +742,7 @@ export async function toggleChecklistItem(
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -805,7 +805,7 @@ export async function attachDocumentToChecklistItem(
     const item = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -880,7 +880,7 @@ export async function linkExistingGedDocument(itemId: string, documentId: string
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -941,7 +941,7 @@ export async function addChecklistItem(
     const demand = await prisma.serviceDemand.findFirst({
       where: {
         id: demandId,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },
@@ -995,7 +995,7 @@ export async function deleteChecklistItem(itemId: string) {
     const existingItem = await prisma.demandChecklistItem.findFirst({
       where: {
         id: itemId,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { demand: { branch: { organizationId: dbUser.organizationId } } }
           : {}),
       },
@@ -1042,7 +1042,7 @@ export async function deleteDemand(id: string) {
     const existing = await prisma.serviceDemand.findFirst({
       where: {
         id,
-        ...(!isSuperAdmin && dbUser.organizationId
+        ...(dbUser.organizationId
           ? { branch: { organizationId: dbUser.organizationId } }
           : {}),
       },

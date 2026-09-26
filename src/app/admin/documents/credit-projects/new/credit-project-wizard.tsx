@@ -177,6 +177,10 @@ export default function CreditProjectWizard({
         throw new Error('Falha ao compilar o arquivo PDF (tamanho 0 bytes).')
       }
 
+      // Conclui imediatamente o estado e toast de compilação visual no cliente
+      toast.dismiss(toastId)
+      setIsGeneratingPdf(false)
+
       // Calcular hash SHA-256 do arquivo gerado
       let sha256 = ''
       try {
@@ -213,9 +217,6 @@ export default function CreditProjectWizard({
           sha256Hash: sha256,
         }).catch((err) => console.error('Erro ao contabilizar emissão no banco:', err))
       }
-
-      toast.dismiss(toastId)
-      toast.success('Documento PDF oficial gerado e baixado com sucesso!')
 
       return {
         success: true,

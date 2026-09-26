@@ -49,6 +49,8 @@ export async function getProducersWithPropertiesForCredit() {
   const whereClause: any = { isActive: true }
   if (user.branchId && user.role !== 'SUPER_ADMIN') {
     whereClause.branchId = user.branchId
+  } else if (user.organizationId && user.role !== 'SUPER_ADMIN') {
+    whereClause.branch = { organizationId: user.organizationId }
   }
 
   const producers = await prisma.producer.findMany({
@@ -722,23 +724,40 @@ export async function recordDocumentEmission({
 
   const producer = await prisma.producer.findUnique({
     where: { id: producerId },
-    select: { branchId: true }
+    select: { 
+      branchId: true,
+      branch: {
+        select: { organizationId: true }
+      }
+    }
   })
   if (!producer) throw new Error('Produtor não encontrado')
 
-  const branchId = user.branchId || producer.branchId
+  // Resolver filial garantindo o isolamento multi-tenant da organização
+  let branchId = user.branchId
 
-  // Sincronizar rascunho permanente se houver
-  if (propertyId) {
-    await saveCreditProjectData(producerId, propertyId, templateCode, payload).catch((err) => {
-      console.error('Warning: could not sync draft during emission:', err)
-    })
+  if (!branchId && user.organizationId) {
+    if (producer.branch?.organizationId === user.organizationId && producer.branchId) {
+      branchId = producer.branchId
+    } else {
+      const orgBranch = await prisma.branch.findFirst({
+        where: { organizationId: user.organizationId, isActive: true },
+        select: { id: true }
+      })
+      if (orgBranch) {
+        branchId = orgBranch.id
+      }
+    }
   }
 
-  // Criar registro permanente de emissão para alimentar o painel SaaS de franquia e histórico
+  if (!branchId) {
+    branchId = producer.branchId
+  }
+
+  // Criar registro permanente de emissão primeiro para resposta imediata
   const emission = await prisma.generatedForm.create({
     data: {
-      branchId,
+      branchId: branchId!,
       producerId,
       propertyId: propertyId || null,
       templateCode,
@@ -748,6 +767,13 @@ export async function recordDocumentEmission({
       sha256Hash: sha256Hash || null,
     }
   })
+
+  // Sincronizar rascunho permanente em segundo plano sem bloquear a resposta ao usuário
+  if (propertyId) {
+    saveCreditProjectData(producerId, propertyId, templateCode, payload).catch((err) => {
+      console.error('Warning: could not sync draft during emission:', err)
+    })
+  }
 
   revalidatePath('/admin/dashboard/owner')
   return { success: true, id: emission.id, sha256Hash: emission.sha256Hash }

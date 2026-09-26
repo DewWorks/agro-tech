@@ -353,10 +353,35 @@ export async function saveGeneratedPdfMetadata(data: {
   let branchIdToSave = user.branchId
 
   if (!branchIdToSave) {
-    const producer = await prisma.producer.findUnique({ where: { id: data.producerId }, select: { branchId: true }})
-    if (producer) {
+    const producer = await prisma.producer.findUnique({
+      where: { id: data.producerId },
+      select: {
+        branchId: true,
+        branch: {
+          select: { organizationId: true }
+        }
+      }
+    })
+
+    if (producer && user.organizationId) {
+      if (producer.branch?.organizationId === user.organizationId && producer.branchId) {
+        branchIdToSave = producer.branchId
+      } else {
+        const orgBranch = await prisma.branch.findFirst({
+          where: { organizationId: user.organizationId, isActive: true },
+          select: { id: true }
+        })
+        if (orgBranch) {
+          branchIdToSave = orgBranch.id
+        }
+      }
+    }
+
+    if (!branchIdToSave && producer?.branchId) {
       branchIdToSave = producer.branchId
-    } else {
+    }
+
+    if (!branchIdToSave) {
       throw new Error('Não foi possível determinar a unidade (Branch) para salvar o histórico.')
     }
   }

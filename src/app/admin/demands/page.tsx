@@ -44,9 +44,7 @@ export default async function DemandsPage(props: DemandsPageProps) {
   if (isOwnerOrSuperAdmin) {
     branches = await prisma.branch.findMany({
       where: {
-        ...(dbUser.role !== 'SUPER_ADMIN' && !dbUser.isSuperAdminImpersonating && dbUser.organizationId
-          ? { organizationId: dbUser.organizationId }
-          : {}),
+        ...(dbUser.organizationId ? { organizationId: dbUser.organizationId } : {}),
         isActive: true,
       },
       select: { id: true, name: true },

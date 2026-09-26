@@ -35,7 +35,7 @@ export async function listDocuments(filters: {
     }
 
     const where: Prisma.DocumentWhereInput = {
-      ...(!isSuperAdmin && dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
+      ...(dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
       isArchived: false,
       isSuperseded: false,
     }
@@ -95,7 +95,7 @@ export async function listProducerDocuments(producerId: string) {
 
     const where: Prisma.DocumentWhereInput = {
       producerId,
-      ...(!isSuperAdmin && dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
+      ...(dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
       isArchived: false,
       isSuperseded: false,
     }
@@ -344,7 +344,7 @@ export async function replaceDocument(
     const existingDoc = await prisma.document.findFirst({
       where: {
         id: documentId,
-        ...(!isSuperAdmin && dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
+        ...(dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
         ...(dbUser.role !== 'OWNER' && !isSuperAdmin && dbUser.branchId
           ? { branchId: dbUser.branchId }
           : {}),
@@ -420,7 +420,7 @@ export async function archiveDocument(documentId: string) {
     const existingDoc = await prisma.document.findFirst({
       where: {
         id: documentId,
-        ...(!isSuperAdmin && dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
+        ...(dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
         ...(dbUser.role !== 'OWNER' && !isSuperAdmin && dbUser.branchId
           ? { branchId: dbUser.branchId }
           : {}),
@@ -459,7 +459,7 @@ export async function getDocumentTree() {
     }
 
     const whereProducer: Prisma.ProducerWhereInput = {
-      ...(!isSuperAdmin && dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
+      ...(dbUser.organizationId ? { branch: { organizationId: dbUser.organizationId } } : {}),
       isActive: true,
       ...(dbUser.role !== 'OWNER' && !isSuperAdmin && dbUser.branchId
         ? { branchId: dbUser.branchId }
