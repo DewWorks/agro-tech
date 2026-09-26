@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { User, Building2 } from 'lucide-react'
+import { User, Building2, Settings } from 'lucide-react'
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -16,8 +16,11 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E]">Configurações</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+          <Settings className="text-[#1B4D3E] w-6 h-6" />
+          Configurações
+        </h1>
+        <p className="text-xs md:text-sm text-slate-500 mt-1">
           Gerencie o seu perfil e as definições da sua empresa.
         </p>
       </div>

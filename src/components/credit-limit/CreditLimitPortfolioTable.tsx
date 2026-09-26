@@ -154,7 +154,11 @@ export function CreditLimitPortfolioTable({
           <div className="w-full md:w-48">
             <Select value={selectedBranch} onValueChange={(val) => setSelectedBranch(val || 'TODOS')}>
               <SelectTrigger className="text-xs h-9 bg-white dark:bg-slate-900">
-                <SelectValue placeholder="Todas as Filiais" />
+                <SelectValue placeholder="Todas as Filiais">
+                  {selectedBranch === 'TODOS' || !selectedBranch
+                    ? 'Todas as Filiais'
+                    : branches.find((b) => b.id === selectedBranch)?.name || 'Todas as Filiais'}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent className="min-w-[200px]">
                 <SelectItem value="TODOS">Todas as Filiais</SelectItem>

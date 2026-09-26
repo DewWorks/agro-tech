@@ -689,12 +689,10 @@ export function Step4FinancialSummary({
                         <FormControl>
                           <SelectTrigger className="text-xs h-9 bg-white dark:bg-slate-900">
                             <SelectValue placeholder="Selecione a finalidade">
-                              {() => (
-                                <span className="flex items-center gap-2 truncate">
-                                  <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedPurpose.iconColor}`} />
-                                  <span className="truncate">{selectedPurpose.label}</span>
-                                </span>
-                              )}
+                              <span className="flex items-center gap-2 truncate">
+                                <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedPurpose.iconColor}`} />
+                                <span className="truncate">{selectedPurpose.label}</span>
+                              </span>
                             </SelectValue>
                           </SelectTrigger>
                         </FormControl>
@@ -739,12 +737,10 @@ export function Step4FinancialSummary({
                         <FormControl>
                           <SelectTrigger className="text-xs h-9 bg-white dark:bg-slate-900">
                             <SelectValue placeholder="Selecione a instituição">
-                              {() => (
-                                <span className="flex items-center gap-2 truncate">
-                                  <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedBank.iconColor}`} />
-                                  <span className="truncate">{selectedBank.label}</span>
-                                </span>
-                              )}
+                              <span className="flex items-center gap-2 truncate">
+                                <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedBank.iconColor}`} />
+                                <span className="truncate">{selectedBank.label}</span>
+                              </span>
                             </SelectValue>
                           </SelectTrigger>
                         </FormControl>

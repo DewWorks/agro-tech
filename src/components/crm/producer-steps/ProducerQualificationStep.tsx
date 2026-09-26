@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { FileText } from 'lucide-react'
 import ProducerDocumentsSection from '../../ged/ProducerDocumentsSection'
+import { maskBankAgency, maskBankAccount } from '@/lib/utils/masks'
 
 import {
   Select,
@@ -19,12 +20,14 @@ interface ProducerQualificationStepProps {
   initialData?: any
   formData: any
   handleChange: (field: string, value: string) => void
+  errors?: Record<string, string>
 }
 
 export function ProducerQualificationStep({
   initialData,
   formData,
   handleChange,
+  errors = {},
 }: ProducerQualificationStepProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -110,18 +113,24 @@ export function ProducerQualificationStep({
             <Label>Agência (com dígito)</Label>
             <Input 
               value={formData.bankAgency}
-              onChange={(e) => handleChange('bankAgency', e.target.value)}
+              onChange={(e) => handleChange('bankAgency', maskBankAgency(e.target.value))}
               placeholder="Ex: 1234-5"
+              maxLength={7}
+              className={errors.bankAgency ? 'border-red-500' : ''}
             />
+            {errors.bankAgency && <p className="text-xs text-red-500 font-medium">{errors.bankAgency}</p>}
           </div>
 
           <div className="space-y-2">
             <Label>Conta e Dígito</Label>
             <Input 
               value={formData.bankAccount}
-              onChange={(e) => handleChange('bankAccount', e.target.value)}
+              onChange={(e) => handleChange('bankAccount', maskBankAccount(e.target.value))}
               placeholder="Ex: 98765-4"
+              maxLength={14}
+              className={errors.bankAccount ? 'border-red-500' : ''}
             />
+            {errors.bankAccount && <p className="text-xs text-red-500 font-medium">{errors.bankAccount}</p>}
           </div>
 
           <div className="space-y-2 md:col-span-2">

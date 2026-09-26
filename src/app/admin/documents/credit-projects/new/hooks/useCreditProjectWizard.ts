@@ -19,14 +19,23 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
   const [selectedTemplateCode, setSelectedTemplateCode] = useState<string>(initialTemplate)
 
   const [customOptions, setCustomOptions] = useState<CustomOptions>(() => {
+    const initProd = activeProducers[0]
+    const initProp = initProd?.properties?.[0]
+    const initRepName = initProd?.type === 'PJ' 
+      ? initProd.name.replace(/\s*\(PJ\)\s*/i, '').trim() 
+      : initProd?.name || ''
+    const initRepCpf = initProd?.type === 'PJ' 
+      ? (initProd.representativeCpf || '') 
+      : (initProd?.document || '')
+
     const defaults: CustomOptions = {
       responsibleName: defaultResponsibleName || '',
       creaNumber: '',
       artNumber: '',
       targetBank: '',
       purpose: '',
-      representativeCpf: '',
-      representativeName: '',
+      representativeCpf: initRepCpf,
+      representativeName: initRepName,
       
       // Limite de Crédito BB
       estimatedLandValuePerHa: 0,
@@ -71,20 +80,25 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       custeioInterestRate: 0,
 
       // Dados Fundiários do Imóvel Beneficiado
-      propertyRegistrationNumber: '',
-      propertyRegistryOffice: '',
-      propertyCar: '',
-      propertyCcir: '',
-      propertyItr: '',
-      propertyTotalArea: 0,
-      propertyAccessRoute: '',
-      propertyActivity: '',
+      propertyRegistrationNumber: initProp?.registrationNumber || '',
+      propertyRegistryOffice: initProp?.registryOffice || '',
+      propertyCar: initProp?.car || '',
+      propertyCcir: initProp?.ccir || '',
+      propertyItr: initProp?.itr || '',
+      propertyTotalArea: initProp?.totalArea ? Number(initProp.totalArea) : 0,
+      propertyAccessRoute: initProp?.accessRoute || '',
+      propertyActivity: initProp?.explorationActivity || 'Pecuária de Corte',
     }
 
     if (initialSavedData && Object.keys(initialSavedData).length > 0) {
       return {
         ...defaults,
         ...initialSavedData,
+        representativeName: initialSavedData.representativeName || defaults.representativeName,
+        representativeCpf: initialSavedData.representativeCpf || defaults.representativeCpf,
+        propertyRegistrationNumber: initialSavedData.propertyRegistrationNumber || defaults.propertyRegistrationNumber,
+        propertyCar: initialSavedData.propertyCar || defaults.propertyCar,
+        propertyActivity: initialSavedData.propertyActivity || defaults.propertyActivity,
         responsibleName: initialSavedData.responsibleName || defaultResponsibleName || '',
       }
     }
@@ -117,19 +131,48 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         const saved = await getSavedCreditProjectData(selectedProducerId, selectedPropertyId, selectedTemplateCode)
         if (!isMounted) return
 
+        const prod = activeProducers.find(p => p.id === selectedProducerId)
+        const prop = prod?.properties?.find(p => p.id === selectedPropertyId)
+
+        const autoRepName = prod?.type === 'PJ' 
+          ? prod.name.replace(/\s*\(PJ\)\s*/i, '').trim() 
+          : prod?.name || ''
+        const autoRepCpf = prod?.type === 'PJ' 
+          ? (prod.representativeCpf || '') 
+          : (prod?.document || '')
+
+        const autoRegNumber = prop?.registrationNumber || ''
+        const autoRegOffice = prop?.registryOffice || ''
+        const autoCar = prop?.car || ''
+        const autoCcir = prop?.ccir || ''
+        const autoItr = prop?.itr || ''
+        const autoTotalArea = prop?.totalArea ? Number(prop.totalArea) : 0
+        const autoActivity = prop?.explorationActivity || 'Pecuária de Corte'
+        const autoAccessRoute = prop?.accessRoute || ''
+
+        setCustomOptions(prev => ({
+          ...prev,
+          ...(saved || {}),
+          representativeName: saved?.representativeName?.trim() || autoRepName || prev.representativeName || '',
+          representativeCpf: saved?.representativeCpf?.trim() || autoRepCpf || prev.representativeCpf || '',
+          propertyRegistrationNumber: saved?.propertyRegistrationNumber?.trim() || autoRegNumber || prev.propertyRegistrationNumber || '',
+          propertyRegistryOffice: saved?.propertyRegistryOffice?.trim() || autoRegOffice || prev.propertyRegistryOffice || '',
+          propertyCar: saved?.propertyCar?.trim() || autoCar || prev.propertyCar || '',
+          propertyCcir: saved?.propertyCcir?.trim() || autoCcir || prev.propertyCcir || '',
+          propertyItr: saved?.propertyItr?.trim() || autoItr || prev.propertyItr || '',
+          propertyTotalArea: (saved?.propertyTotalArea !== undefined && saved?.propertyTotalArea !== null && Number(saved.propertyTotalArea) > 0)
+            ? Number(saved.propertyTotalArea)
+            : (autoTotalArea || prev.propertyTotalArea || 0),
+          propertyActivity: saved?.propertyActivity?.trim() || autoActivity || prev.propertyActivity || 'Pecuária de Corte',
+          propertyAccessRoute: saved?.propertyAccessRoute?.trim() || autoAccessRoute || prev.propertyAccessRoute || '',
+          responsibleName: saved?.responsibleName?.trim() || prev.responsibleName || defaultResponsibleName || '',
+        }))
+
         if (saved && Object.keys(saved).length > 0) {
-          setCustomOptions(prev => ({
-            ...prev,
-            ...saved,
-            responsibleName: saved.responsibleName || prev.responsibleName || defaultResponsibleName || '',
-          }))
           toast.info('Dados salvos deste projeto foram carregados automaticamente!')
         }
 
         // Se o rascunho não possuir maquinários ou benfeitorias, carrega da propriedade vinculada
-        const prod = activeProducers.find(p => p.id === selectedProducerId)
-        const prop = prod?.properties?.find(p => p.id === selectedPropertyId)
-
         if (prop && (!saved?.machineryItems || saved.machineryItems.length === 0) && prop.machineries && prop.machineries.length > 0) {
           const machs = prop.machineries.map(m => ({
             id: m.id || Math.random().toString(),
@@ -259,13 +302,15 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
     }
 
     if (selectedPropertyId) {
+      // Matrícula e CAR são obrigatórios para qualquer emissão oficial vinculada a uma propriedade rural
+      if (!customOptions.propertyRegistrationNumber?.trim()) {
+        errors.push('Matrícula / Registro do Imóvel (CRI) é obrigatório')
+      }
+      if (!customOptions.propertyCar?.trim()) {
+        errors.push('Nº do CAR (Cadastro Ambiental Rural) é obrigatório')
+      }
+
       if (!isLegalTemplate) {
-        if (!customOptions.propertyRegistrationNumber?.trim()) {
-          errors.push('Matrícula / Registro do Imóvel (CRI) é obrigatório')
-        }
-        if (!customOptions.propertyCar?.trim()) {
-          errors.push('Nº do CAR (Cadastro Ambiental Rural) é obrigatório')
-        }
         if (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) {
           errors.push('Área Total do Imóvel (ha) deve ser maior que 0')
         }
@@ -292,8 +337,8 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       }
     }
 
-    if (!isLegalTemplate && !customOptions.responsibleName?.trim()) {
-      errors.push('Nome do Responsável Técnico é obrigatório')
+    if (!customOptions.responsibleName?.trim()) {
+      errors.push('Nome do Responsável Técnico / Elaborador é obrigatório')
     }
 
     if (selectedTemplateCode === 'PROJETO_INOVAGRO') {
@@ -447,7 +492,7 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         spouseEducationLevel: currentProducer.spouseEducationLevel,
         marriageRegime: currentProducer.marriageRegime,
         representativeCpf: customOptions.representativeCpf || currentProducer.representativeCpf || undefined,
-        representativeName: customOptions.representativeName || undefined,
+        representativeName: customOptions.representativeName || (currentProducer.type === 'PJ' ? currentProducer.name.replace(/\s*\(PJ\)\s*/i, '').trim() : undefined),
         phone: currentProducer.phone,
         civilStatus: currentProducer.civilStatus,
         branchName: currentProducer.branchName,
@@ -529,6 +574,54 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
     }
   }, [currentProducer, currentProperty, currentTemplate, customOptions, props.defaultOrgName, props.defaultOrgCnpj, props.defaultResponsibleName, selectedTemplateCode])
 
+  const handleSetSelectedProducerId = (newProducerId: string) => {
+    setSelectedProducerId(newProducerId)
+    const p = activeProducers.find((prod) => prod.id === newProducerId)
+    const prop = p?.properties?.[0]
+    const propId = prop?.id || ''
+    setSelectedPropertyId(propId)
+
+    const repName = p?.type === 'PJ' 
+      ? p.name.replace(/\s*\(PJ\)\s*/i, '').trim() 
+      : p?.name || ''
+    const repCpf = p?.type === 'PJ' 
+      ? (p.representativeCpf || '') 
+      : (p?.document || '')
+
+    setCustomOptions(prev => ({
+      ...prev,
+      representativeName: repName,
+      representativeCpf: repCpf,
+      propertyRegistrationNumber: prop?.registrationNumber || '',
+      propertyRegistryOffice: prop?.registryOffice || '',
+      propertyCar: prop?.car || '',
+      propertyCcir: prop?.ccir || '',
+      propertyItr: prop?.itr || '',
+      propertyTotalArea: prop?.totalArea ? Number(prop.totalArea) : 0,
+      propertyActivity: prop?.explorationActivity || 'Pecuária de Corte',
+      propertyAccessRoute: prop?.accessRoute || '',
+    }))
+  }
+
+  const handleSetSelectedPropertyId = (newPropertyId: string) => {
+    setSelectedPropertyId(newPropertyId)
+    const prod = activeProducers.find(p => p.id === selectedProducerId)
+    const prop = prod?.properties?.find(p => p.id === newPropertyId)
+    if (prop) {
+      setCustomOptions(prev => ({
+        ...prev,
+        propertyRegistrationNumber: prop.registrationNumber || prev.propertyRegistrationNumber || '',
+        propertyRegistryOffice: prop.registryOffice || prev.propertyRegistryOffice || '',
+        propertyCar: prop.car || prev.propertyCar || '',
+        propertyCcir: prop.ccir || prev.propertyCcir || '',
+        propertyItr: prop.itr || prev.propertyItr || '',
+        propertyTotalArea: prop.totalArea ? Number(prop.totalArea) : (prev.propertyTotalArea || 0),
+        propertyActivity: prop.explorationActivity || prev.propertyActivity || 'Pecuária de Corte',
+        propertyAccessRoute: prop.accessRoute || prev.propertyAccessRoute || '',
+      }))
+    }
+  }
+
   return {
     state: {
       activeProducers,
@@ -553,8 +646,8 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       documentData, // Data for React-based A4 rendering
     },
     actions: {
-      setSelectedProducerId,
-      setSelectedPropertyId,
+      setSelectedProducerId: handleSetSelectedProducerId,
+      setSelectedPropertyId: handleSetSelectedPropertyId,
       setSelectedTemplateCode,
       setCustomOptions,
       setIsConfirmModalOpen,

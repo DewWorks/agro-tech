@@ -295,7 +295,15 @@ export function LandIdentificationCard({ control, branches, producers, setValue 
                     <Select onValueChange={field.onChange} value={field.value || 'ARRENDAMENTO'}>
                       <FormControl>
                         <SelectTrigger className="w-full">
-                          <SelectValue placeholder="Tipo de contrato" />
+                          <SelectValue placeholder="Tipo de contrato">
+                            {{
+                              ARRENDAMENTO: 'Arrendamento',
+                              PARCERIA: 'Parceria Agrícola / Pecuária',
+                              COMODATO: 'Comodato',
+                              MEEIRIA: 'Meeiria',
+                              OUTRO: 'Outro Vínculo',
+                            }[field.value as string] || field.value}
+                          </SelectValue>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>

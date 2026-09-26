@@ -62,7 +62,7 @@ export const A4DocumentPreview = React.memo(({ documentData, data }: A4DocumentP
         subtitle={isLegalTemplate ? `Declaração Legal • Banco do Brasil` : `Dossiê para ${template.category} • Banco do Brasil`} 
       />
       
-      <IdentificationBlock producer={producer} property={property} />
+      <IdentificationBlock producer={producer} property={property} options={options} />
       
       {isLegalTemplate ? (
         <DeclarationContent 

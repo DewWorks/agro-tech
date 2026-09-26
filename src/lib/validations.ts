@@ -71,3 +71,19 @@ export function formatCNPJ(cnpj: string): string {
   if (clean.length !== 14) return cnpj
   return clean.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5')
 }
+
+export {
+  maskCPF,
+  maskCNPJ,
+  maskPhone,
+  maskRG,
+  maskIssuerUF,
+  maskRegistrationNumber,
+  maskCAR,
+  maskCCIR,
+  maskITR,
+  maskChassis,
+  maskBankAgency,
+  maskBankAccount,
+  sanitizePayload,
+} from './utils/masks'

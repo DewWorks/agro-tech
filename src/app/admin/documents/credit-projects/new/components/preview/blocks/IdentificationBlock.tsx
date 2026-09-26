@@ -4,12 +4,15 @@ import { getDocumentTypeAndLabel, formatCPF } from '@/lib/utils/masks'
 interface IdentificationBlockProps {
   producer: any
   property: any
+  options?: any
 }
 
-export const IdentificationBlock = React.memo(({ producer, property }: IdentificationBlockProps) => {
+export const IdentificationBlock = React.memo(({ producer, property, options }: IdentificationBlockProps) => {
   const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(producer.document, producer.type)
   const spouseDocFormatted = producer.spouseCpf ? formatCPF(producer.spouseCpf) : ''
-  const repCpfFormatted = producer.representativeCpf ? formatCPF(producer.representativeCpf) : ''
+  const repCpf = options?.representativeCpf || producer.representativeCpf
+  const repCpfFormatted = repCpf ? formatCPF(repCpf) : ''
+  const repName = options?.representativeName || producer.representativeName || (isCnpj ? producer.name?.replace(/\s*\(PJ\)\s*/i, '').trim() : 'Administrador(a) / Titular')
 
   return (
     <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '12px', overflow: 'hidden' }}>
@@ -22,7 +25,7 @@ export const IdentificationBlock = React.memo(({ producer, property }: Identific
         
         {isCnpj ? (
           <>
-            <div><strong>Representante Legal:</strong> {producer.representativeName || 'Administrador(a) / Titular'}</div>
+            <div><strong>Representante Legal:</strong> {repName}</div>
             <div style={{ whiteSpace: 'nowrap' }}><strong>CPF Representante:</strong> {repCpfFormatted || '-'}</div>
             <div><strong>Natureza:</strong> Pessoa Jurídica (PJ)</div>
             <div style={{ whiteSpace: 'nowrap' }}><strong>Telefone:</strong> {producer.phone || '-'}</div>

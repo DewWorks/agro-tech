@@ -27,11 +27,13 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
   const location = property?.city && property?.state ? `${property.city} - ${property.state}` : 'Local não informado'
 
   const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(producer?.document, producer?.type)
-  const repCpfFormatted = producer?.representativeCpf ? formatCPF(producer.representativeCpf) : ''
+  const repCpf = options?.representativeCpf || producer?.representativeCpf
+  const repCpfFormatted = repCpf ? formatCPF(repCpf) : ''
+  const repName = options?.representativeName || producer?.representativeName || (isCnpj ? producer?.name?.replace(/\s*\(PJ\)\s*/i, '').trim() : '')
 
   const qualification = isCnpj ? (
     <>
-      Eu, <strong>{producer?.name || '_________________________'}</strong>, pessoa jurídica inscrita no CNPJ sob o nº <strong style={{ whiteSpace: 'nowrap' }}>{docFormatted || '_________________________'}</strong>, neste ato representada por seu titular/representante legal{producer?.representativeName ? <> <strong>{producer.representativeName}</strong></> : ''}, inscrito(a) no CPF sob o nº <strong style={{ whiteSpace: 'nowrap' }}>{repCpfFormatted || '_________________________'}</strong>
+      Eu, <strong>{producer?.name || '_________________________'}</strong>, pessoa jurídica inscrita no CNPJ sob o nº <strong style={{ whiteSpace: 'nowrap' }}>{docFormatted || '_________________________'}</strong>, neste ato representada por seu titular/representante legal{repName ? <> <strong>{repName}</strong></> : ''}, inscrito(a) no CPF sob o nº <strong style={{ whiteSpace: 'nowrap' }}>{repCpfFormatted || '_________________________'}</strong>
     </>
   ) : (
     <>
@@ -113,7 +115,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           <div style={contentStyle}>
             <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>DECLARAÇÃO DE REGULARIDADE AMBIENTAL</h3>
             <p>
-              Eu, <strong>{producer?.name || '_________________________'}</strong>, DECLARO sob as penas da lei que as atividades agropecuárias desenvolvidas no imóvel rural <strong>{property?.name || '_________________________'}</strong> (CAR: {property?.car || '_______'}) 
+              {qualification}, DECLARO sob as penas da lei que as atividades agropecuárias desenvolvidas no imóvel rural <strong>{property?.name || '_________________________'}</strong> (CAR: {property?.car || '_______'}) 
               estão em estrita conformidade com a Legislação Ambiental vigente.
             </p>
             <p style={{ marginTop: '15px' }}>
@@ -127,7 +129,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           <div style={contentStyle}>
             <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>DECLARAÇÃO DE IMÓVEL FORA DO BIOMA (AMAZÔNIA/PANTANAL)</h3>
             <p>
-              Eu, <strong>{producer?.name || '_________________________'}</strong>, DECLARO perante o Banco do Brasil S.A. que a área financiada na propriedade rural <strong>{property?.name || '_________________________'}</strong>, 
+              {qualification}, DECLARO perante o Banco do Brasil S.A. que a área financiada na propriedade rural <strong>{property?.name || '_________________________'}</strong>, 
               objeto do instrumento de crédito rural, encontra-se totalmente inserida em bioma permitido para exploração comercial financiada, NÃO estando localizada no Bioma Amazônia ou Bioma Pantanal, ou, se localizada, cumpre rigorosamente as restrições impostas pelo Conselho Monetário Nacional (CMN).
             </p>
           </div>

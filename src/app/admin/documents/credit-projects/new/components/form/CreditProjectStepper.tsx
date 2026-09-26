@@ -38,7 +38,7 @@ interface CreditProjectStepperProps {
   contentRef: React.RefObject<HTMLDivElement | null>
   handlePrintIsolated: () => void
   handleDownloadOriginalTemplate: () => void
-  handleDownloadPdf: () => Promise<void>
+  handleDownloadPdf: () => Promise<any>
   isGeneratingPdf: boolean
 }
 
@@ -96,17 +96,18 @@ export function CreditProjectStepper({
   // Step 1 validation
   const step1Pending = useMemo(() => {
     const p: string[] = []
+    const isLegal = [
+      'AUTORIZACAO_COMPARTILHAMENTO',
+      'AUTORIZACAO_SCR',
+      'AUTORIZACAO_SICOR',
+      'DECLARACAO_POSSE_MANSA',
+      'DECLARACAO_REGULARIDADE_AMBIENTAL',
+      'DECLARACAO_FORA_BIOMA',
+      'ENQUADRAMENTO_CAF',
+      'IDENTIFICACAO_ANIMAIS'
+    ].includes(selectedTemplateCode)
+
     if (currentProducer?.type === 'PJ') {
-      const isLegal = [
-        'AUTORIZACAO_COMPARTILHAMENTO',
-        'AUTORIZACAO_SCR',
-        'AUTORIZACAO_SICOR',
-        'DECLARACAO_POSSE_MANSA',
-        'DECLARACAO_REGULARIDADE_AMBIENTAL',
-        'DECLARACAO_FORA_BIOMA',
-        'ENQUADRAMENTO_CAF',
-        'IDENTIFICACAO_ANIMAIS'
-      ].includes(selectedTemplateCode)
       const repCpf = customOptions.representativeCpf || currentProducer.representativeCpf
       if (isLegal || selectedTemplateCode === 'ENQUADRAMENTO_CAF') {
         if (!repCpf?.trim() || !validateCPF(repCpf)) {
@@ -123,9 +124,13 @@ export function CreditProjectStepper({
 
     if (!customOptions.propertyRegistrationNumber?.trim()) p.push('Matrícula do Imóvel')
     if (!customOptions.propertyCar?.trim()) p.push('Nº do CAR')
-    if (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) p.push('Área Total (ha)')
-    if (!customOptions.propertyActivity?.trim()) p.push('Atividade Principal')
-    if (!customOptions.propertyAccessRoute?.trim()) p.push('Roteiro de Acesso')
+
+    // Campos complementares exigidos exclusivamente para projetos técnicos de crédito (não para minutas/declarações legais)
+    if (!isLegal) {
+      if (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) p.push('Área Total (ha)')
+      if (!customOptions.propertyActivity?.trim()) p.push('Atividade Principal')
+      if (!customOptions.propertyAccessRoute?.trim()) p.push('Roteiro de Acesso')
+    }
     return p
   }, [customOptions, currentProducer, selectedTemplateCode])
 
@@ -146,22 +151,40 @@ export function CreditProjectStepper({
     return p
   }, [customOptions, isLimiteCredito, selectedTemplateCode])
 
+  const isCreaRequired = [
+    'PROJETO_INOVAGRO',
+    'PROJETO_RENOVAGRO',
+    'PROJETO_CUSTEIO_SAFRA',
+  ].includes(selectedTemplateCode)
+
   // RT / Finance validation  
   const stepRTPending = useMemo(() => {
     const p: string[] = []
     if (!customOptions.responsibleName?.trim()) p.push('Responsável Técnico')
+    if (isCreaRequired) {
+      if (!customOptions.creaNumber?.trim()) p.push('Nº do CREA')
+      if (!customOptions.artNumber?.trim()) p.push('Nº da ART/TRT')
+    }
     if (isLimiteCredito) {
       if (!customOptions.estimatedLandValuePerHa && !customOptions.improvementsValue && !customOptions.machineryValue && !customOptions.annualRevenue) {
         p.push('Valor da Terra ou Receita')
       }
     }
     return p
-  }, [customOptions, isLimiteCredito])
+  }, [customOptions, isLimiteCredito, isCreaRequired])
 
   const validateAndAdvance = (targetStep: number) => {
     if (targetStep > currentStep) {
-      if (currentStep === 1 && step1Pending.length > 0) {
+      if (step1Pending.length > 0) {
         toast.error(`Atenção: Preencha os campos obrigatórios do Passo 1: ${step1Pending.join(', ')}`)
+        return
+      }
+      if (hasParamsStep && targetStep > 2 && step2Pending.length > 0) {
+        toast.error(`Atenção: Preencha os campos obrigatórios do Passo 2 (Parâmetros): ${step2Pending.join(', ')}`)
+        return
+      }
+      if (targetStep === totalSteps && stepRTPending.length > 0) {
+        toast.error(`Atenção: Preencha os campos obrigatórios do Responsável Técnico: ${stepRTPending.join(', ')}`)
         return
       }
     }
@@ -301,6 +324,7 @@ export function CreditProjectStepper({
             isLimiteCredito={false}
             hasParamsStep={hasParamsStep}
             stepRTPending={stepRTPending}
+            selectedTemplateCode={selectedTemplateCode}
           />
         )}
 
@@ -314,6 +338,7 @@ export function CreditProjectStepper({
             isLimiteCredito={true}
             hasParamsStep={true}
             stepRTPending={stepRTPending}
+            selectedTemplateCode={selectedTemplateCode}
           />
         )}
 

@@ -12,6 +12,8 @@ import {
   normalizeLivestockSpecies,
   denormalizePurposeBB,
 } from '@/lib/validations/livestock-mapper'
+import { propertyWizardSchema } from '@/lib/validations/property-wizard'
+import { sanitizePayload } from '@/lib/utils/masks'
 
 function parseCoordinate(coordStr?: string | number | null): number | null {
   if (coordStr === undefined || coordStr === null || coordStr === '') return null
@@ -61,6 +63,14 @@ export async function createProperty(data: any) {
     if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
     }
+
+    const validation = propertyWizardSchema.safeParse(data)
+    if (!validation.success) {
+      const errorMsg = validation.error.issues.map((i) => i.message).join('; ')
+      return { error: errorMsg || 'Dados da propriedade inválidos.' }
+    }
+
+    const cleanData = sanitizePayload(data)
 
     const {
       name,
@@ -149,7 +159,7 @@ export async function createProperty(data: any) {
       creditLimitTargetBank,
       creditLimitTermMonths,
       creditLimitNotes,
-    } = data
+    } = cleanData
 
     if (!name && !propertyName) {
       throw new Error('O nome da propriedade é obrigatório.')
@@ -380,6 +390,19 @@ export async function updateProperty(id: string, data: any) {
       throw new Error('Propriedade não encontrada ou permissão negada.')
     }
 
+    const validation = propertyWizardSchema.safeParse({
+      ...data,
+      name: data.name || data.propertyName || existing.name,
+      branchId: data.branchId || existing.branchId,
+      producerId: data.producerId || existing.producers[0]?.producerId || '00000000-0000-0000-0000-000000000000',
+    })
+    if (!validation.success) {
+      const errorMsg = validation.error.issues.map((i) => i.message).join('; ')
+      return { error: errorMsg || 'Dados da propriedade inválidos.' }
+    }
+
+    const cleanData = sanitizePayload(data)
+
     const {
       name,
       propertyName,
@@ -467,7 +490,7 @@ export async function updateProperty(id: string, data: any) {
       creditLimitTargetBank,
       creditLimitTermMonths,
       creditLimitNotes,
-    } = data
+    } = cleanData
 
     const propName = propertyName || name || existing.name
 

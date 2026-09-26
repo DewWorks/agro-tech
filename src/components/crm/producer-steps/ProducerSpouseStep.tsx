@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { EDUCATION_LEVEL_OPTIONS } from '@/lib/validations/reference-data'
+import { maskRG, maskIssuerUF, maskCPF } from '@/lib/utils/masks'
 
 interface ProducerSpouseStepProps {
   formData: any
@@ -69,10 +70,10 @@ export function ProducerSpouseStep({
       </div>
 
       <div className="space-y-2">
-        <Label>CPF do Cônjuge</Label>
+        <Label>CPF do Cônjuge *</Label>
         <Input 
           value={formData.spouseCpf}
-          onChange={(e) => handleChange('spouseCpf', e.target.value)}
+          onChange={(e) => handleChange('spouseCpf', maskCPF(e.target.value))}
           placeholder="000.000.000-00"
           className={errors.spouseCpf ? 'border-red-500' : ''}
           maxLength={14}
@@ -102,21 +103,27 @@ export function ProducerSpouseStep({
       </div>
 
       <div className="space-y-2">
-        <Label>Registro Geral (RG) do Cônjuge</Label>
+        <Label>Registro Geral (RG) do Cônjuge *</Label>
         <Input 
           value={formData.spouseRg}
-          onChange={(e) => handleChange('spouseRg', e.target.value)}
+          onChange={(e) => handleChange('spouseRg', maskRG(e.target.value))}
           placeholder="Ex: 0000000"
+          maxLength={14}
+          className={errors.spouseRg ? 'border-red-500' : ''}
         />
+        {errors.spouseRg && <p className="text-xs text-red-500 font-medium">{errors.spouseRg}</p>}
       </div>
 
       <div className="space-y-2">
         <Label>Órgão Emissor do RG</Label>
         <Input 
           value={formData.spouseRgIssuer}
-          onChange={(e) => handleChange('spouseRgIssuer', e.target.value)}
+          onChange={(e) => handleChange('spouseRgIssuer', maskIssuerUF(e.target.value))}
           placeholder="Ex: SSP/TO"
+          maxLength={8}
+          className={errors.spouseRgIssuer ? 'border-red-500' : ''}
         />
+        {errors.spouseRgIssuer && <p className="text-xs text-red-500 font-medium">{errors.spouseRgIssuer}</p>}
       </div>
 
       <div className="space-y-2">

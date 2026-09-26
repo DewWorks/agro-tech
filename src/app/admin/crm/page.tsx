@@ -116,18 +116,18 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
           CLIENTES & PROPRIEDADES · GESTÃO UNIFICADA
         </div>
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <Tractor className="h-8 w-8" />
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+            <Tractor className="text-[#1B4D3E] w-6 h-6" />
             Produtores Rurais
           </h1>
           <div className="flex items-center gap-2">
-            <div className="flex items-center text-xs font-semibold text-green-700 bg-green-50 px-3 py-1.5 rounded-full border border-green-200/60 shadow-xs">
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-green-600" />
+            <div className="flex items-center text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/60 shadow-xs">
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
               Sincronizado
             </div>
           </div>
         </div>
-        <p className="text-muted-foreground text-sm mt-1">
+        <p className="text-xs md:text-sm text-slate-500 mt-1">
           Gestão cadastral, qualificação de clientes e documentos unificados por produtor.
         </p>
       </div>

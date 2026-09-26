@@ -18,6 +18,7 @@ import {
   Wallet,
   UserCheck,
 } from 'lucide-react'
+import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 
 const OWNERSHIP_LABELS: Record<string, string> = {
   PROPRIETARIO: 'Proprietário',
@@ -551,8 +552,8 @@ export function Step5ReviewDossier({
                     const sub = (Number(l.quantity) || 0) * (Number(l.unitValue) || 0)
                     return (
                       <tr key={idx} className="hover:bg-slate-50">
-                        <td className="p-1.5 font-medium">{l.categoryBB || l.category || '-'}</td>
-                        <td className="p-1.5 text-[10px]">{l.purposeBB || l.purpose || '-'}</td>
+                        <td className="p-1.5 font-medium">{denormalizeCategoryBB(l.categoryBB || l.category)}</td>
+                        <td className="p-1.5 text-[10px]">{denormalizePurposeBB(l.purposeBB || l.purpose)}</td>
                         <td className="p-1.5">{l.breed || 'Nelore'}</td>
                         <td className="p-1.5 text-center font-mono font-bold">{l.quantity || 0}</td>
                         <td className="p-1.5 text-center text-[10px] font-mono">

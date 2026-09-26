@@ -59,20 +59,21 @@ export default async function OwnerDashboardPage({ searchParams }: OwnerDashboar
       {/* CABEÇALHO DO DASHBOARD */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-emerald-950">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <ShieldCheck className="text-[#1B4D3E] w-6 h-6" />
               Dashboard Executivo SaaS
             </h1>
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100/70 px-2 py-0.5 text-xs font-semibold text-emerald-900 border border-emerald-200">
-              <ShieldCheck className="h-3.5 w-3.5" />
+            <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+              <Building2 className="h-3.5 w-3.5 text-slate-500" />
               {effectiveOrgName || user.organization?.name || 'Organização AgroTech'}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-gray-500 mt-1 flex items-center gap-2">
+          <p className="text-xs md:text-sm text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
             <span>Visão consolidada de franquia, cotas de emissão e performance documental</span>
-            <span className="text-gray-300">•</span>
-            <span className="font-medium text-gray-700 flex items-center gap-1">
-              <Building2 className="h-3.5 w-3.5 text-gray-400" />
+            <span className="text-slate-300">•</span>
+            <span className="font-medium text-slate-700 flex items-center gap-1">
+              <Building2 className="h-3.5 w-3.5 text-slate-400" />
               {activeBranchName}
             </span>
           </p>

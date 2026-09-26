@@ -4,8 +4,10 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { getUserContext } from '@/lib/auth'
-import { CivilStatus, MarriageRegime, ProducerType } from '@prisma/client'
+import { CivilStatus, MarriageRegime, ProducerType, ProducerSize } from '@prisma/client'
 import { validateCNPJ, validateCPF } from '@/lib/validations'
+import { producerSchema, producerUpdateSchema } from '@/lib/validations/producer'
+import { sanitizePayload } from '@/lib/utils/masks'
 
 export async function createProducer(data: any) {
   try {
@@ -17,6 +19,14 @@ export async function createProducer(data: any) {
     if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
     }
+
+    const validation = producerSchema.safeParse(data)
+    if (!validation.success) {
+      const errorMsg = validation.error.issues.map(e => e.message).join('; ')
+      return { error: errorMsg || 'Dados do produtor inválidos.' }
+    }
+
+    const cleanData = sanitizePayload(validation.data)
 
     const {
       type,
@@ -69,29 +79,11 @@ export async function createProducer(data: any) {
       brandLocation,
       
       branchId,
-    } = data
+    } = cleanData
 
-    // Validação estrita de Documento (Server-side)
     const cleanDoc = document.replace(/[^\d]+/g, '')
-    if (type === 'PF' && !validateCPF(cleanDoc)) {
-      throw new Error('O CPF informado é matematicamente inválido.')
-    }
-    if (type === 'PJ' && !validateCNPJ(cleanDoc)) {
-      throw new Error('O CNPJ informado é matematicamente inválido.')
-    }
-
-    // Regras de Outorga Uxória (Estado Civil)
     const isMarried = type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL')
-    if (isMarried) {
-      if (!marriageRegime) {
-        throw new Error('Para estado civil Casado ou União Estável, o Regime de Casamento é obrigatório.')
-      }
-      if (!spouseName?.trim()) {
-        throw new Error('Para estado civil Casado ou União Estável, o Nome do Cônjuge é obrigatório.')
-      }
-    }
-
-    const cleanSpouseCpf = spouseCpf?.replace(/[^\d]/g, '') || null
+    const cleanSpouseCpf = spouseCpf ? spouseCpf.replace(/[^\d]/g, '') : null
 
     const producer = await prisma.producer.create({
       data: {
@@ -125,7 +117,7 @@ export async function createProducer(data: any) {
         // Qualificação Civil e Escolaridade
         educationLevel: educationLevel?.trim() || null,
         naturalness: naturalness?.trim() || null,
-        producerSize: producerSize || null,
+        producerSize: producerSize === 'MINI' ? 'PEQUENO' : (producerSize as ProducerSize) || null,
 
         branchId,
         createdBy: dbUser.id,
@@ -193,6 +185,14 @@ export async function updateProducer(id: string, data: any) {
       throw new Error('Produtor não encontrado ou sem permissão.')
     }
 
+    const validation = producerUpdateSchema.safeParse(data)
+    if (!validation.success) {
+      const errorMsg = validation.error.issues.map(e => e.message).join('; ')
+      return { error: errorMsg || 'Dados do produtor inválidos.' }
+    }
+
+    const cleanData = sanitizePayload(validation.data)
+
     const {
       branchId,
       type,
@@ -243,30 +243,11 @@ export async function updateProducer(id: string, data: any) {
       brandDescription,
       brandRegistrationAdapec,
       brandLocation,
-    } = data
+    } = cleanData
 
-    const cleanDoc = document?.replace(/[^\d]/g, '') || ''
-    const cleanSpouseCpf = spouseCpf?.replace(/[^\d]/g, '') || null
-
-    if (type === 'PF' && !validateCPF(cleanDoc)) {
-      throw new Error('CPF do produtor é inválido.')
-    }
-    if (type === 'PJ' && !validateCNPJ(cleanDoc)) {
-      throw new Error('CNPJ do produtor é inválido.')
-    }
-
-    const isMarried = type === 'PF' && (civilStatus === 'CASADO' || civilStatus === 'UNIAO_ESTAVEL')
-    if (isMarried) {
-      if (!marriageRegime) {
-        throw new Error('Para estado civil Casado ou União Estável, o Regime de Casamento é obrigatório.')
-      }
-      if (!spouseName?.trim()) {
-        throw new Error('Para estado civil Casado ou União Estável, o Nome do Cônjuge é obrigatório.')
-      }
-      if (cleanSpouseCpf && !validateCPF(cleanSpouseCpf)) {
-        throw new Error('CPF do cônjuge é inválido.')
-      }
-    }
+    const cleanDoc = document ? document.replace(/[^\d]/g, '') : existingProducer.document
+    const isMarried = (type || existingProducer.type) === 'PF' && ((civilStatus || existingProducer.civilStatus) === 'CASADO' || (civilStatus || existingProducer.civilStatus) === 'UNIAO_ESTAVEL')
+    const cleanSpouseCpf = spouseCpf !== undefined ? (spouseCpf ? spouseCpf.replace(/[^\d]/g, '') : null) : undefined
 
     const updatedProducer = await prisma.producer.update({
       where: { id },
@@ -302,7 +283,7 @@ export async function updateProducer(id: string, data: any) {
         // Qualificação Civil e Escolaridade
         educationLevel: educationLevel !== undefined ? (educationLevel?.trim() || null) : undefined,
         naturalness: naturalness !== undefined ? (naturalness?.trim() || null) : undefined,
-        producerSize: producerSize !== undefined ? (producerSize || null) : undefined,
+        producerSize: producerSize !== undefined ? (producerSize === 'MINI' ? 'PEQUENO' : (producerSize as ProducerSize) || null) : undefined,
 
         updatedBy: dbUser.id
       }
@@ -344,7 +325,7 @@ export async function updateProducer(id: string, data: any) {
       } else {
         await prisma.property.create({
           data: {
-            branchId,
+            branchId: branchId || existingProducer.branchId,
             name: propertyName || 'Propriedade Principal',
             propertyName: propertyName || null,
             city: propertyCity || null,

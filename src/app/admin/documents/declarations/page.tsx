@@ -36,25 +36,27 @@ export default async function CreditProjectsHubPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       
-      {/* Top Banner & Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-linear-to-r from-[#1B4D3E] to-[#13382D] text-white p-8 rounded-2xl shadow-sm">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">
-            <ShieldCheck className="h-4 w-4" />
-            Declarações Legais e Autorizações • Banco do Brasil
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
+              <ShieldCheck className="text-[#1B4D3E] w-6 h-6" />
+              Documentos & Declarações Legais
+            </h1>
+            <span className="bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+              Padrão Banco do Brasil
+            </span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">
-            Documentos e Declarações Legais
-          </h1>
-          <p className="text-emerald-100/90 text-sm mt-2 max-w-2xl">
-            Geração de declarações ambientais, fundiárias e autorizações bancárias preenchidas automaticamente com os dados do sistema.
+          <p className="text-xs md:text-sm text-slate-500 mt-1">
+            Geração de declarações ambientais, fundiárias e autorizações bancárias preenchidas automaticamente.
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           <Link href="/admin/documents/declarations/new">
-            <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
-              <Plus className="h-5 w-5" />
+            <Button className="bg-[#1B4D3E] hover:bg-[#13382D] text-white font-bold shadow-xs px-4 h-10 text-xs flex items-center gap-2">
+              <Plus className="h-4 w-4" />
               Nova Declaração
             </Button>
           </Link>

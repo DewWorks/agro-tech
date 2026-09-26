@@ -62,12 +62,39 @@ export const step1LandBaseSchema = z.object({
   exploredAreaHa: z.coerce.number().min(0).default(0),
 
   // Registros Fundiários
-  registrationNumber: z.string().optional().or(z.literal('')),
-  registryOffice: z.string().optional().or(z.literal('')),
-  comarca: z.string().optional().or(z.literal('')),
-  car: z.string().optional().or(z.literal('')),
-  ccir: z.string().optional().or(z.literal('')),
-  itr: z.string().optional().or(z.literal('')),
+  registrationNumber: z
+    .string()
+    .regex(/^\d{1,8}$/, 'A matrícula deve conter de 1 a 8 dígitos numéricos')
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
+  registryOffice: z.string().optional().or(z.literal('')).nullable(),
+  comarca: z.string().optional().or(z.literal('')).nullable(),
+  car: z
+    .string()
+    .regex(
+      /^([A-Z]{2}-\d{7}-[A-Z0-9]{4}(\.[A-Z0-9]{4}){6}|[A-Z]{2}-\d{7}-[A-Z0-9]{8,32})$/i,
+      'Formato do CAR inválido. Padrão federal: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX'
+    )
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
+  ccir: z
+    .string()
+    .refine((val) => !val || val.replace(/\D/g, '').length === 13, {
+      message: 'O CCIR deve conter exatamente 13 dígitos numéricos',
+    })
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
+  itr: z
+    .string()
+    .refine((val) => !val || val.replace(/\D/g, '').length === 8, {
+      message: 'O ITR/NIRF deve conter exatamente 8 dígitos numéricos',
+    })
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
 
   // Atividade e Posse
   explorationActivity: z.string().optional().or(z.literal('')),
@@ -156,15 +183,35 @@ export const machineryItemSchema = z.object({
   model: z.string().optional().or(z.literal('')),
   year: z.coerce
     .number()
+    .int('Ano deve ser um número inteiro')
+    .min(1950, 'Ano deve ser a partir de 1950')
+    .max(new Date().getFullYear() + 1, 'Ano não pode ser superior ao próximo ano')
     .optional()
+    .nullable()
     .default(new Date().getFullYear()),
   powerCapacity: z.string().optional().or(z.literal('')),
-  chassisSerial: z.string().optional().or(z.literal('')),
+  chassisSerial: z
+    .string()
+    .max(30, 'Chassi deve conter até 30 caracteres')
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
   participationPercent: z.coerce.number().min(0).max(100).default(100),
   value: z.coerce.number().min(0).default(0),
   hasLien: z.boolean().default(false),
-  lienInstitution: z.string().optional().or(z.literal('')),
-})
+  lienInstitution: z.string().optional().or(z.literal('')).nullable(),
+}).refine(
+  (data) => {
+    if (data.hasLien && (!data.lienInstitution || !data.lienInstitution.trim())) {
+      return false
+    }
+    return true
+  },
+  {
+    message: 'Informe a instituição credora do gravame/penhor.',
+    path: ['lienInstitution'],
+  }
+)
 
 export const step2MachinerySchema = z.object({
   machineries: z.array(machineryItemSchema).default([]),
@@ -196,9 +243,26 @@ export const livestockItemSchema = z.object({
   purpose: z.string().optional().or(z.literal('Criação')),
   breed: z.string().optional().or(z.literal('Nelore')),
   geneticGrade: z.string().default('Comercial'),
-  quantity: z.coerce.number().min(0).default(0),
-  ageMonths: z.coerce.number().min(0).default(0),
-  avgWeightKg: z.coerce.number().min(0).default(0),
+  quantity: z.coerce
+    .number()
+    .int('Quantidade de cabeças deve ser um número inteiro')
+    .min(0, 'Quantidade não pode ser negativa')
+    .default(0),
+  ageMonths: z.coerce
+    .number()
+    .int('Idade em meses deve ser um número inteiro')
+    .min(0, 'Idade não pode ser negativa')
+    .max(360, 'Idade máxima permitida de 360 meses (30 anos)')
+    .optional()
+    .nullable()
+    .default(0),
+  avgWeightKg: z.coerce
+    .number()
+    .min(0, 'Peso não pode ser negativo')
+    .max(2500, 'Peso médio máximo permitido de 2.500 kg')
+    .optional()
+    .nullable()
+    .default(0),
   unitValue: z.coerce.number().min(0).default(0),
   totalValue: z.coerce.number().min(0).default(0),
   markingType: z.string().optional().or(z.literal('')),
@@ -252,14 +316,82 @@ export type Step4FinancialSummaryValues = z.infer<typeof step4FinancialSummarySc
 // COMPOSITE SCHEMA CONSOLIDADO (WIZARD COMPLETO)
 // ============================================================================
 
-export const propertyWizardSchema = z.object({
+export const propertyWizardBaseSchema = z.object({
   ...step1LandBaseSchema.shape,
   ...step2MachinerySchema.shape,
   ...step3ImprovementsAndHerdSchema.shape,
   ...step4FinancialSummarySchema.shape,
 })
 
-export type PropertyWizardFormValues = z.infer<typeof propertyWizardSchema>
+export type PropertyWizardFormValues = z.infer<typeof propertyWizardBaseSchema>
+
+export const propertyWizardSchema = propertyWizardBaseSchema
+  .refine(
+    (data) => {
+      if (!data.totalArea || data.totalArea <= 0) return true
+      const sum = (Number(data.productiveArea) || 0) + (Number(data.pastureArea) || 0) + (Number(data.preserveArea) || 0)
+      return sum <= Number(data.totalArea)
+    },
+    {
+      message: 'A soma das áreas (produtiva, pastagem e preservação) não pode ultrapassar a área total da propriedade (balanço de áreas fundiárias).',
+      path: ['totalArea'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.ownershipType && data.ownershipType !== 'PROPRIETARIO') {
+        if (data.exploredAreaHa && data.totalArea && Number(data.exploredAreaHa) > Number(data.totalArea)) {
+          return false
+        }
+      }
+      return true
+    },
+    {
+      message: 'A área explorada não pode ser superior à área total da propriedade.',
+      path: ['exploredAreaHa'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.ownershipType && data.ownershipType !== 'PROPRIETARIO' && data.contractStartDate && data.contractEndDate) {
+        return new Date(data.contractEndDate) > new Date(data.contractStartDate)
+      }
+      return true
+    },
+    {
+      message: 'A data final do contrato deve ser posterior à data inicial.',
+      path: ['contractEndDate'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.ownershipType && data.ownershipType !== 'PROPRIETARIO') {
+        if (!data.landlordName || !data.landlordName.trim()) {
+          return false
+        }
+      }
+      return true
+    },
+    {
+      message: 'O nome do cedente / proprietário da terra é obrigatório para contratos de cessão ou arrendamento.',
+      path: ['landlordName'],
+    }
+  )
+  .refine(
+    (data) => {
+      if (data.ownershipType && data.ownershipType !== 'PROPRIETARIO') {
+        const doc = (data.landlordDocument || '').replace(/\D/g, '')
+        if (!doc || (doc.length !== 11 && doc.length !== 14)) {
+          return false
+        }
+      }
+      return true
+    },
+    {
+      message: 'O CPF ou CNPJ do cedente / proprietário da terra é obrigatório e deve ser válido.',
+      path: ['landlordDocument'],
+    }
+  )
 
 // ============================================================================
 // MAPA DE CAMPOS PARA VALIDAÇÃO PARCIAL (Partial Triggering por Passo)
