@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { getDemands } from '@/actions/demands'
 import { redirect, notFound } from 'next/navigation'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function EditPropertyPage({ 
   params,
@@ -179,34 +180,30 @@ export default async function EditPropertyPage({
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <MapPin className="h-8 w-8" />
-            Editar Propriedade Rural
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Atualize as informações cadastrais, documentação, rebanho e titularidade do imóvel.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <Link
-            href={`/admin/crm/properties/${property.id}/edit?tab=demands`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-2xs"
-          >
-            <ClipboardList className="w-4 h-4 text-emerald-600" />
-            <span>Demandas ({demands.length})</span>
-          </Link>
-          <Link
-            href={`/admin/demands/new?propertyId=${property.id}${linkedProducers[0] ? `&producerId=${linkedProducers[0].id}` : ''}`}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Nova Demanda</span>
-          </Link>
-        </div>
-      </div>
+      <PageHeaderBanner
+        badge={`CRM • Filial: ${property.branch?.name || 'Geral'}`}
+        badgeIcon={<MapPin className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title={`Editar: ${property.propertyName || property.name || 'Propriedade Rural'}`}
+        description="Atualize as informações cadastrais, documentação, rebanho e titularidade do imóvel."
+        actions={
+          <div className="flex items-center gap-2.5">
+            <Link
+              href={`/admin/crm/properties/${property.id}/edit?tab=demands`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all shadow-xs"
+            >
+              <ClipboardList className="w-4 h-4 text-emerald-300" />
+              <span>Demandas ({demands.length})</span>
+            </Link>
+            <Link
+              href={`/admin/demands/new?propertyId=${property.id}${linkedProducers[0] ? `&producerId=${linkedProducers[0].id}` : ''}`}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white text-[#1B4D3E] hover:bg-emerald-50 text-xs font-bold transition-all shadow-xs"
+            >
+              <Plus className="w-4 h-4 stroke-[3]" />
+              <span>Nova Demanda</span>
+            </Link>
+          </div>
+        }
+      />
 
       <PropertyTabsView 
         property={property}

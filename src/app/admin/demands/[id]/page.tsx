@@ -29,6 +29,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,37 +116,32 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="mb-2">
-            <Link
-              href="/admin/demands"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Voltar para Hub de Demandas</span>
+      {/* Top Header com Identidade Padronizada */}
+      <PageHeaderBanner
+        badge={`Demanda #${demand.id.slice(-6).toUpperCase()} • ${serviceTitle}`}
+        badgeIcon={<ClipboardList className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title={serviceTitle}
+        description={`Demanda vinculada a ${demand.producer.name}${demand.property ? ` — Fazenda ${propertyDisplayName}` : ''}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <Link href="/admin/demands">
+              <Button
+                variant="outline"
+                className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1.5" />
+                Voltar
+              </Button>
+            </Link>
+            <Link href={`/admin/demands/${demand.id}/edit`}>
+              <Button className="bg-white text-[#1B4D3E] hover:bg-emerald-50 text-xs font-bold shadow-xs">
+                <Edit className="mr-1.5 h-4 w-4" />
+                <span>Editar Demanda</span>
+              </Button>
             </Link>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <ClipboardList className="h-8 w-8" />
-            {serviceTitle}
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Demanda vinculada a <strong className="text-foreground">{demand.producer.name}</strong>
-            {demand.property ? ` — Fazenda ${propertyDisplayName}` : ''}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Link href={`/admin/demands/${demand.id}/edit`}>
-            <Button variant="outline" className="border-slate-200">
-              <Edit className="mr-2 h-4 w-4" />
-              <span>Editar Demanda</span>
-            </Button>
-          </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Cartão de Identificação Principal */}
       <div className="bg-white rounded-xl p-6 border shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-6">

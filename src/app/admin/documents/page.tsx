@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { FileText } from 'lucide-react'
 import DocumentsClient from './documents-client'
 import { getDocumentTree, listDocuments } from '@/actions/documents'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function DocumentsPage() {
   const dbUser = await getUserContext()
@@ -23,16 +24,13 @@ export default async function DocumentsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-          <FileText className="h-8 w-8" />
-          Documentos (GED)
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Gestão Eletrônica de Documentos — Armazenamento seguro, semáforo de validades e herança documental.
-        </p>
-      </div>
+      {/* Page Header Padronizado */}
+      <PageHeaderBanner
+        badge="GED Enterprise • Gestão Documental"
+        badgeIcon={<FileText className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Documentos (GED)"
+        description="Gestão Eletrônica de Documentos — Armazenamento seguro, semáforo de validades e herança documental."
+      />
 
       {/* Client-side Split View */}
       <DocumentsClient

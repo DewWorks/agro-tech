@@ -27,7 +27,7 @@ export default function RecentEmissionsTable({ emissions }: RecentEmissionsTable
         <div>
           <h3 className="text-lg font-bold text-gray-900">Histórico de Emissões Recentes</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Registro cronológico das últimas minutas e projetos técnicos gerados na franquia
+            Registro cronológico das últimas Declarações Legais e projetos técnicos gerados na franquia
           </p>
         </div>
         <span className="text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full">

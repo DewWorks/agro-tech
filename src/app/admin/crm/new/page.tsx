@@ -1,8 +1,11 @@
-import { Tractor } from 'lucide-react'
+import { Tractor, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
 import ProducerMultiStepForm from '@/components/crm/ProducerMultiStepForm'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function NewProducerPage() {
   const dbUser = await getUserContext()
@@ -34,17 +37,23 @@ export default async function NewProducerPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <Tractor className="h-8 w-8" />
-            Novo Produtor Rural
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Preencha os dados abaixo para cadastrar um novo cliente na plataforma.
-          </p>
-        </div>
-      </div>
+      <PageHeaderBanner
+        badge="CRM & Carteira de Clientes"
+        badgeIcon={<Tractor className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Novo Produtor Rural"
+        description="Preencha os dados abaixo para cadastrar um novo cliente na plataforma."
+        actions={
+          <Link href="/admin/crm">
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
+              Voltar ao CRM
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="bg-white rounded-xl shadow-sm border p-6">
         <ProducerMultiStepForm branches={userBranches} />

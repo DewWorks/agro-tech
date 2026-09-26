@@ -1,10 +1,11 @@
-import { MapPin, AlertCircle } from 'lucide-react'
+import { MapPin, AlertCircle, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import PropertyMultiStepForm from '@/components/crm/PropertyMultiStepForm'
 import prisma from '@/lib/prisma'
 import { getUserContext } from '@/lib/auth'
 import { redirect } from 'next/navigation'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 interface NewPropertyPageProps {
   searchParams?: Promise<{
@@ -99,17 +100,23 @@ export default async function NewPropertyPage(props: NewPropertyPageProps) {
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <MapPin className="h-8 w-8" />
-            Nova Propriedade Rural
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Cadastre os dados da propriedade, áreas, titularidade e rebanho.
-          </p>
-        </div>
-      </div>
+      <PageHeaderBanner
+        badge="CRM & Imóveis Rurais"
+        badgeIcon={<MapPin className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Nova Propriedade Rural"
+        description="Cadastre os dados da propriedade, áreas, titularidade e rebanho."
+        actions={
+          <Link href="/admin/crm/properties">
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
+              Voltar às Propriedades
+            </Button>
+          </Link>
+        }
+      />
 
       {producers.length === 0 && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

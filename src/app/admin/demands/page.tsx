@@ -7,6 +7,7 @@ import { getDemands } from '@/actions/demands'
 import { DemandHubContainer } from '@/components/demands/DemandHubContainer'
 import { Plus, ClipboardList } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 import {
   RuralServiceTypeCode,
   DemandStatusCode,
@@ -101,23 +102,20 @@ export default async function DemandsPage(props: DemandsPageProps) {
 
   return (
     <div className="space-y-4">
-      {/* Top Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <ClipboardList className="text-[#1B4D3E] w-6 h-6" />
-            Serviços & Demandas Rurais
-          </h1>
-          <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Gestão operacional de ordens de serviço, esteira documental do GED e governança de prazos.
-          </p>
-        </div>
-        <Link href="/admin/demands/new">
-          <Button className="bg-[#1B4D3E] hover:bg-[#13382D]">
-            <Plus className="mr-2 h-4 w-4" /> Nova Demanda
-          </Button>
-        </Link>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="Operação Agropecuária • Esteira Kanban"
+        badgeIcon={<ClipboardList className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Serviços & Demandas Rurais"
+        description="Gestão operacional de ordens de serviço, esteira documental do GED e governança de prazos."
+        actions={
+          <Link href="/admin/demands/new">
+            <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Nova Demanda
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Hub Container com Transições Instantâneas e Skeletons */}
       <DemandHubContainer

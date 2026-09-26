@@ -21,6 +21,7 @@ import { Users as UsersIcon, Plus, Pencil, Mail, Key, CheckCircle2, AlertTriangl
 import { toggleUserStatus, resendWelcomeEmailAction, resetUserPasswordAction } from '@/actions/users'
 import { ConfirmActionModal } from '@/components/admin/ConfirmActionModal'
 import DataTableToolbar from '@/components/admin/DataTableToolbar'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: 'Super Administrador',
@@ -76,22 +77,20 @@ export default async function UsersPage(props: { searchParams: Promise<{ [key: s
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-            <UsersIcon className="h-8 w-8" />
-            Gestão de Utilizadores
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Controle de acessos, cargos e permissões por filial.
-          </p>
-        </div>
-        <Link href="/admin/users/new">
-          <Button className="bg-[#1B4D3E] hover:bg-[#13382D]">
-            <Plus className="mr-2 h-4 w-4" /> Novo Utilizador
-          </Button>
-        </Link>
-      </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="Governança & Controle de Acesso"
+        badgeIcon={<UsersIcon className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Gestão de Utilizadores"
+        description="Controle de acessos, cargos e permissões por filial."
+        actions={
+          <Link href="/admin/users/new">
+            <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
+              <Plus className="h-5 w-5" /> Novo Utilizador
+            </Button>
+          </Link>
+        }
+      />
 
       <DataTableToolbar 
         searchPlaceholder="Buscar por Nome ou E-mail..."

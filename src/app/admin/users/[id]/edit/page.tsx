@@ -1,9 +1,11 @@
 import { UserForm } from '@/components/admin/users/UserForm'
-import { Users as UsersIcon } from 'lucide-react'
-import { ArrowLeft, Edit } from 'lucide-react'
+import { Users as UsersIcon, ArrowLeft } from 'lucide-react'
 import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function EditUserPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params
@@ -39,17 +41,25 @@ export default async function EditUserPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[#1B4D3E] flex items-center gap-2">
-          <UsersIcon className="h-8 w-8" />
-          Editar Utilizador
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          Atualize os dados, cargos e acessos do utilizador.
-        </p>
-      </div>
+      <PageHeaderBanner
+        badge="Controle de Acessos • Gestão de Usuários"
+        badgeIcon={<UsersIcon className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title={`Editar: ${userToEdit.fullName || userToEdit.email}`}
+        description="Atualize os dados, cargos e acessos do utilizador."
+        actions={
+          <Link href="/admin/users">
+            <Button
+              variant="outline"
+              className="bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold"
+            >
+              <ArrowLeft className="h-4 w-4 mr-1.5" />
+              Voltar aos Usuários
+            </Button>
+          </Link>
+        }
+      />
 
-      <div className="bg-white p-6 rounded-lg border shadow-sm">
+      <div className="bg-white p-6 rounded-xl border shadow-sm">
         <UserForm initialData={userToEdit} branches={branches} />
       </div>
     </div>

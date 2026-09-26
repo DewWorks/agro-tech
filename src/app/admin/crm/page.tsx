@@ -23,6 +23,7 @@ import { toggleProducerStatus } from '@/actions/producers'
 import DataViewContainer from '@/components/admin/DataViewContainer'
 import CRMNavigationTabs from '@/components/crm/CRMNavigationTabs'
 import { Card, CardContent } from '@/components/ui/card'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function CRMPage(props: { searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined } }) {
   const searchParams = await props.searchParams || {}
@@ -110,27 +111,19 @@ export default async function CRMPage(props: { searchParams: Promise<{ [key: str
   return (
     <div className="space-y-6">
       
-      {/* Top Header */}
-      <div className="flex flex-col gap-1">
-        <div className="flex items-center gap-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-          CLIENTES & PROPRIEDADES · GESTÃO UNIFICADA
-        </div>
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2.5">
-            <Tractor className="text-[#1B4D3E] w-6 h-6" />
-            Produtores Rurais
-          </h1>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center text-xs font-semibold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200/60 shadow-xs">
-              <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-emerald-600" />
-              Sincronizado
-            </div>
+      {/* Top Header Padronizado */}
+      <PageHeaderBanner
+        badge="Clientes & Propriedades • Gestão Unificada"
+        badgeIcon={<Tractor className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Produtores Rurais"
+        description="Gestão cadastral, qualificação de clientes e documentos unificados por produtor."
+        actions={
+          <div className="flex items-center text-xs font-semibold text-emerald-100 bg-white/10 px-3 py-1.5 rounded-full border border-white/20 shadow-xs">
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1.5 text-emerald-300" />
+            Sincronizado
           </div>
-        </div>
-        <p className="text-xs md:text-sm text-slate-500 mt-1">
-          Gestão cadastral, qualificação de clientes e documentos unificados por produtor.
-        </p>
-      </div>
+        }
+      />
 
       {/* Navigation Tabs (Produtores Rurais / Propriedades Rurais) */}
       <CRMNavigationTabs

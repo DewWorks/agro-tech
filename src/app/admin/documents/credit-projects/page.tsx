@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CREDIT_TEMPLATES_REGISTRY } from '@/lib/document-templates'
+import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default async function CreditProjectsHubPage() {
   const user = await getUserContext()
@@ -47,30 +48,21 @@ export default async function CreditProjectsHubPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       
-      {/* Top Banner & Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-linear-to-r from-[#1B4D3E] to-[#13382D] text-white p-8 rounded-2xl shadow-sm">
-        <div>
-          <div className="flex items-center gap-2 text-emerald-200 text-xs font-semibold uppercase tracking-wider mb-2">
-            <Landmark className="h-4 w-4" />
-            Esteira Oficial de Crédito Rural • Banco do Brasil
-          </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">
-            Projetos & Documentos de Crédito Rural
-          </h1>
-          <p className="text-emerald-100/90 text-sm mt-2 max-w-2xl">
-            Geração fidedigna de propostas, checklists operacionais, laudos técnicos de investimento (RenovAgro/InovAgro) e orçamentos de custeio preenchidos automaticamente com os dados do sistema.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
+      {/* Top Banner & Header Oficial */}
+      <PageHeaderBanner
+        badge="Esteira Oficial de Crédito Rural • Banco do Brasil"
+        badgeIcon={<Landmark className="h-4 w-4 shrink-0 text-emerald-300" />}
+        title="Projetos & Documentos de Crédito Rural"
+        description="Geração fidedigna de propostas, checklists operacionais, laudos técnicos de investimento (RenovAgro/InovAgro) e orçamentos de custeio preenchidos automaticamente com os dados do sistema."
+        actions={
           <Link href="/admin/documents/credit-projects/new">
             <Button className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold shadow-md px-6 py-6 text-sm flex items-center gap-2">
               <Plus className="h-5 w-5" />
               Novo Documento / Projeto
             </Button>
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Grid de Modelos Oficiais */}
       <div className="space-y-4">
