@@ -79,6 +79,18 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
   const crea = opt.creaNumber || 'Pendente'
   const art = opt.artNumber || 'Pendente'
 
+  const isAnimalOrEquipment = subline.toLowerCase().includes('matriz') ||
+    subline.toLowerCase().includes('reprodutor') ||
+    subline.toLowerCase().includes('animal') ||
+    subline.toLowerCase().includes('animais') ||
+    subline.toLowerCase().includes('semovente') ||
+    subline.toLowerCase().includes('cabeça') ||
+    subline.toLowerCase().includes('cabeca') ||
+    subline.toLowerCase().includes('gado') ||
+    subline.toLowerCase().includes('máquina') ||
+    subline.toLowerCase().includes('maquina') ||
+    subline.toLowerCase().includes('equipamento')
+
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
     
@@ -132,7 +144,7 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
             <th style="padding: 4px 8px;">Matrícula / CRI</th>
             <th style="padding: 4px 8px;">CAR</th>
             <th style="padding: 4px 8px; text-align: right;">Área Total</th>
-            <th style="padding: 4px 8px; text-align: right;">Área do Projeto</th>
+            <th style="padding: 4px 8px; text-align: right;">${isAnimalOrEquipment ? 'Quant. Projeto' : 'Área do Projeto'}</th>
           </tr>
         </thead>
         <tbody>
@@ -141,7 +153,7 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
             <td style="padding: 5px 8px;">${prop.registrationNumber || 'Pendente'} (${prop.registryOffice || 'CRI'})</td>
             <td style="padding: 5px 8px;">${prop.car || 'Pendente'}</td>
             <td style="padding: 5px 8px; text-align: right;">${(prop.totalAreaHa || 0).toFixed(2)} ha</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-weight: bold;">${areaRecover > 0 ? areaRecover.toFixed(2) + ' ha' : 'Pendente'}</td>
+            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-weight: bold;">${areaRecover > 0 ? (isAnimalOrEquipment ? `${areaRecover.toFixed(0)} un/cab` : `${areaRecover.toFixed(2)} ha`) : 'Pendente'}</td>
           </tr>
         </tbody>
       </table>
@@ -164,38 +176,47 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
     <!-- 04. PLANO DE INVESTIMENTO E CRONOGRAMA FÍSICO-FINANCEIRO -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        04 - Plano de Investimento & Composição de Custos ${areaRecover > 0 ? `(${areaRecover.toFixed(2)} ha)` : ''}
+        04 - Plano de Investimento & Composição de Custos ${areaRecover > 0 ? (isAnimalOrEquipment ? `(${areaRecover.toFixed(0)} un/cab)` : `(${areaRecover.toFixed(2)} ha)`) : ''}
       </div>
       <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-            <th style="padding: 4px 8px;">Item / Discriminação do Serviço ou Insumo</th>
-            <th style="padding: 4px 8px;">Quant./ha</th>
+            <th style="padding: 4px 8px;">Item / Discriminação do ${isAnimalOrEquipment ? 'Bem ou Semovente' : 'Serviço ou Insumo'}</th>
+            <th style="padding: 4px 8px;">${isAnimalOrEquipment ? 'Quant. Total' : 'Quant./ha'}</th>
             <th style="padding: 4px 8px; text-align: right;">Custo Unit. Estimado</th>
             <th style="padding: 4px 8px; text-align: right;">Total Item (R$)</th>
           </tr>
         </thead>
         <tbody>
-          ${totalInv > 0 && areaRecover > 0 ? `
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Calagem e Preparo do Solo</td>
-            <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Adubação Corretiva e de Manutenção</td>
-            <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Sementes, Inoculantes e Plantio</td>
-            <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
-            <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
-          </tr>
-          ` : `
+          ${totalInv > 0 && areaRecover > 0 ? (
+            isAnimalOrEquipment ? `
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+              <td style="padding: 4px 8px; font-weight: 500;">${subline || 'Aquisição de Semoventes / Bens Financiáveis'}</td>
+              <td style="padding: 4px 8px;">${areaRecover.toFixed(0)} un/cab</td>
+              <td style="padding: 4px 8px; text-align: right;">R$ ${costPerHa.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+              <td style="padding: 4px 8px; text-align: right; font-weight: bold; color: #1B4D3E;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            </tr>
+            ` : `
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+              <td style="padding: 4px 8px;">Calagem e Preparo do Solo</td>
+              <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
+              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+              <td style="padding: 4px 8px;">Adubação Corretiva e de Manutenção</td>
+              <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
+              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+              <td style="padding: 4px 8px;">Sementes, Inoculantes e Plantio</td>
+              <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
+              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            </tr>
+            `
+          ) : `
           <tr>
             <td colspan="4" style="padding: 14px; text-align: center; color: #b45309; background: #fffbeb; font-weight: 500;">
               Aguardando preenchimento da área a recuperar e orçamento no formulário lateral.

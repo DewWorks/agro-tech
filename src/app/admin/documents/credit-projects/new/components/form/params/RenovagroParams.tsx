@@ -9,22 +9,66 @@ interface ParamsProps {
   setCustomOptions: React.Dispatch<React.SetStateAction<CustomOptions>>
 }
 
-const RENOVAGRO_SUBLINES = [
+export const RENOVAGRO_SUBLINES = [
   'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)',
   'Integração Lavoura-Pecuária-Floresta (ILPF)',
   'Sistemas Agroflorestais (SAF)',
-  'Manejo de Solo e Água'
+  'Manejo de Solo e Água',
+  'Aquisição de Matrizes e Reprodutores',
+  'Máquinas e Equipamentos de Baixo Carbono'
 ]
 
+/**
+ * Detecta se a sublinha do RenovAgro é voltada a semoventes/equipamentos/itens físicos
+ * ou se é voltada a solo/pastagem/terra.
+ */
+export function isAnimalOrEquipmentSubline(subline?: string): boolean {
+  if (!subline) return false
+  const s = subline.toLowerCase().trim()
+  return (
+    s.includes('matriz') ||
+    s.includes('reprodutor') ||
+    s.includes('animal') ||
+    s.includes('animais') ||
+    s.includes('semovente') ||
+    s.includes('cabeça') ||
+    s.includes('cabeca') ||
+    s.includes('gado') ||
+    s.includes('bovino') ||
+    s.includes('máquina') ||
+    s.includes('maquina') ||
+    s.includes('equipamento') ||
+    s.includes('trator') ||
+    s.includes('implemento')
+  )
+}
+
 export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps) {
+  const isAnimalOrEquipment = isAnimalOrEquipmentSubline(customOptions.renovagroSubline)
+
+  // Rótulos e placeholders dinâmicos conforme a sublinha
+  const qtyLabel = isAnimalOrEquipment ? 'Item Financiável / Quantidade *' : 'Área a Recuperar (ha) *'
+  const qtyPlaceholder = isAnimalOrEquipment ? 'Ex: 40' : 'Ex: 40'
+  const qtyUnitHint = isAnimalOrEquipment ? 'Cabeças / Unidades' : 'Hectares (ha)'
+
+  const unitCostLabel = isAnimalOrEquipment ? 'Valor Unitário (R$) *' : 'Custo / ha (R$) *'
+  const unitCostPlaceholder = isAnimalOrEquipment ? 'Ex: 4000' : 'Ex: 3850'
+  const unitCostHint = isAnimalOrEquipment ? 'R$ por cabeça/unidade' : 'R$ por hectare'
+  const defaultUnitCost = isAnimalOrEquipment ? 4000 : 3850
+
   return (
     <div className="space-y-3 pt-3 border-t border-gray-100">
       <div className="flex items-center justify-between">
         <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
           Parâmetros do RenovAgro
         </span>
-        <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-          Recuperação Sustentável
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 rounded border transition-colors font-medium",
+          isAnimalOrEquipment
+            ? "text-blue-700 bg-blue-50 border-blue-200"
+            : "text-emerald-700 bg-emerald-50 border-emerald-200"
+        )}>
+          {isAnimalOrEquipment ? 'Investimento em Semoventes / Bens' : 'Recuperação Sustentável (Solo/Pastagem)'}
         </span>
       </div>
 
@@ -47,38 +91,72 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           placeholder="Selecione abaixo ou digite..."
         />
         <div className="flex flex-wrap gap-1 pt-0.5">
-          {RENOVAGRO_SUBLINES.map((sub) => (
-            <button
-              key={sub}
-              type="button"
-              onClick={() => setCustomOptions(prev => ({ ...prev, renovagroSubline: sub }))}
-              className={cn(
-                "text-[9.5px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer text-left",
-                customOptions.renovagroSubline === sub
-                  ? "bg-emerald-100 text-[#1B4D3E] border-emerald-300 font-semibold"
-                  : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-emerald-50 hover:text-[#1B4D3E]"
-              )}
-            >
-              {sub.startsWith('Recuperação') ? 'Recup. de Pastagens' : sub.split('(')[0].trim()}
-            </button>
-          ))}
+          {RENOVAGRO_SUBLINES.map((sub) => {
+            const isSelected = customOptions.renovagroSubline === sub
+            let displayLabel = sub
+            if (sub.startsWith('Recuperação')) displayLabel = 'Recup. de Pastagens'
+            else if (sub.includes('(')) displayLabel = sub.split('(')[0].trim()
+            else if (sub.startsWith('Aquisição')) displayLabel = 'Aquisição de Matrizes'
+            else if (sub.startsWith('Máquinas')) displayLabel = 'Máquinas / Equipamentos'
+
+            return (
+              <button
+                key={sub}
+                type="button"
+                onClick={() => {
+                  setCustomOptions(prev => {
+                    const wasAnimal = isAnimalOrEquipmentSubline(prev.renovagroSubline)
+                    const nowAnimal = isAnimalOrEquipmentSubline(sub)
+                    let cost = prev.renovagroCostPerHa
+                    // Se estiver no valor padrão anterior, sugere o valor padrão do novo contexto
+                    if (!wasAnimal && nowAnimal && (cost === 3500 || cost === 3850 || !cost)) {
+                      cost = 4000
+                    } else if (wasAnimal && !nowAnimal && (cost === 4000 || !cost)) {
+                      cost = 3850
+                    }
+                    const qty = prev.renovagroAreaHa || 0
+                    const total = qty > 0 && cost ? qty * cost : prev.renovagroTotalInvestment
+                    return {
+                      ...prev,
+                      renovagroSubline: sub,
+                      renovagroCostPerHa: cost,
+                      renovagroTotalInvestment: total,
+                      renovagroFinanced: total ? Math.round(total * 0.9) : prev.renovagroFinanced,
+                      renovagroOwnResources: total ? Math.round(total * 0.1) : prev.renovagroOwnResources,
+                    }
+                  })
+                }}
+                className={cn(
+                  "text-[9.5px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer text-left",
+                  isSelected
+                    ? "bg-emerald-100 text-[#1B4D3E] border-emerald-300 font-semibold"
+                    : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-emerald-50 hover:text-[#1B4D3E]"
+                )}
+              >
+                {displayLabel}
+              </button>
+            )
+          })}
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-[10.5px] text-gray-600">Área a Recuperar (ha) *</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10.5px] text-gray-600">{qtyLabel}</Label>
+            <span className="text-[9px] text-gray-400 font-normal">{qtyUnitHint}</span>
+          </div>
           <Input
             type="number"
             value={customOptions.renovagroAreaHa || ''}
             onChange={(e) => {
-              const area = Number(e.target.value)
+              const qty = Number(e.target.value)
               setCustomOptions(prev => {
-                const cost = prev.renovagroCostPerHa || 3500
-                const total = area * cost
+                const cost = prev.renovagroCostPerHa || defaultUnitCost
+                const total = qty * cost
                 return {
                   ...prev,
-                  renovagroAreaHa: area,
+                  renovagroAreaHa: qty,
                   renovagroCostPerHa: cost,
                   renovagroTotalInvestment: total,
                   renovagroFinanced: Math.round(total * 0.9),
@@ -87,18 +165,22 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
               })
             }}
             className="h-8 text-xs"
-            placeholder="Ex: 50"
+            placeholder={qtyPlaceholder}
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10.5px] text-gray-600">Custo / ha (R$) *</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10.5px] text-gray-600">{unitCostLabel}</Label>
+            <span className="text-[9px] text-gray-400 font-normal">{unitCostHint}</span>
+          </div>
           <Input
             type="number"
             value={customOptions.renovagroCostPerHa || ''}
             onChange={(e) => {
               const cost = Number(e.target.value)
               setCustomOptions(prev => {
-                const total = prev.renovagroAreaHa * cost
+                const qty = prev.renovagroAreaHa || 0
+                const total = qty * cost
                 return {
                   ...prev,
                   renovagroCostPerHa: cost,
@@ -109,7 +191,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
               })
             }}
             className="h-8 text-xs"
-            placeholder="Ex: 3500"
+            placeholder={unitCostPlaceholder}
           />
         </div>
       </div>
@@ -134,11 +216,21 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10.5px] text-gray-600">Financiamento (R$) *</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10.5px] text-gray-600">Financiamento (R$) *</Label>
+            <span className="text-[9px] text-emerald-700 bg-emerald-50 px-1 rounded font-medium">90% Teto</span>
+          </div>
           <Input
             type="number"
             value={customOptions.renovagroFinanced || ''}
-            onChange={(e) => setCustomOptions(prev => ({ ...prev, renovagroFinanced: Number(e.target.value) }))}
+            onChange={(e) => {
+              const val = Number(e.target.value)
+              setCustomOptions(prev => ({
+                ...prev,
+                renovagroFinanced: val,
+                renovagroOwnResources: Math.max(0, (prev.renovagroTotalInvestment || 0) - val)
+              }))
+            }}
             className="h-8 text-xs"
             placeholder="0,00"
           />
