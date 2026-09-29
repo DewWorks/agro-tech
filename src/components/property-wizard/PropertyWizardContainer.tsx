@@ -471,7 +471,7 @@ export function PropertyWizardContainer({
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
       {/* Barra de Navegação Superior */}
-      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-slate-800 print:hidden">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/crm/properties"
@@ -542,14 +542,16 @@ export function PropertyWizardContainer({
       </div>
 
       {/* Header Stepper */}
-      <WizardStepperHeader
-        currentStep={currentStep}
-        onStepClick={handleStepClick}
-        highestVisitedStep={highestVisitedStep}
-        isEditMode={isEditMode}
-        hasFinancialModule={hasFinancialModule}
-        isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
-      />
+      <div className="print:hidden">
+        <WizardStepperHeader
+          currentStep={currentStep}
+          onStepClick={handleStepClick}
+          highestVisitedStep={highestVisitedStep}
+          isEditMode={isEditMode}
+          hasFinancialModule={hasFinancialModule}
+          isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+        />
+      </div>
 
       {/* Formulário Principal com Contexto RHF */}
       <Form {...form}>
@@ -588,7 +590,7 @@ export function PropertyWizardContainer({
           )}
 
           {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD (FLUXO NATURAL - NÃO COBRE OS CAMPOS AO ROLAR) */}
-          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between mt-8">
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between mt-8 print:hidden">
             <div>
               {currentStep > 1 && (
                 <Button

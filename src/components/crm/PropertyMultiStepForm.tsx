@@ -6,7 +6,7 @@ import { PropertyWizardContainer } from '@/components/property-wizard/PropertyWi
 interface PropertyMultiStepFormProps {
   branches: Array<{ id: string; name: string }>
   initialData?: any
-  producers?: Array<{ id: string; name: string; document?: string; branchId?: string }>
+  producers?: Array<{ id: string; name: string; document?: string; branchId?: string; [key: string]: any }>
   initialProducerId?: string
   initialBranchId?: string
   hasFinancialModule?: boolean

@@ -34,7 +34,7 @@ export function PropertyTabsView({
   return (
     <div className="space-y-4">
       {/* Abas Superiores do Perfil da Propriedade */}
-      <div className="flex space-x-1.5 border-b overflow-x-auto pb-1 scrollbar-thin">
+      <div className="flex space-x-1.5 border-b overflow-x-auto pb-1 scrollbar-thin print:hidden">
         <button
           type="button"
           onClick={() => setActiveTab('CADASTRO')}

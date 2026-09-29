@@ -19,6 +19,7 @@ import {
   UserCheck,
 } from 'lucide-react'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
+import { maskCPF, maskCNPJ, formatMarriageRegime } from '@/lib/utils/masks'
 
 const OWNERSHIP_LABELS: Record<string, string> = {
   PROPRIETARIO: 'Proprietário',
@@ -104,16 +105,125 @@ export function Step5ReviewDossier({
   }, [landTotal, machineriesTotal, improvementsTotal, livestockTotal, totalAssets, activeForm])
 
   const handlePrint = () => {
-    window.print()
+    const element = document.getElementById('dossier-a4-document')
+    if (!element) {
+      window.print()
+      return
+    }
+
+    const existingIframe = document.getElementById('print-dossier-iframe')
+    if (existingIframe) {
+      existingIframe.remove()
+    }
+
+    const iframe = document.createElement('iframe')
+    iframe.id = 'print-dossier-iframe'
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = '0'
+
+    document.body.appendChild(iframe)
+
+    const doc = iframe.contentWindow?.document
+    if (!doc) {
+      window.print()
+      return
+    }
+
+    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((el) => el.outerHTML)
+      .join('\n')
+
+    doc.open()
+    doc.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+        <head>
+          <meta charset="utf-8" />
+          <title>Laudo Técnico de Vistoria e Avaliação Patrimonial Rural - AgroTech CRM</title>
+          ${styleLinks}
+          <style>
+            @page {
+              size: A4 portrait;
+              margin: 10mm 10mm 10mm 10mm;
+            }
+            html, body {
+              background: #ffffff !important;
+              color: #000000 !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              overflow: visible !important;
+              height: auto !important;
+              min-height: 0 !important;
+              font-family: Inter, system-ui, -apple-system, sans-serif !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            #dossier-a4-document {
+              width: 100% !important;
+              max-width: 100% !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              border: none !important;
+              box-shadow: none !important;
+              min-height: auto !important;
+            }
+            .print\\:break-inside-avoid,
+            .break-inside-avoid {
+              break-inside: avoid !important;
+              page-break-inside: avoid !important;
+            }
+            table {
+              page-break-inside: auto;
+              width: 100%;
+            }
+            tr {
+              page-break-inside: avoid !important;
+              page-break-after: auto;
+            }
+            thead {
+              display: table-header-group;
+            }
+            tfoot {
+              display: table-footer-group;
+            }
+          </style>
+        </head>
+        <body>
+          <div id="dossier-a4-document" class="p-6 bg-white text-slate-900">
+            ${element.innerHTML}
+          </div>
+        </body>
+      </html>
+    `)
+    doc.close()
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus()
+        iframe.contentWindow?.print()
+      } catch (err) {
+        console.error('Falha na impressão isolada:', err)
+        window.print()
+      } finally {
+        setTimeout(() => {
+          iframe.remove()
+        }, 1500)
+      }
+    }, 350)
   }
 
   const resolvedProducerName = producerName || selectedProducer?.name || 'Não Selecionado'
-  const isMarriedOrStable = selectedProducer?.civilStatus === 'CASADO' || selectedProducer?.civilStatus === 'UNIAO_ESTAVEL'
+  const civilStatusUpper = String(selectedProducer?.civilStatus || '').toUpperCase()
+  const isMarriedOrUnion = ['CASADO', 'UNIAO_ESTAVEL'].includes(civilStatusUpper)
 
   return (
     <div className="space-y-6">
-      {/* Barra de Ação Superior */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl">
+      {/* Barra de Ação Superior (Oculta na Impressão) */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-xl print:hidden">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
             <FileCheck className="w-5 h-5" />
@@ -153,15 +263,15 @@ export function Step5ReviewDossier({
       </div>
 
       {/* DOCUMENTO FOLHA A4 DIGITAL (LAYOUT ANALÍTICO OFICIAL BANCÁRIO) */}
-      <div className="flex justify-center">
+      <div className="flex justify-center print:block print:p-0 print:m-0">
         <div
           ref={printRef}
           id="dossier-a4-document"
-          className="w-full max-w-[860px] bg-white text-slate-900 border border-slate-300 shadow-xl rounded-sm p-6 sm:p-10 print:border-none print:shadow-none print:p-0 print:m-0"
+          className="w-full max-w-[860px] bg-white text-slate-900 border border-slate-300 shadow-xl rounded-sm p-6 sm:p-10 print:border-none print:shadow-none print:p-0 print:m-0 print:w-full print:max-w-none"
           style={{ minHeight: '1050px', fontFamily: 'Inter, sans-serif' }}
         >
           {/* Header do Dossiê */}
-          <div className="border-b-2 border-emerald-700 pb-4 mb-5 flex justify-between items-start">
+          <div className="border-b-2 border-emerald-700 pb-4 mb-5 flex justify-between items-start print:break-inside-avoid">
             <div>
               <div className="flex items-center gap-2">
                 <span className="bg-emerald-700 text-white font-bold text-xs px-2.5 py-0.5 rounded-sm uppercase tracking-wider">
@@ -185,7 +295,7 @@ export function Step5ReviewDossier({
           </div>
 
           {/* 1. QUALIFICAÇÃO DO PROPONENTE, CÔNJUGE E DOMICÍLIO BANCÁRIO */}
-          <div className="mb-5">
+          <div className="mb-5 print:break-inside-avoid">
             <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2.5 flex items-center gap-1.5">
               <UserCheck className="w-3.5 h-3.5" />
               1. Qualificação do Proponente, Cônjuge e Domicílio Bancário
@@ -197,7 +307,13 @@ export function Step5ReviewDossier({
               </div>
               <div>
                 <span className="text-slate-500 block text-[11px]">CPF / CNPJ:</span>
-                <span className="font-bold font-mono">{selectedProducer?.document || '-'}</span>
+                <span className="font-bold font-mono">
+                  {selectedProducer?.document
+                    ? (selectedProducer.document.replace(/\D/g, '').length > 11
+                        ? maskCNPJ(selectedProducer.document)
+                        : maskCPF(selectedProducer.document))
+                    : '-'}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500 block text-[11px]">RG / Órgão Emissor:</span>
@@ -214,22 +330,32 @@ export function Step5ReviewDossier({
 
               <div>
                 <span className="text-slate-500 block text-[11px]">Estado Civil:</span>
-                <span className="font-bold">{selectedProducer?.civilStatus || 'SOLTEIRO'}</span>
+                <span className="font-bold">
+                  {isMarriedOrUnion
+                    ? (civilStatusUpper === 'UNIAO_ESTAVEL' ? 'UNIÃO ESTÁVEL' : 'CASADO')
+                    : (selectedProducer?.civilStatus ? selectedProducer.civilStatus.replace(/_/g, ' ') : 'SOLTEIRO')}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500 block text-[11px]">Regime de Bens:</span>
                 <span className="font-bold">
-                  {selectedProducer?.marriageRegime ? selectedProducer.marriageRegime.replace(/_/g, ' ') : 'NÃO APLICÁVEL'}
+                  {isMarriedOrUnion
+                    ? formatMarriageRegime(selectedProducer?.marriageRegime)
+                    : 'NÃO APLICÁVEL'}
                 </span>
               </div>
               <div>
                 <span className="text-slate-500 block text-[11px]">Cônjuge (Outorga Uxória):</span>
-                <span className="font-bold">{isMarriedOrStable ? (selectedProducer?.spouseName || '-') : 'NÃO APLICÁVEL'}</span>
+                <span className="font-bold">
+                  {isMarriedOrUnion ? (selectedProducer?.spouseName || '-') : 'NÃO APLICÁVEL'}
+                </span>
               </div>
               <div>
                 <span className="text-slate-500 block text-[11px]">CPF / RG Cônjuge:</span>
                 <span className="font-bold font-mono">
-                  {isMarriedOrStable ? `${selectedProducer?.spouseCpf || '-'} / ${selectedProducer?.spouseRg || '-'}` : '-'}
+                  {isMarriedOrUnion
+                    ? `${selectedProducer?.spouseCpf ? maskCPF(selectedProducer.spouseCpf) : '-'} / ${selectedProducer?.spouseRg || '-'}`
+                    : '-'}
                 </span>
               </div>
 
@@ -237,16 +363,20 @@ export function Step5ReviewDossier({
               <div className="col-span-2 sm:col-span-4 mt-1 pt-1.5 border-t border-dashed border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <div>
                   <span className="text-slate-500 block text-[11px]">Instituição Financeira:</span>
-                  <span className="font-bold">{selectedProducer?.bankName || values.creditLimitTargetBank || '001 - Banco do Brasil'}</span>
+                  <span className="font-bold">
+                    {selectedProducer?.bankName || values.creditLimitTargetBank || 'BANCO DO BRASIL'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-500 block text-[11px]">Agência:</span>
-                  <span className="font-bold font-mono">{selectedProducer?.bankAgency || '-'}</span>
+                  <span className="font-bold font-mono">
+                    {selectedProducer?.bankAgency || selectedProducer?.agency || '-'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-500 block text-[11px]">Conta Bancária:</span>
                   <span className="font-bold font-mono">
-                    {selectedProducer?.bankAccount || '-'} ({selectedProducer?.bankAccountType || 'CORRENTE'})
+                    {`${selectedProducer?.bankAccount || selectedProducer?.account || '-'} (${selectedProducer?.bankAccountType || 'CORRENTE'})`}
                   </span>
                 </div>
                 <div>
@@ -260,7 +390,7 @@ export function Step5ReviewDossier({
           </div>
 
           {/* 2. IDENTIFICAÇÃO FUNDIÁRIA, SITUAÇÃO E CONFRONTAÇÕES */}
-          <div className="mb-5">
+          <div className="mb-5 print:break-inside-avoid">
             <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2.5 flex items-center gap-1.5">
               <Building2 className="w-3.5 h-3.5" />
               2. Identificação Fundiária, Posse e Confrontações Perimétricas
@@ -318,7 +448,13 @@ export function Step5ReviewDossier({
                   </div>
                   <div>
                     <span className="text-amber-900 block text-[10px] font-semibold">CPF/CNPJ do Cedente:</span>
-                    <span className="font-bold font-mono">{values.landlordDocument || '-'}</span>
+                    <span className="font-bold font-mono">
+                      {values.landlordDocument
+                        ? (values.landlordDocument.replace(/\D/g, '').length > 11
+                            ? maskCNPJ(values.landlordDocument)
+                            : maskCPF(values.landlordDocument))
+                        : '-'}
+                    </span>
                   </div>
                   <div>
                     <span className="text-amber-900 block text-[10px] font-semibold">Vigência Contratual:</span>
@@ -361,7 +497,7 @@ export function Step5ReviewDossier({
           </div>
 
           {/* 3. ÁREAS E VTN */}
-          <div className="mb-5">
+          <div className="mb-5 print:break-inside-avoid">
             <h2 className="text-xs font-bold uppercase tracking-wider text-emerald-800 border-b border-slate-200 pb-1 mb-2.5">
               3. Balanço de Áreas e Avaliação da Terra Nua (VTN)
             </h2>
@@ -692,7 +828,9 @@ export function Step5ReviewDossier({
                 <span className="font-bold block text-slate-900">{resolvedProducerName}</span>
                 <span className="text-slate-600 text-[11px] block">Proponente / Titular Avaliado</span>
                 {selectedProducer?.document && (
-                  <span className="text-slate-500 text-[10px] block font-mono">CPF/CNPJ: {selectedProducer.document}</span>
+                  <span className="text-slate-500 text-[10px] block font-mono">
+                    CPF/CNPJ: {selectedProducer.document.replace(/\D/g, '').length > 11 ? maskCNPJ(selectedProducer.document) : maskCPF(selectedProducer.document)}
+                  </span>
                 )}
               </div>
               <div>

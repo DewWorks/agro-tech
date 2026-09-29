@@ -25,9 +25,9 @@ export const propertySchema = z.object({
     .regex(/^\d+$/, "Apenas números são permitidos"),
   registryOffice: z.string().min(3, "Informe o cartório"),
   car: z.string().regex(
-    /^[A-Z]{2}-\d{7}-[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}\.[A-Z0-9]{4}$/, 
-    "Formato inválido. Ex: TO-1700000-ABCD.1234..."
-  ),
+    /^([A-Z]{2}-\d{7}-[A-F0-9]{4}(\.[A-F0-9]{4}){7}|[A-Z]{2}-\d{7}-[A-F0-9]{8,32})$/i, 
+    "Formato de CAR inválido. Padrão federal: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
+  ).optional().or(z.literal('')).nullable(),
   ccir: z.string().optional(),
   itr: z.string().optional(),
   accessRoute: z.string().min(10, "Descreva o roteiro com no mínimo 10 caracteres"),

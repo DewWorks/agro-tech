@@ -113,7 +113,7 @@ export function maskRegistrationNumber(value: string): string {
 
 /**
  * Máscara progressiva para o Recibo do CAR no padrão oficial SICAR Federal:
- * UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX (máx 41 caracteres)
+ * UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX (máx 50 caracteres)
  */
 export function maskCAR(value: string): string {
   if (!value) return ''
@@ -128,14 +128,36 @@ export function maskCAR(value: string): string {
   const mun = raw.slice(2, 9)
   if (raw.length <= 9) return `${uf}-${mun}`
 
-  // Hash federal: até 7 blocos de 4 caracteres hexadecimais
-  const hashPart = raw.slice(9, 37)
+  // Hash federal: até 8 blocos de 4 caracteres hexadecimais (32 caracteres no total)
+  const hashPart = raw.slice(9, 41)
   const blocks: string[] = []
   for (let i = 0; i < hashPart.length; i += 4) {
     blocks.push(hashPart.slice(i, i + 4))
   }
 
-  return `${uf}-${mun}-${blocks.join('.')}`.slice(0, 41)
+  return `${uf}-${mun}-${blocks.join('.')}`.slice(0, 50)
+}
+
+/**
+ * Formata o enum do Regime de Casamento para texto oficial legível.
+ */
+export function formatMarriageRegime(regime?: string | null): string {
+  if (!regime) return 'Não informado'
+  const normalized = regime.toUpperCase()
+  switch (normalized) {
+    case 'COMUNHAO_PARCIAL':
+      return 'Comunhão Parcial de Bens'
+    case 'COMUNHAO_UNIVERSAL':
+      return 'Comunhão Universal de Bens'
+    case 'SEPARACAO_TOTAL':
+      return 'Separação Total de Bens'
+    case 'SEPARACAO_OBRIGATORIA':
+      return 'Separação Obrigatória de Bens'
+    case 'PARTICIPACAO_FINAL':
+      return 'Participação Final nos Aquestos'
+    default:
+      return regime.replace(/_/g, ' ')
+  }
 }
 
 /**
