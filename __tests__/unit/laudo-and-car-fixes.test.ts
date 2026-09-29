@@ -1,4 +1,4 @@
-import { step1LandBaseSchema } from '@/lib/validations/property-wizard'
+import { step1LandBaseSchema, propertyWizardSchema } from '@/lib/validations/property-wizard'
 import { propertySchema } from '@/lib/validations/property'
 import { maskCAR, maskCPF, maskCNPJ, formatMarriageRegime, maskITR, maskCIB } from '@/lib/utils/masks'
 
@@ -189,6 +189,86 @@ describe('Homologation Defect Fixes - Lindomar (LN Consultoria)', () => {
       expect(maskITR('12345678')).toBe('1234567-8')
       expect(maskITR('1.234.567-8')).toBe('1234567-8')
       expect(maskITR('')).toBe('')
+    })
+  })
+
+  describe('Defect 7: Second Property Creation & Null Contract Fields Validation', () => {
+    it('accepts payload with null contract and landlord fields when ownershipType is PROPRIETARIO', () => {
+      const payload = {
+        name: 'Segunda Fazenda do Produtor',
+        branchId: 'branch-uuid-1',
+        producerId: 'producer-uuid-1',
+        ownershipType: 'PROPRIETARIO',
+        propertyStatus: 'QUITADA',
+        explorationPercentage: 100,
+        contractStartDate: null,
+        contractEndDate: null,
+        landlordName: null,
+        landlordDocument: null,
+        contractType: null,
+        exploredAreaHa: 0,
+        totalArea: 250,
+        consolidatedArea: 200,
+        productiveArea: 150,
+        pastureArea: 50,
+        preserveArea: 50,
+        ruralModules: 4,
+        vtnPerHectare: 5000,
+        totalLandValue: 1250000,
+        city: 'Palmas',
+        state: 'TO',
+        registrationNumber: '998877',
+        registryOffice: 'Cartório de Registro',
+        comarca: 'Palmas',
+        car: 'TO-1717800-5473.5CFC.E37F.4E8D.021C.9F6A.03D6.0849',
+        ccir: '1234567890123',
+        itr: 'XEHVEZ5-T',
+        explorationActivity: 'Pecuária de Cria',
+        possessionYears: 10,
+        impenhorabilidade: 'PENHORAVEL',
+        hasLien: false,
+        hasInsurance: false,
+        isBorderProperty: false,
+        conservationState: 'BOM',
+        machineries: [],
+        improvements: [],
+        livestocks: [],
+        effectiveAgroRevenue: 0,
+        projectedAgroRevenue: 0,
+        otherRevenues: 0,
+        operationalExpenses: 0,
+        existingDebtService: 0,
+        familyLivingCosts: 0,
+        creditLimitRequested: 0,
+        creditLimitPurpose: 'CUSTEIO_AGRICOLA',
+        creditLimitTargetBank: 'BANCO_DO_BRASIL',
+        creditLimitTermMonths: 12,
+        creditLimitNotes: '',
+      }
+
+      const parsed = propertyWizardSchema.safeParse(payload)
+      expect(parsed.success).toBe(true)
+    })
+
+    it('returns custom error messages with field names instead of generic Invalid input', () => {
+      const invalidPayload = {
+        name: 'A', // too short (< 2)
+        branchId: '', // required
+        producerId: '', // required
+        ownershipType: '', // required
+        totalArea: -10, // negative
+      }
+
+      const parsed = propertyWizardSchema.safeParse(invalidPayload)
+      expect(parsed.success).toBe(false)
+      if (!parsed.success) {
+        const errorMessages = parsed.error.issues.map((i) => i.message)
+        expect(errorMessages.some((msg) => msg.includes('nome da fazenda'))).toBe(true)
+        expect(errorMessages.some((msg) => msg.includes('Filial'))).toBe(true)
+        expect(errorMessages.some((msg) => msg.includes('Produtor titular'))).toBe(true)
+        expect(errorMessages.some((msg) => msg.includes('Tipo de vínculo'))).toBe(true)
+        expect(errorMessages.includes('Invalid input')).toBe(false)
+      }
     })
   })
 })

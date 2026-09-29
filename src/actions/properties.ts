@@ -64,10 +64,15 @@ export async function createProperty(data: any) {
       throw new Error('Usuário sem organização')
     }
 
+    console.log("=== PAYLOAD RECEBIDO EM createProperty ===", JSON.stringify(data, null, 2))
+
     const validation = propertyWizardSchema.safeParse(data)
     if (!validation.success) {
-      const errorMsg = validation.error.issues.map((i) => i.message).join('; ')
-      return { error: errorMsg || 'Dados da propriedade inválidos.' }
+      console.error("=== ERROS DETALHADOS DO ZOD EM createProperty ===", validation.error.format())
+      const detailedErrors = validation.error.issues.map(
+        (issue) => `[Campo: ${issue.path.join('.')}] -> ${issue.message}`
+      ).join(' | ')
+      return { success: false, error: detailedErrors || 'Dados da propriedade inválidos.' }
     }
 
     const cleanData = sanitizePayload(data)
@@ -411,8 +416,11 @@ export async function updateProperty(id: string, data: any) {
       producerId: data.producerId || existing.producers[0]?.producerId || '00000000-0000-0000-0000-000000000000',
     })
     if (!validation.success) {
-      const errorMsg = validation.error.issues.map((i) => i.message).join('; ')
-      return { error: errorMsg || 'Dados da propriedade inválidos.' }
+      console.error("=== ERROS DETALHADOS DO ZOD EM updateProperty ===", validation.error.format())
+      const detailedErrors = validation.error.issues.map(
+        (issue) => `[Campo: ${issue.path.join('.')}] -> ${issue.message}`
+      ).join(' | ')
+      return { success: false, error: detailedErrors || 'Dados da propriedade inválidos.' }
     }
 
     const cleanData = sanitizePayload(data)

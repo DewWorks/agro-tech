@@ -46,20 +46,28 @@ export function normalizeTitleCase(text: string): string {
 
 export const step1LandBaseSchema = z.object({
   // Identificação e Vínculo
-  name: z.string().min(2, 'O nome da fazenda é obrigatório'),
-  branchId: z.string().min(1, 'Filial obrigatória'),
-  producerId: z.string().min(1, 'Produtor titular obrigatório'),
-  ownershipType: z.string().min(1, 'Tipo de vínculo obrigatório'),
-  explorationPercentage: z.coerce.number().min(1).max(100).default(100),
-  propertyStatus: z.string().default('QUITADA'),
+  name: z
+    .string({ message: 'O nome da fazenda é obrigatório' })
+    .min(2, 'O nome da fazenda é obrigatório'),
+  branchId: z
+    .string({ message: 'Filial obrigatória' })
+    .min(1, 'Filial obrigatória'),
+  producerId: z
+    .string({ message: 'Produtor titular obrigatório' })
+    .min(1, 'Produtor titular obrigatório'),
+  ownershipType: z
+    .string({ message: 'Tipo de vínculo obrigatório' })
+    .min(1, 'Tipo de vínculo obrigatório'),
+  explorationPercentage: z.coerce.number().min(1, 'Percentual mínimo de 1%').max(100, 'Percentual máximo de 100%').default(100).optional().nullable(),
+  propertyStatus: z.string().default('QUITADA').optional().nullable(),
 
   // Vínculos Contratuais Condicionais (Arrendamento, Parceria, Comodato, Meeiro)
-  landlordName: z.string().optional().or(z.literal('')),
-  landlordDocument: z.string().optional().or(z.literal('')),
-  contractType: z.string().optional().or(z.literal('')),
-  contractStartDate: z.string().optional().or(z.literal('')),
-  contractEndDate: z.string().optional().or(z.literal('')),
-  exploredAreaHa: z.coerce.number().min(0).default(0),
+  landlordName: z.string().optional().or(z.literal('')).nullable(),
+  landlordDocument: z.string().optional().or(z.literal('')).nullable(),
+  contractType: z.string().optional().or(z.literal('')).nullable(),
+  contractStartDate: z.string().optional().or(z.literal('')).nullable(),
+  contractEndDate: z.string().optional().or(z.literal('')).nullable(),
+  exploredAreaHa: z.coerce.number().min(0, 'Área explorada não pode ser negativa').default(0).optional().nullable(),
 
   // Registros Fundiários
   registrationNumber: z
@@ -105,38 +113,38 @@ export const step1LandBaseSchema = z.object({
     .nullable(),
 
   // Atividade e Posse
-  explorationActivity: z.string().optional().or(z.literal('')),
-  possessionYears: z.coerce.number().min(0).default(0),
+  explorationActivity: z.string().optional().or(z.literal('')).nullable(),
+  possessionYears: z.coerce.number().min(0, 'Tempo de posse não pode ser negativo').default(0).optional().nullable(),
 
   // Áreas (em Hectares)
-  totalArea: z.coerce.number().min(0).default(0),
-  consolidatedArea: z.coerce.number().min(0).default(0),
-  productiveArea: z.coerce.number().min(0).default(0),
-  pastureArea: z.coerce.number().min(0).default(0),
-  preserveArea: z.coerce.number().min(0).default(0), // APP + Reserva Legal
-  ruralModules: z.coerce.number().min(0).default(0),
+  totalArea: z.coerce.number({ message: 'Área total deve ser um número' }).min(0, 'Área total não pode ser negativa').default(0),
+  consolidatedArea: z.coerce.number().min(0, 'Área consolidada não pode ser negativa').default(0).optional().nullable(),
+  productiveArea: z.coerce.number().min(0, 'Área produtiva não pode ser negativa').default(0).optional().nullable(),
+  pastureArea: z.coerce.number().min(0, 'Área de pastagem não pode ser negativa').default(0).optional().nullable(),
+  preserveArea: z.coerce.number().min(0, 'Área de preservação não pode ser negativa').default(0).optional().nullable(), // APP + Reserva Legal
+  ruralModules: z.coerce.number().min(0, 'Módulos fiscais não podem ser negativos').default(0).optional().nullable(),
 
   // Natureza da Terra & VTN
-  vtnPerHectare: z.coerce.number().min(0).default(0),
-  totalLandValue: z.coerce.number().min(0).default(0),
+  vtnPerHectare: z.coerce.number().min(0, 'VTN por hectare não pode ser negativo').default(0).optional().nullable(),
+  totalLandValue: z.coerce.number().min(0, 'Valor total da terra não pode ser negativo').default(0).optional().nullable(),
 
   // Localização & Roteiro
-  city: z.string().optional().or(z.literal('')),
-  state: z.string().optional().or(z.literal('')),
-  latitude: z.string().optional(),
-  longitude: z.string().optional(),
-  accessRoute: z.string().optional().or(z.literal('')),
-  confrontantNorth: z.string().optional(),
-  confrontantSouth: z.string().optional(),
-  confrontantEast: z.string().optional(),
-  confrontantWest: z.string().optional(),
+  city: z.string().optional().or(z.literal('')).nullable(),
+  state: z.string().optional().or(z.literal('')).nullable(),
+  latitude: z.string().optional().or(z.literal('')).nullable(),
+  longitude: z.string().optional().or(z.literal('')).nullable(),
+  accessRoute: z.string().optional().or(z.literal('')).nullable(),
+  confrontantNorth: z.string().optional().or(z.literal('')).nullable(),
+  confrontantSouth: z.string().optional().or(z.literal('')).nullable(),
+  confrontantEast: z.string().optional().or(z.literal('')).nullable(),
+  confrontantWest: z.string().optional().or(z.literal('')).nullable(),
 
   // Indicadores de Risco Bancário
-  impenhorabilidade: z.string().default('PENHORAVEL'),
-  hasLien: z.boolean().default(false),
-  hasInsurance: z.boolean().default(false),
-  isBorderProperty: z.boolean().default(false),
-  conservationState: z.string().default('BOM'),
+  impenhorabilidade: z.string().default('PENHORAVEL').optional().nullable(),
+  hasLien: z.boolean().default(false).optional().nullable(),
+  hasInsurance: z.boolean().default(false).optional().nullable(),
+  isBorderProperty: z.boolean().default(false).optional().nullable(),
+  conservationState: z.string().default('BOM').optional().nullable(),
 })
 
 export const step1LandSchema = step1LandBaseSchema
@@ -185,10 +193,10 @@ export type Step1LandValues = z.infer<typeof step1LandSchema>
 // ============================================================================
 
 export const machineryItemSchema = z.object({
-  id: z.string().optional(),
-  category: z.string().optional().default('Trator de Pneus'),
-  brand: z.string().optional().or(z.literal('')),
-  model: z.string().optional().or(z.literal('')),
+  id: z.string().optional().nullable(),
+  category: z.string().optional().nullable().default('Trator de Pneus'),
+  brand: z.string().optional().or(z.literal('')).nullable(),
+  model: z.string().optional().or(z.literal('')).nullable(),
   year: z.coerce
     .number()
     .int('Ano deve ser um número inteiro')
@@ -197,16 +205,16 @@ export const machineryItemSchema = z.object({
     .optional()
     .nullable()
     .default(new Date().getFullYear()),
-  powerCapacity: z.string().optional().or(z.literal('')),
+  powerCapacity: z.string().optional().or(z.literal('')).nullable(),
   chassisSerial: z
     .string()
     .max(30, 'Chassi deve conter até 30 caracteres')
     .optional()
     .or(z.literal(''))
     .nullable(),
-  participationPercent: z.coerce.number().min(0).max(100).default(100),
-  value: z.coerce.number().min(0).default(0),
-  hasLien: z.boolean().default(false),
+  participationPercent: z.coerce.number().min(0).max(100).default(100).optional().nullable(),
+  value: z.coerce.number().min(0).default(0).optional().nullable(),
+  hasLien: z.boolean().default(false).optional().nullable(),
   lienInstitution: z.string().optional().or(z.literal('')).nullable(),
 }).refine(
   (data) => {
@@ -222,7 +230,7 @@ export const machineryItemSchema = z.object({
 )
 
 export const step2MachinerySchema = z.object({
-  machineries: z.array(machineryItemSchema).default([]),
+  machineries: z.array(machineryItemSchema).optional().default([]),
 })
 
 export type MachineryItemValues = z.infer<typeof machineryItemSchema>
@@ -233,29 +241,31 @@ export type Step2MachineryValues = z.infer<typeof step2MachinerySchema>
 // ============================================================================
 
 export const improvementItemSchema = z.object({
-  id: z.string().optional(),
-  specification: z.string().optional().or(z.literal('')),
-  unit: z.string().optional().or(z.literal('m²')),
-  quantity: z.coerce.number().min(0).default(0),
-  unitValue: z.coerce.number().min(0).default(0),
-  totalValue: z.coerce.number().min(0).default(0),
-  conservationState: z.string().default('BOM'),
-  observation: z.string().optional().or(z.literal('')),
-  isArtificialPasture: z.boolean().optional().default(false),
+  id: z.string().optional().nullable(),
+  specification: z.string().optional().or(z.literal('')).nullable(),
+  unit: z.string().optional().or(z.literal('m²')).nullable(),
+  quantity: z.coerce.number().min(0).default(0).optional().nullable(),
+  unitValue: z.coerce.number().min(0).default(0).optional().nullable(),
+  totalValue: z.coerce.number().min(0).default(0).optional().nullable(),
+  conservationState: z.string().default('BOM').optional().nullable(),
+  observation: z.string().optional().or(z.literal('')).nullable(),
+  isArtificialPasture: z.boolean().optional().default(false).nullable(),
 })
 
 export const livestockItemSchema = z.object({
-  id: z.string().optional(),
-  species: z.string().optional().or(z.literal('BOVINO')),
-  category: z.string().optional().or(z.literal('Vaca')),
-  purpose: z.string().optional().or(z.literal('Criação')),
-  breed: z.string().optional().or(z.literal('Nelore')),
-  geneticGrade: z.string().default('Comercial'),
+  id: z.string().optional().nullable(),
+  species: z.string().optional().or(z.literal('BOVINO')).nullable(),
+  category: z.string().optional().or(z.literal('Vaca')).nullable(),
+  purpose: z.string().optional().or(z.literal('Criação')).nullable(),
+  breed: z.string().optional().or(z.literal('Nelore')).nullable(),
+  geneticGrade: z.string().default('Comercial').optional().nullable(),
   quantity: z.coerce
     .number()
     .int('Quantidade de cabeças deve ser um número inteiro')
     .min(0, 'Quantidade não pode ser negativa')
-    .default(0),
+    .default(0)
+    .optional()
+    .nullable(),
   ageMonths: z.coerce
     .number()
     .int('Idade em meses deve ser um número inteiro')
@@ -271,19 +281,19 @@ export const livestockItemSchema = z.object({
     .optional()
     .nullable()
     .default(0),
-  unitValue: z.coerce.number().min(0).default(0),
-  totalValue: z.coerce.number().min(0).default(0),
-  markingType: z.string().optional().or(z.literal('')),
-  markingLocation: z.string().optional().or(z.literal('')),
-  brandingType: z.string().optional().or(z.literal('')),
-  brandingLocation: z.string().optional().or(z.literal('')),
-  categoryBB: z.string().optional().or(z.literal('')),
-  purposeBB: z.string().optional().or(z.literal('')),
+  unitValue: z.coerce.number().min(0).default(0).optional().nullable(),
+  totalValue: z.coerce.number().min(0).default(0).optional().nullable(),
+  markingType: z.string().optional().or(z.literal('')).nullable(),
+  markingLocation: z.string().optional().or(z.literal('')).nullable(),
+  brandingType: z.string().optional().or(z.literal('')).nullable(),
+  brandingLocation: z.string().optional().or(z.literal('')).nullable(),
+  categoryBB: z.string().optional().or(z.literal('')).nullable(),
+  purposeBB: z.string().optional().or(z.literal('')).nullable(),
 })
 
 export const step3ImprovementsAndHerdSchema = z.object({
-  improvements: z.array(improvementItemSchema).default([]),
-  livestocks: z.array(livestockItemSchema).default([]),
+  improvements: z.array(improvementItemSchema).optional().default([]),
+  livestocks: z.array(livestockItemSchema).optional().default([]),
 })
 
 export type ImprovementItemValues = z.infer<typeof improvementItemSchema>
@@ -296,26 +306,26 @@ export type Step3ImprovementsAndHerdValues = z.infer<typeof step3ImprovementsAnd
 
 export const step4FinancialSummarySchema = z.object({
   // Totais Derivados (Calculados e exibidos em Cards Dashboard)
-  computedLandValue: z.coerce.number().min(0).default(0).optional(),
-  computedImprovementsValue: z.coerce.number().min(0).default(0).optional(),
-  computedMachineryValue: z.coerce.number().min(0).default(0).optional(),
-  computedLivestockValue: z.coerce.number().min(0).default(0).optional(),
-  computedTotalAssets: z.coerce.number().min(0).default(0).optional(),
+  computedLandValue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  computedImprovementsValue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  computedMachineryValue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  computedLivestockValue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  computedTotalAssets: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
 
   // Entradas Manuais de Fluxo Financeiro
-  effectiveAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
-  projectedAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
-  otherRevenues: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
-  operationalExpenses: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
-  existingDebtService: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
-  familyLivingCosts: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
+  effectiveAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  projectedAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  otherRevenues: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  operationalExpenses: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  existingDebtService: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  familyLivingCosts: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
 
   // Base do Limite de Crédito Rural (MCR / Bancos Agro)
-  creditLimitRequested: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional(),
-  creditLimitPurpose: z.string().default('CUSTEIO_AGRICOLA').optional(),
-  creditLimitTargetBank: z.string().default('BANCO_DO_BRASIL').optional(),
-  creditLimitTermMonths: z.coerce.number().min(1, 'Prazo mínimo de 1 mês').default(12).optional(),
-  creditLimitNotes: z.string().optional(),
+  creditLimitRequested: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
+  creditLimitPurpose: z.string().default('CUSTEIO_AGRICOLA').optional().nullable(),
+  creditLimitTargetBank: z.string().default('BANCO_DO_BRASIL').optional().nullable(),
+  creditLimitTermMonths: z.coerce.number().min(1, 'Prazo mínimo de 1 mês').default(12).optional().nullable(),
+  creditLimitNotes: z.string().optional().or(z.literal('')).nullable(),
 })
 
 export type Step4FinancialSummaryValues = z.infer<typeof step4FinancialSummarySchema>

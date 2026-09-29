@@ -217,6 +217,18 @@ export function PropertyWizardContainer({
     mode: 'onBlur',
   })
 
+  // Sincronizar initialProducerId e initialBranchId dinamicamente se o form ainda nao tiver
+  React.useEffect(() => {
+    if (!isEditMode) {
+      if (initialProducerId && !form.getValues('producerId')) {
+        form.setValue('producerId', initialProducerId, { shouldValidate: true })
+      }
+      if (initialBranchId && !form.getValues('branchId')) {
+        form.setValue('branchId', initialBranchId, { shouldValidate: true })
+      }
+    }
+  }, [initialProducerId, initialBranchId, isEditMode, form])
+
   const scrollToTop = () => {
     const mainEl = document.querySelector('main')
     if (mainEl) {
@@ -294,8 +306,8 @@ export function PropertyWizardContainer({
       const payload = {
         name: values.name,
         propertyName: values.name,
-        branchId: values.branchId || branches[0]?.id || initialData?.branchId,
-        producerId: values.producerId || producers[0]?.id,
+        branchId: values.branchId || initialBranchId || branches[0]?.id || initialData?.branchId,
+        producerId: values.producerId || initialProducerId || producers[0]?.id,
         ownershipType: values.ownershipType || 'PROPRIETARIO',
         propertyStatus: values.propertyStatus || 'QUITADA',
         explorationPercentage: values.explorationPercentage ?? 100,
@@ -304,19 +316,19 @@ export function PropertyWizardContainer({
         landlordName: values.landlordName || null,
         landlordDocument: values.landlordDocument || null,
         contractType: values.contractType || null,
-        exploredAreaHa: values.exploredAreaHa ? Number(values.exploredAreaHa) : null,
+        exploredAreaHa: values.exploredAreaHa ? Number(values.exploredAreaHa) : 0,
 
         // Áreas
-        totalArea: values.totalArea ?? 0,
-        consolidatedArea: values.consolidatedArea ?? 0,
-        productiveArea: values.productiveArea ?? 0,
-        pastureArea: values.pastureArea ?? 0,
-        preserveArea: values.preserveArea ?? 0,
-        ruralModules: values.ruralModules ?? 0,
-        vtnPerHectare: values.vtnPerHectare ?? 0,
-        vtnValuePerHa: values.vtnPerHectare ?? 0,
-        totalLandValue: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || values.totalLandValue || 0,
-        totalVtnAmount: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || values.totalLandValue || 0,
+        totalArea: Number(values.totalArea) || 0,
+        consolidatedArea: Number(values.consolidatedArea) || 0,
+        productiveArea: Number(values.productiveArea) || 0,
+        pastureArea: Number(values.pastureArea) || 0,
+        preserveArea: Number(values.preserveArea) || 0,
+        ruralModules: Number(values.ruralModules) || 0,
+        vtnPerHectare: Number(values.vtnPerHectare) || 0,
+        vtnValuePerHa: Number(values.vtnPerHectare) || 0,
+        totalLandValue: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || Number(values.totalLandValue) || 0,
+        totalVtnAmount: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || Number(values.totalLandValue) || 0,
 
         // Registros
         registrationNumber: values.registrationNumber || '',
@@ -333,7 +345,7 @@ export function PropertyWizardContainer({
         longitude: values.longitude || '',
         accessRoute: values.accessRoute || '',
         explorationActivity: values.explorationActivity || 'Pecuária de Cria',
-        possessionYears: values.possessionYears ?? 0,
+        possessionYears: Number(values.possessionYears) || 0,
 
         // Indicadores
         impenhorabilidade: values.impenhorabilidade || 'PENHORAVEL',
@@ -354,46 +366,52 @@ export function PropertyWizardContainer({
           oeste: values.confrontantWest || '',
         },
 
-        // Arrays dinâmicos com coerção numérica estrita
-        machineries: (values.machineries || []).map((m: any) => ({
-          ...m,
-          year: m.year ? Number(m.year) : null,
-          participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
-          value: Number(m.value) || 0,
-        })),
-        improvements: (values.improvements || []).map((imp: any) => ({
-          ...imp,
-          quantity: Number(imp.quantity) || 0,
-          unitValue: Number(imp.unitValue) || 0,
-          totalValue: Math.round((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0) * 100) / 100,
-          isArtificialPasture: Boolean(imp.isArtificialPasture || imp.specification === 'Pastagem Artificial'),
-        })),
-        livestocks: (values.livestocks || []).map((l: any) => ({
-          ...l,
-          category: l.category || l.categoryBB || 'Vaca',
-          categoryBB: l.categoryBB || l.category || 'Vaca',
-          purpose: l.purpose || l.purposeBB || 'Produção de Crias',
-          purposeBB: l.purposeBB || l.purpose || 'Produção de Crias',
-          quantity: Number(l.quantity) || 0,
-          ageMonths: Number(l.ageMonths) || 0,
-          avgWeightKg: Number(l.avgWeightKg) || 0,
-          unitValue: Number(l.unitValue) || 0,
-          totalValue: Math.round((Number(l.quantity) || 0) * (Number(l.unitValue) || 0) * 100) / 100,
-          brandingType: l.markingType || l.brandingType || 'Ferro Quente',
-          brandingLocation: l.markingLocation || l.brandingLocation || 'Perna Traseira Direita',
-        })),
+        // Arrays dinâmicos filtrando linhas vazias e com coerção numérica estrita
+        machineries: (values.machineries || [])
+          .filter((m: any) => m && (m.model?.trim() || m.brand?.trim() || m.chassisSerial?.trim() || Number(m.value) > 0))
+          .map((m: any) => ({
+            ...m,
+            year: m.year ? Number(m.year) : null,
+            participationPercent: m.participationPercent ? Number(m.participationPercent) : 100,
+            value: Number(m.value) || 0,
+          })),
+        improvements: (values.improvements || [])
+          .filter((imp: any) => imp && (imp.specification?.trim() || Number(imp.quantity) > 0 || Number(imp.unitValue) > 0))
+          .map((imp: any) => ({
+            ...imp,
+            quantity: Number(imp.quantity) || 0,
+            unitValue: Number(imp.unitValue) || 0,
+            totalValue: Math.round((Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0) * 100) / 100,
+            isArtificialPasture: Boolean(imp.isArtificialPasture || imp.specification === 'Pastagem Artificial'),
+          })),
+        livestocks: (values.livestocks || [])
+          .filter((l: any) => l && (Number(l.quantity) > 0 || Number(l.unitValue) > 0 || (l.category && l.category !== 'Vaca')))
+          .map((l: any) => ({
+            ...l,
+            category: l.category || l.categoryBB || 'Vaca',
+            categoryBB: l.categoryBB || l.category || 'Vaca',
+            purpose: l.purpose || l.purposeBB || 'Produção de Crias',
+            purposeBB: l.purposeBB || l.purpose || 'Produção de Crias',
+            quantity: Number(l.quantity) || 0,
+            ageMonths: Number(l.ageMonths) || 0,
+            avgWeightKg: Number(l.avgWeightKg) || 0,
+            unitValue: Number(l.unitValue) || 0,
+            totalValue: Math.round((Number(l.quantity) || 0) * (Number(l.unitValue) || 0) * 100) / 100,
+            brandingType: l.markingType || l.brandingType || 'Ferro Quente',
+            brandingLocation: l.markingLocation || l.brandingLocation || 'Perna Traseira Direita',
+          })),
 
         // Financeiro & Base de Limite de Crédito
-        effectiveAgroRevenue: values.effectiveAgroRevenue ?? 0,
-        projectedAgroRevenue: values.projectedAgroRevenue ?? 0,
-        otherRevenues: values.otherRevenues ?? 0,
-        operationalExpenses: values.operationalExpenses ?? 0,
-        existingDebtService: values.existingDebtService ?? 0,
-        familyLivingCosts: values.familyLivingCosts ?? 0,
-        creditLimitRequested: values.creditLimitRequested ?? 0,
+        effectiveAgroRevenue: Number(values.effectiveAgroRevenue) || 0,
+        projectedAgroRevenue: Number(values.projectedAgroRevenue) || 0,
+        otherRevenues: Number(values.otherRevenues) || 0,
+        operationalExpenses: Number(values.operationalExpenses) || 0,
+        existingDebtService: Number(values.existingDebtService) || 0,
+        familyLivingCosts: Number(values.familyLivingCosts) || 0,
+        creditLimitRequested: Number(values.creditLimitRequested) || 0,
         creditLimitPurpose: values.creditLimitPurpose || 'CUSTEIO_AGRICOLA',
         creditLimitTargetBank: values.creditLimitTargetBank || 'BANCO_DO_BRASIL',
-        creditLimitTermMonths: values.creditLimitTermMonths ?? 12,
+        creditLimitTermMonths: Number(values.creditLimitTermMonths) || 12,
         creditLimitNotes: values.creditLimitNotes || '',
       }
 
