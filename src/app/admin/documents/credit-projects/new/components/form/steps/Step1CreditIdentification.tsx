@@ -198,13 +198,13 @@ export function Step1CreditIdentification({
         </div>
 
         <div className="space-y-1.5">
-          <Label className="text-xs font-semibold text-gray-700">ITR / NIRF (Receita Federal)</Label>
+          <Label className="text-xs font-semibold text-gray-700">CIB / NIRF / ITR (Receita Federal)</Label>
           <Input
             value={customOptions.propertyItr || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyItr: maskITR(e.target.value) }))}
-            maxLength={10}
-            className="h-10 text-xs font-mono"
-            placeholder="Ex: 0.000.000-0"
+            maxLength={12}
+            className="h-10 text-xs font-mono uppercase"
+            placeholder="Ex: XEHVEZ5-T ou 1234567-8"
           />
         </div>
 

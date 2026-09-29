@@ -505,7 +505,7 @@ export function ConfirmEmitModal({
                         </span>
                       </div>
                       <div>
-                        <span className="text-[10.5px] text-slate-500 block">ITR / NIRF:</span>
+                        <span className="text-[10.5px] text-slate-500 block">CIB / NIRF / ITR:</span>
                         <span className="font-mono text-slate-800 font-medium">
                           {formattedItr || 'Não informado'}
                         </span>

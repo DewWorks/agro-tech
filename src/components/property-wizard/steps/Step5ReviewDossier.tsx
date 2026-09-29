@@ -430,7 +430,7 @@ export function Step5ReviewDossier({
                 <span className="font-bold font-mono">{values.ccir || '-'}</span>
               </div>
               <div>
-                <span className="text-slate-500 block text-[11px]">ITR / NIRF:</span>
+                <span className="text-slate-500 block text-[11px]">CIB / NIRF / ITR:</span>
                 <span className="font-bold font-mono">{values.itr || '-'}</span>
               </div>
 

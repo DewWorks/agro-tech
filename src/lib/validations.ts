@@ -82,6 +82,7 @@ export {
   maskCAR,
   maskCCIR,
   maskITR,
+  maskCIB,
   maskChassis,
   maskBankAgency,
   maskBankAccount,

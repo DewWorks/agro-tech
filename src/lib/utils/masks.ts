@@ -174,16 +174,19 @@ export function maskCCIR(value: string): string {
 }
 
 /**
- * Máscara para ITR / NIRF (Receita Federal): 8 dígitos numéricos no formato 0.000.000-0
+ * Mascara para CIB (Cadastro Imobiliario Brasileiro) e ITR / NIRF (Receita Federal):
+ * - Padrao oficial CIB (Receita Federal 2026 em diante): 7 caracteres alfanumericos + hifen + 1 caractere verificador alfanumerico (AAAAAAA-D), ex: XEHVEZ5-T.
+ * - Padrao legado NIRF/ITR: 8 digitos numericos, tambem compativel e formatado como AAAAAAA-D (ex: 1234567-8) ou 0.000.000-0.
+ * Converte automaticamente para maiusculas e limita a 8 caracteres alfanumericos uteis.
  */
 export function maskITR(value: string): string {
   if (!value) return ''
-  const digits = value.replace(/\D/g, '').slice(0, 8)
-  if (digits.length <= 1) return digits
-  if (digits.length <= 4) return digits.replace(/(\d{1})(\d+)/, '$1.$2')
-  if (digits.length <= 7) return digits.replace(/(\d{1})(\d{3})(\d+)/, '$1.$2.$3')
-  return digits.replace(/(\d{1})(\d{3})(\d{3})(\d{1})/, '$1.$2.$3-$4')
+  const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8)
+  if (clean.length <= 7) return clean
+  return `${clean.slice(0, 7)}-${clean.slice(7, 8)}`
 }
+
+export const maskCIB = maskITR
 
 /**
  * Máscara para Chassi / Número de Série de Máquinas: alfanumérico em maiúsculas sem espaços, máx 25 chars.

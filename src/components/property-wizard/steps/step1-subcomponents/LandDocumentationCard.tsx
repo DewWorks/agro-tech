@@ -130,19 +130,19 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
           name="itr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>ITR / NIRF (Receita Federal - 8 dígitos)</FormLabel>
+              <FormLabel>CIB / NIRF / ITR (Receita Federal)</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="Ex: 0.000.000-0"
-                  maxLength={10}
-                  className="font-mono"
+                  placeholder="Ex: XEHVEZ5-T ou 1234567-8"
+                  maxLength={12}
+                  className="font-mono uppercase"
                   {...field}
                   onChange={(e) => {
                     field.onChange(maskITR(e.target.value))
                   }}
                 />
               </FormControl>
-              <FormDescription>8 dígitos numéricos</FormDescription>
+              <FormDescription>Cadastro Imobiliário Brasileiro (CIB alfanumérico) ou NIRF legado (8 caracteres)</FormDescription>
               <FormMessage />
             </FormItem>
           )}

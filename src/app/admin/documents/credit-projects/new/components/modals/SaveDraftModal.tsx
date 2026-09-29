@@ -243,7 +243,7 @@ export function SaveDraftModal({
                     </div>
 
                     <div className="bg-slate-50 p-3 rounded-lg border border-slate-100">
-                      <span className="text-gray-500 text-[11px] block font-medium">CCIR / ITR:</span>
+                      <span className="text-gray-500 text-[11px] block font-medium">CCIR / CIB / ITR:</span>
                       <p className="font-semibold text-gray-900 text-sm mt-0.5">
                         {customOptions.propertyCcir || 'N/I'} • {customOptions.propertyItr || 'N/I'}
                       </p>
