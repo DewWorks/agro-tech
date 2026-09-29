@@ -1,5 +1,6 @@
 import React from 'react'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
+import { isAnimalOrEquipmentSubline } from '../../form/params/RenovagroParams'
 
 interface TechnicalTablesProps {
   templateCode: string
@@ -278,14 +279,15 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
   }
 
   if (templateCode === 'PROJETO_RENOVAGRO') {
+    const isAnimal = isAnimalOrEquipmentSubline(options.subline)
     return (
       <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '12px', overflow: 'hidden' }}>
         <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
-          II - Dados Técnicos da Área a Recuperar
+          {isAnimal ? 'II - Dados Técnicos do Investimento (Semoventes / Bens)' : 'II - Dados Técnicos da Área a Recuperar'}
         </div>
         <div style={{ padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
           <div><strong>Sublinha do Programa:</strong> {options.subline || '-'}</div>
-          <div><strong>Área a Recuperar:</strong> {options.areaToRecoverHa ? `${options.areaToRecoverHa} ha` : '-'}</div>
+          <div><strong>{isAnimal ? 'Item Financiável / Quantidade:' : 'Área a Recuperar:'}</strong> {options.areaToRecoverHa ? `${options.areaToRecoverHa} ${isAnimal ? 'un/cab' : 'ha'}` : '-'}</div>
           <div><strong>Matrícula Alvo:</strong> {property.registrationNumber || '-'}</div>
           <div><strong>Localização / Roteiro:</strong> {property.accessRoute || '-'}</div>
         </div>
