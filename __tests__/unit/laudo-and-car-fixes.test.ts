@@ -1,6 +1,6 @@
 import { step1LandBaseSchema } from '@/lib/validations/property-wizard'
 import { propertySchema } from '@/lib/validations/property'
-import { maskCAR, maskCPF, maskCNPJ, formatMarriageRegime } from '@/lib/utils/masks'
+import { maskCAR, maskCPF, maskCNPJ, formatMarriageRegime, maskITR, maskCIB } from '@/lib/utils/masks'
 
 describe('Homologation Defect Fixes - Lindomar (LN Consultoria)', () => {
   describe('Defect 1 & 2: Federal SICAR CAR Regex and Mask', () => {
@@ -117,6 +117,78 @@ describe('Homologation Defect Fixes - Lindomar (LN Consultoria)', () => {
       expect(emptyProducer.bankName || 'BANCO DO BRASIL').toBe('BANCO DO BRASIL')
       expect(emptyProducer.bankAgency || emptyProducer.agency || '-').toBe('-')
       expect(`${emptyProducer.bankAccount || emptyProducer.account || '-'} (${emptyProducer.bankAccountType || 'CORRENTE'})`).toBe('- (CORRENTE)')
+    })
+  })
+
+  describe('Defect 6: CIB (Cadastro Imobiliario Brasileiro) and NIRF / ITR Support', () => {
+    it('accepts official alphanumeric CIB (e.g. XEHVEZ5-T) in property-wizard schema', () => {
+      const parsed = step1LandBaseSchema.safeParse({
+        name: 'Fazenda Modelo',
+        branchId: 'branch-1',
+        producerId: 'producer-1',
+        ownershipType: 'PROPRIETARIO',
+        propertyStatus: 'QUITADA',
+        totalArea: 100,
+        registrationNumber: '12345',
+        itr: 'XEHVEZ5-T',
+      })
+      expect(parsed.success).toBe(true)
+    })
+
+    it('accepts legacy numeric NIRF formats (1234567-8, 1.234.567-8, 88888888) in property-wizard schema', () => {
+      const legacyFormats = ['1234567-8', '1.234.567-8', '88888888']
+      legacyFormats.forEach((itrVal) => {
+        const parsed = step1LandBaseSchema.safeParse({
+          name: 'Fazenda Modelo',
+          branchId: 'branch-1',
+          producerId: 'producer-1',
+          ownershipType: 'PROPRIETARIO',
+          propertyStatus: 'QUITADA',
+          totalArea: 100,
+          registrationNumber: '12345',
+          itr: itrVal,
+        })
+        expect(parsed.success).toBe(true)
+      })
+    })
+
+    it('accepts official CIB in propertySchema', () => {
+      const parsed = propertySchema.safeParse({
+        name: 'Fazenda Modelo',
+        branchId: 'branch-1',
+        producerId: 'producer-1',
+        ownershipType: 'PROPRIETARIO',
+        totalArea: 100,
+        registrationNumber: '12345',
+        registryOffice: '1º Cartório de Registro',
+        accessRoute: 'Roteiro de acesso oficial com mais de 10 caracteres',
+        explorationActivity: 'Pecuária de Cria',
+        itr: 'XEHVEZ5-T',
+      })
+      expect(parsed.success).toBe(true)
+    })
+
+    it('rejects invalid CIB / ITR formats with wrong character counts', () => {
+      const parsed = step1LandBaseSchema.safeParse({
+        name: 'Fazenda Modelo',
+        branchId: 'branch-1',
+        producerId: 'producer-1',
+        ownershipType: 'PROPRIETARIO',
+        propertyStatus: 'QUITADA',
+        totalArea: 100,
+        registrationNumber: '12345',
+        itr: 'XEHVEZ', // only 6 characters
+      })
+      expect(parsed.success).toBe(false)
+    })
+
+    it('formats alphanumeric input into CIB format AAAAAAA-D via maskITR and maskCIB', () => {
+      expect(maskITR('xehvez5t')).toBe('XEHVEZ5-T')
+      expect(maskITR('XEHVEZ5-T')).toBe('XEHVEZ5-T')
+      expect(maskCIB('xehvez5t')).toBe('XEHVEZ5-T')
+      expect(maskITR('12345678')).toBe('1234567-8')
+      expect(maskITR('1.234.567-8')).toBe('1234567-8')
+      expect(maskITR('')).toBe('')
     })
   })
 })

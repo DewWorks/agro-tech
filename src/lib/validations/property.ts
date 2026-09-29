@@ -29,7 +29,22 @@ export const propertySchema = z.object({
     "Formato de CAR inválido. Padrão federal: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
   ).optional().or(z.literal('')).nullable(),
   ccir: z.string().optional(),
-  itr: z.string().optional(),
+  itr: z
+    .string()
+    .refine(
+      (val) => {
+        if (!val || val.trim() === '') return true
+        if (!/^[A-Za-z0-9.\-\s]+$/.test(val)) return false
+        const clean = val.replace(/[^A-Za-z0-9]/g, '')
+        return clean.length === 8
+      },
+      {
+        message: 'O CIB/ITR deve conter exatamente 8 caracteres alfanuméricos (ex: XEHVEZ5-T ou 1234567-8)',
+      }
+    )
+    .optional()
+    .or(z.literal(''))
+    .nullable(),
   accessRoute: z.string().min(10, "Descreva o roteiro com no mínimo 10 caracteres"),
 
   // Posse e Atividade
