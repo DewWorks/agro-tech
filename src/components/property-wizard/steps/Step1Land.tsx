@@ -11,7 +11,7 @@ import { LandLegalRiskCard } from './step1-subcomponents/LandLegalRiskCard'
 
 interface Step1LandProps {
   form?: UseFormReturn<any>
-  producers: Array<{ id: string; name: string; document?: string; branchId?: string }>
+  producers: Array<{ id: string; name: string; document?: string; branchId?: string; [key: string]: any }>
   branches: Array<{ id: string; name: string }>
 }
 

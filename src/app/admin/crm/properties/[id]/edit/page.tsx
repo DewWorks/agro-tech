@@ -150,20 +150,41 @@ export default async function EditPropertyPage({
       name: true,
       document: true,
       type: true,
+      branchId: true,
+      civilStatus: true,
+      marriageRegime: true,
+      spouseName: true,
+      spouseCpf: true,
+      spouseRg: true,
+      spouseRgIssuer: true,
+      spouseNationality: true,
+      spouseEducationLevel: true,
+      bankName: true,
+      bankAgency: true,
+      bankAccount: true,
+      bankAccountType: true,
+      rg: true,
+      rgIssuer: true,
+      educationLevel: true,
+      producerSize: true,
+      profession: true,
+      nationality: true,
+      email: true,
+      phone: true,
     },
     orderBy: { name: 'asc' }
   })
 
-  // Garantir que os produtores vinculados à propriedade estejam sempre presentes na lista
+  // Garantir que os produtores vinculados à propriedade estejam sempre presentes na lista com dados completos
   const linkedProducers = property.producers.map(p => p.producer).filter(Boolean)
   for (const lp of linkedProducers) {
     if (lp && !producers.some(p => p.id === lp.id)) {
-      producers.push({
-        id: lp.id,
-        name: lp.name,
-        document: lp.document,
-        type: lp.type
-      })
+      producers.push(lp)
+    } else if (lp) {
+      const idx = producers.findIndex(p => p.id === lp.id)
+      if (idx !== -1) {
+        producers[idx] = { ...lp, ...producers[idx] }
+      }
     }
   }
 

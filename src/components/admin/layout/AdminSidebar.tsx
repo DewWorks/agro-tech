@@ -424,7 +424,7 @@ export default function AdminSidebar({
 
   return (
     <aside
-      className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shrink-0 shadow-xl transition-all duration-300"
+      className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shrink-0 shadow-xl transition-all duration-300 print:hidden"
       aria-label="Menu Principal Administrativo"
     >
       {/* 2.A & 2.B. Identidade Institucional Tipográfica Limpa com Nome Dinâmico */}

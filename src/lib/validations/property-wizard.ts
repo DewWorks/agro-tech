@@ -73,8 +73,8 @@ export const step1LandBaseSchema = z.object({
   car: z
     .string()
     .regex(
-      /^([A-Z]{2}-\d{7}-[A-Z0-9]{4}(\.[A-Z0-9]{4}){6}|[A-Z]{2}-\d{7}-[A-Z0-9]{8,32})$/i,
-      'Formato do CAR inválido. Padrão federal: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX'
+      /^([A-Z]{2}-\d{7}-[A-F0-9]{4}(\.[A-F0-9]{4}){7}|[A-Z]{2}-\d{7}-[A-F0-9]{8,32})$/i,
+      'Formato de CAR inválido. Padrão federal: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX'
     )
     .optional()
     .or(z.literal(''))

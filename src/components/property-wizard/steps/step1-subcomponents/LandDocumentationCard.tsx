@@ -87,15 +87,15 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
               <FormLabel>Código do CAR (Cadastro Ambiental Rural) *</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
+                  placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
                   className="font-mono uppercase text-xs"
-                  maxLength={41}
+                  maxLength={50}
                   {...field}
                   onChange={(e) => field.onChange(maskCAR(e.target.value))}
                 />
               </FormControl>
               <FormDescription>
-                Padrão federal SICAR: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX
+                Padrão federal SICAR: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX
               </FormDescription>
               <FormMessage />
             </FormItem>

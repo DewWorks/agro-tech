@@ -24,6 +24,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { SmartCreatableCombobox } from '../../subcomponents/SmartCreatableCombobox'
 import { RURAL_ACTIVITIES } from '@/lib/validations/property-wizard'
+import { maskCPF, maskCNPJ } from '@/lib/utils/masks'
 
 const OWNERSHIP_LABELS: Record<string, string> = {
   PROPRIETARIO: 'Proprietário',
@@ -38,7 +39,7 @@ const OWNERSHIP_LABELS: Record<string, string> = {
 interface LandIdentificationCardProps {
   control: Control<any>
   branches: Array<{ id: string; name: string }>
-  producers: Array<{ id: string; name: string; document?: string; branchId?: string }>
+  producers: Array<{ id: string; name: string; document?: string; branchId?: string; [key: string]: any }>
   setValue?: (name: string, value: any, options?: any) => void
 }
 
@@ -279,7 +280,16 @@ export function LandIdentificationCard({ control, branches, producers, setValue 
                   <FormItem>
                     <FormLabel className="text-xs">CPF / CNPJ do Cedente *</FormLabel>
                     <FormControl>
-                      <Input placeholder="000.000.000-00" {...field} />
+                      <Input
+                        placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                        maxLength={18}
+                        {...field}
+                        onChange={(e) => {
+                          const raw = e.target.value.replace(/\D/g, '').slice(0, 14)
+                          const masked = raw.length > 11 ? maskCNPJ(raw) : maskCPF(raw)
+                          field.onChange(masked)
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

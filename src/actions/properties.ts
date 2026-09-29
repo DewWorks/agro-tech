@@ -72,6 +72,20 @@ export async function createProperty(data: any) {
 
     const cleanData = sanitizePayload(data)
 
+    // Validar unicidade do CAR ao criar nova propriedade
+    if (cleanData.car) {
+      const orgId = dbUser.organizationId
+      const existingCar = await prisma.property.findFirst({
+        where: {
+          car: cleanData.car,
+          ...(orgId ? { branch: { organizationId: orgId } } : {})
+        }
+      })
+      if (existingCar) {
+        throw new Error('Este número de CAR já está cadastrado em outra propriedade.')
+      }
+    }
+
     const {
       name,
       propertyName,
@@ -402,6 +416,21 @@ export async function updateProperty(id: string, data: any) {
     }
 
     const cleanData = sanitizePayload(data)
+
+    // Validar unicidade do CAR excluindo a própria propriedade em edição
+    if (cleanData.car) {
+      const orgId = dbUser.organizationId || existing.branch?.organizationId
+      const existingCar = await prisma.property.findFirst({
+        where: {
+          car: cleanData.car,
+          id: { not: id },
+          ...(orgId ? { branch: { organizationId: orgId } } : {})
+        }
+      })
+      if (existingCar) {
+        throw new Error('Este número de CAR já está cadastrado em outra propriedade.')
+      }
+    }
 
     const {
       name,
@@ -837,6 +866,27 @@ export async function getProducersForBranch(branchId: string) {
         name: true,
         document: true,
         type: true,
+        branchId: true,
+        civilStatus: true,
+        marriageRegime: true,
+        spouseName: true,
+        spouseCpf: true,
+        spouseRg: true,
+        spouseRgIssuer: true,
+        spouseNationality: true,
+        spouseEducationLevel: true,
+        bankName: true,
+        bankAgency: true,
+        bankAccount: true,
+        bankAccountType: true,
+        rg: true,
+        rgIssuer: true,
+        educationLevel: true,
+        producerSize: true,
+        profession: true,
+        nationality: true,
+        email: true,
+        phone: true,
       },
       orderBy: { name: 'asc' }
     })

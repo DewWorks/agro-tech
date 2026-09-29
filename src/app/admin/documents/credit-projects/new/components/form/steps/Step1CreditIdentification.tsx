@@ -177,9 +177,9 @@ export function Step1CreditIdentification({
           <Input
             value={customOptions.propertyCar || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: maskCAR(e.target.value) }))}
-            maxLength={41}
+            maxLength={50}
             className={cn("h-10 text-xs uppercase font-medium", !customOptions.propertyCar?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
-            placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
+            placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
           />
         </div>
       </div>

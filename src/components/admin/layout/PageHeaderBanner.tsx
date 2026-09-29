@@ -49,6 +49,7 @@ export function PageHeaderBanner({
         'flex flex-col md:flex-row md:items-center justify-between gap-4',
         'bg-gradient-to-r from-[#1B4D3E] to-[#13382D] text-white',
         'p-6 sm:p-8 rounded-2xl shadow-sm border border-emerald-900/40',
+        'print:hidden',
         className
       )}
     >
