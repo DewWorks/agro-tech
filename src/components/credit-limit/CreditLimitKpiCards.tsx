@@ -4,14 +4,13 @@ import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { CreditCard, ShieldCheck, Building2, Scale, TrendingUp } from 'lucide-react'
 import { CreditLimitPortfolioKPIs } from '@/actions/credit-limit'
+import { formatBRL } from '@/lib/utils/formatters'
 
 interface CreditLimitKpiCardsProps {
   kpis: CreditLimitPortfolioKPIs
 }
 
 export function CreditLimitKpiCards({ kpis }: CreditLimitKpiCardsProps) {
-  const formatBRL = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
