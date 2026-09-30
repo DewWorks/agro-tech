@@ -52,6 +52,9 @@ model Branch {
   livestocks     Livestock[]
   machineries    Machinery[]
   serviceDemands ServiceDemand[]
+  creditAnalyses CreditAnalysis[]
+  urbanProperties UrbanProperty[]
+  vehicles       Vehicle[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -340,6 +343,9 @@ model Producer {
   documents      Document[]
   documentAlerts DocumentAlert[]
   serviceDemands ServiceDemand[]
+  creditAnalyses CreditAnalysis[]
+  urbanProperties UrbanProperty[]
+  vehicles       Vehicle[]
 
   // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
   @@unique([branchId, document])
@@ -428,6 +434,7 @@ model Property {
   producers      ProducerProperty[]
   documents      Document[]
   serviceDemands ServiceDemand[]
+  creditAnalyses CreditAnalysis[]
 
   @@index([branchId])
   @@index([branchId, name])
@@ -878,3 +885,254 @@ model DemandChecklistItem {
   @@index([demandId])
   @@map("demand_checklist_items")
 }
+
+// ======================================================================
+// ENUMS DO MOTOR FINANCEIRO E CRÉDITO RURAL (ADITIVO 003)
+// ======================================================================
+
+enum AmortizationSystem {
+  PRICE
+  SAC
+}
+
+enum AnalysisStatus {
+  RASCUNHO
+  EM_ANALISE
+  CALCULADO
+  VALIDADO
+  REPROVADO
+  ARQUIVADO
+}
+
+enum CreditLineAxis {
+  CUSTEIO
+  INVESTIMENTO
+}
+
+enum AgroActivityType {
+  AGRICOLA_GRAOS
+  PECUARIA_CORTE
+  PECUARIA_LEITE
+  HORTIFRUTI
+  SILVICULTURA
+  OUTRA
+}
+
+enum RevenueRealizationType {
+  EFETIVA_HISTORICA    // Safra anterior comprovada
+  PROJETADA_SAFRA      // Projeção da safra vigente
+}
+
+enum ExpenseCategory {
+  CUSTEIO_OPERACIONAL
+  MANUTENCAO_FAMILIAR
+  PASSIVO_EXISTENTE_BANCARIO
+  ENCARGOS_TRIBUTOS
+  TRANSPORTE_FRETE
+  OUTROS
+}
+
+enum UrbanPropertyType {
+  RESIDENCIAL
+  COMERCIAL
+  TERRENO_LOTE
+  GALPAO_INDUSTRIAL
+  OUTRO
+}
+
+enum VehicleType {
+  AUTOMOVEL
+  CAMINHONETE
+  CAMINHAO
+  CARRETA
+  MOTO
+  TRATOR_UTILITARIO
+  OUTRO
+}
+
+enum LiquidityRating {
+  ALTA
+  MEDIA
+  BAIXA
+}
+
+// ======================================================================
+// MODELOS RELACIONAIS DO MOTOR FINANCEIRO (ADITIVO 003)
+// ======================================================================
+
+model CreditAnalysis {
+  id                         String             @id @default(uuid())
+  branchId                   String             @map("branch_id")
+  producerId                 String             @map("producer_id")
+  propertyId                 String?            @map("property_id")
+  cropYear                   String             @map("crop_year") // ex: "2025/2026", "2026/2027"
+  status                     AnalysisStatus     @default(RASCUNHO)
+
+  // Enquadramento e Condições Financeiras Solicitadas
+  targetBank                 String             @default("BANCO_DO_BRASIL") @map("target_bank")
+  creditLineCode             String             @map("credit_line_code")
+  creditLineName             String             @map("credit_line_name")
+  creditLineAxis             CreditLineAxis     @map("credit_line_axis")
+  requestedAmount            Decimal            @map("requested_amount") @db.Decimal(15, 2)
+  termMonths                 Int                @default(12) @map("term_months")
+  gracePeriodMonths          Int                @default(0) @map("grace_period_months")
+  interestRateAnnual         Decimal            @map("interest_rate_annual") @db.Decimal(6, 3)
+  amortizationSystem         AmortizationSystem @default(PRICE) @map("amortization_system")
+
+  // Índices e Cálculos Processados (Servidor)
+  grossRevenueTotal          Decimal            @default(0) @map("gross_revenue_total") @db.Decimal(15, 2)
+  netOperationalRevenueTotal Decimal            @default(0) @map("net_operational_revenue_total") @db.Decimal(15, 2)
+  nonAgroRevenueTotal        Decimal            @default(0) @map("non_agro_revenue_total") @db.Decimal(15, 2)
+  totalExpenses              Decimal            @default(0) @map("total_expenses") @db.Decimal(15, 2)
+  paymentCapacity            Decimal            @default(0) @map("payment_capacity") @db.Decimal(15, 2) // CP
+  annualDebtService          Decimal            @default(0) @map("annual_debt_service") @db.Decimal(15, 2) // Parcela Anual
+  icsdValue                  Decimal            @default(0) @map("icsd_value") @db.Decimal(6, 2) // CP / SD
+  icsdThreshold              Decimal            @default(1.20) @map("icsd_threshold") @db.Decimal(4, 2)
+  isIcsdApproved             Boolean            @default(false) @map("is_icsd_approved")
+
+  // Garantias e Validação de LTV
+  ruralCollateralValue       Decimal            @default(0) @map("rural_collateral_value") @db.Decimal(15, 2)
+  urbanCollateralValue       Decimal            @default(0) @map("urban_collateral_value") @db.Decimal(15, 2)
+  vehiclesCollateralValue    Decimal            @default(0) @map("vehicles_collateral_value") @db.Decimal(15, 2)
+  totalCollateralValue       Decimal            @default(0) @map("total_collateral_value") @db.Decimal(15, 2)
+  totalCollateralAcceptable  Decimal            @default(0) @map("total_collateral_acceptable") @db.Decimal(15, 2)
+  ltvRatio                   Decimal            @default(0) @map("ltv_ratio") @db.Decimal(6, 2)
+  isLtvApproved              Boolean            @default(false) @map("is_ltv_approved")
+
+  // Parecer Técnico e Auditoria
+  technicalOpinion           String?            @db.Text @map("technical_opinion")
+  mcrEnquadramentoNotes      String?            @db.Text @map("mcr_enquadramento_notes")
+  payloadSnapshot            Json?              @map("payload_snapshot")
+  sha256Hash                 String?            @map("sha256_hash")
+  generatedPdfPath           String?            @map("generated_pdf_path")
+  notes                      String?            @db.Text
+  createdAt                  DateTime           @default(now()) @map("created_at")
+  updatedAt                  DateTime           @updatedAt @map("updated_at")
+  createdBy                  String?            @map("created_by")
+
+  // Relacionamentos
+  branch                     Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer                   Producer           @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  property                   Property?          @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  agroRevenues               AgroRevenue[]
+  nonAgroRevenues            NonAgroRevenue[]
+  expenses                   Expense[]
+
+  @@index([branchId, status])
+  @@index([producerId, cropYear])
+  @@index([propertyId])
+  @@map("credit_analyses")
+}
+
+model AgroRevenue {
+  id                   String                 @id @default(uuid())
+  branchId             String                 @map("branch_id")
+  creditAnalysisId     String                 @map("credit_analysis_id")
+  realizationType      RevenueRealizationType @map("realization_type")
+  activityType         AgroActivityType       @map("activity_type")
+  description          String
+  areaHa               Float?                 @map("area_ha")
+  quantity             Float                  @default(0)
+  unit                 String                 @default("sc")
+  unitPrice            Decimal                @map("unit_price") @db.Decimal(15, 2)
+  grossRevenue         Decimal                @map("gross_revenue") @db.Decimal(15, 2)
+  productionCostTotal  Decimal                @default(0) @map("production_cost_total") @db.Decimal(15, 2)
+  netRevenue           Decimal                @map("net_revenue") @db.Decimal(15, 2)
+  createdAt            DateTime               @default(now()) @map("created_at")
+
+  creditAnalysis       CreditAnalysis         @relation(fields: [creditAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([creditAnalysisId])
+  @@index([branchId])
+  @@map("agro_revenues")
+}
+
+model NonAgroRevenue {
+  id                   String                 @id @default(uuid())
+  branchId             String                 @map("branch_id")
+  creditAnalysisId     String                 @map("credit_analysis_id")
+  description          String
+  monthlyAmount        Decimal                @default(0) @map("monthly_amount") @db.Decimal(15, 2)
+  annualAmount         Decimal                @map("annual_amount") @db.Decimal(15, 2)
+  proofDocumentNotes   String?                @map("proof_document_notes")
+  createdAt            DateTime               @default(now()) @map("created_at")
+
+  creditAnalysis       CreditAnalysis         @relation(fields: [creditAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([creditAnalysisId])
+  @@index([branchId])
+  @@map("non_agro_revenues")
+}
+
+model Expense {
+  id                    String                 @id @default(uuid())
+  branchId              String                 @map("branch_id")
+  creditAnalysisId      String                 @map("credit_analysis_id")
+  category              ExpenseCategory
+  description           String
+  creditorName          String?                @map("creditor_name")
+  installmentValue      Decimal?               @map("installment_value") @db.Decimal(15, 2)
+  annualAmount          Decimal                @map("annual_amount") @db.Decimal(15, 2)
+  isContinuingLiability Boolean                @default(true) @map("is_continuing_liability")
+  createdAt             DateTime               @default(now()) @map("created_at")
+
+  creditAnalysis        CreditAnalysis         @relation(fields: [creditAnalysisId], references: [id], onDelete: Cascade)
+
+  @@index([creditAnalysisId])
+  @@index([branchId])
+  @@map("expenses")
+}
+
+model UrbanProperty {
+  id                   String                 @id @default(uuid())
+  branchId             String                 @map("branch_id")
+  producerId           String                 @map("producer_id")
+  propertyType         UrbanPropertyType      @map("property_type")
+  description          String
+  address              String?
+  city                 String
+  state                String
+  zipcode              String?
+  registrationNumber   String?                @map("registration_number")
+  registryOffice       String?                @map("registry_office")
+  marketValue          Decimal                @map("market_value") @db.Decimal(15, 2)
+  hasLien              Boolean                @default(false) @map("has_lien")
+  lienInstitution      String?                @map("lien_institution")
+  liquidityRating      LiquidityRating        @default(MEDIA) @map("liquidity_rating")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+
+  branch               Branch                 @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer             Producer               @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@index([producerId])
+  @@map("urban_properties")
+}
+
+model Vehicle {
+  id                   String                 @id @default(uuid())
+  branchId             String                 @map("branch_id")
+  producerId           String                 @map("producer_id")
+  vehicleType          VehicleType            @map("vehicle_type")
+  brand                String
+  model                String
+  manufacturingYear    Int?                   @map("manufacturing_year")
+  modelYear            Int?                   @map("model_year")
+  licensePlate         String?                @map("license_plate")
+  renavam              String?
+  chassisSerial        String?                @map("chassis_serial")
+  declaredValue        Decimal                @map("declared_value") @db.Decimal(15, 2)
+  hasLien              Boolean                @default(false) @map("has_lien")
+  lienInstitution      String?                @map("lien_institution")
+  createdAt            DateTime               @default(now()) @map("created_at")
+  updatedAt            DateTime               @updatedAt @map("updated_at")
+
+  branch               Branch                 @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer             Producer               @relation(fields: [producerId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@index([producerId])
+  @@map("vehicles")
+}
+

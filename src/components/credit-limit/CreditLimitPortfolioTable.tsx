@@ -2,6 +2,8 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   Table,
   TableBody,
@@ -37,13 +39,22 @@ import {
   ShieldCheck,
   Coins,
   BookOpen,
+  Calculator,
+  Download,
+  Loader2,
 } from 'lucide-react'
-import { CreditLimitPropertyItem } from '@/actions/credit-limit'
+import {
+  CreditLimitPropertyItem,
+  generateCreditLimitDossierHtml,
+} from '@/actions/credit-limit'
+import { downloadCreditLimitDossierPdf } from '@/lib/utils/dossie-pdf-downloader'
+import { DossiePreviewModal } from './DossiePreviewModal'
 import { formatCPF, formatCNPJ } from '@/lib/utils'
 
 interface CreditLimitPortfolioTableProps {
   initialProperties: CreditLimitPropertyItem[]
   branches: { id: string; name: string }[]
+  onOpenSimulator?: (propertyId: string) => void
 }
 
 const PURPOSE_META: Record<
@@ -94,12 +105,40 @@ const BANK_META: Record<string, { label: string; icon: React.ComponentType<{ cla
 export function CreditLimitPortfolioTable({
   initialProperties,
   branches,
+  onOpenSimulator,
 }: CreditLimitPortfolioTableProps) {
+  const router = useRouter()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedBranch, setSelectedBranch] = useState('TODOS')
   const [selectedPurpose, setSelectedPurpose] = useState('TODOS')
   const [selectedBank, setSelectedBank] = useState('TODOS')
   const [selectedStatus, setSelectedStatus] = useState('TODOS')
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null)
+  const [previewProperty, setPreviewProperty] = useState<CreditLimitPropertyItem | null>(null)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [previewFileName, setPreviewFileName] = useState<string>('')
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false)
+  const [isLoadingPreview, setIsLoadingPreview] = useState<boolean>(false)
+
+  const handleOpenPreview = async (prop: CreditLimitPropertyItem) => {
+    setPreviewProperty(prop)
+    setIsPreviewOpen(true)
+    setIsLoadingPreview(true)
+    try {
+      const res = await generateCreditLimitDossierHtml(prop.id)
+      if (!res.success || !res.html) {
+        throw new Error(res.error || 'Erro ao gerar HTML do dossiê.')
+      }
+
+      setPreviewHtml(res.html)
+      setPreviewFileName(res.fileName || `Dossie_Limite_Credito_${Date.now()}.pdf`)
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || 'Falha ao carregar pré-visualização do dossiê.')
+    } finally {
+      setIsLoadingPreview(false)
+    }
+  }
 
   const formatBRL = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
@@ -245,7 +284,7 @@ export function CreditLimitPortfolioTable({
                   <TableHead className="w-[140px] text-right">Garantias (MCR)</TableHead>
                   <TableHead className="w-[140px] text-right">Margem Líquida</TableHead>
                   <TableHead className="w-[120px] text-center">Diagnóstico</TableHead>
-                  <TableHead className="w-[90px] text-center">Ações</TableHead>
+                  <TableHead className="w-[130px] text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -348,52 +387,135 @@ export function CreditLimitPortfolioTable({
                       {/* Coluna 7: Diagnóstico */}
                       <TableCell className="text-center">
                         {prop.status === 'COMPATIVEL' ? (
-                          <Badge
-                            variant="outline"
-                            className="bg-emerald-50 text-emerald-700 border-emerald-300 text-[10px] font-bold"
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenSimulator) {
+                                onOpenSimulator(prop.id)
+                              } else {
+                                router.push(`/admin/credit-limit?propertyId=${prop.id}&tab=simulator`)
+                              }
+                            }}
+                            className="cursor-pointer group inline-block"
+                            title="Abrir simulação de crédito"
                           >
-                            <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
-                            Compatível
-                          </Badge>
+                            <Badge
+                              variant="outline"
+                              className="bg-emerald-50 text-emerald-700 border-emerald-300 group-hover:bg-emerald-100 text-[10px] font-bold transition-all"
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1 text-emerald-600" />
+                              Compatível
+                            </Badge>
+                          </button>
                         ) : prop.status === 'REVISAR_PRAZO' ? (
-                          <Badge
-                            variant="outline"
-                            className="bg-amber-50 text-amber-700 border-amber-300 text-[10px] font-bold"
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenSimulator) {
+                                onOpenSimulator(prop.id)
+                              } else {
+                                router.push(`/admin/credit-limit?propertyId=${prop.id}&tab=simulator`)
+                              }
+                            }}
+                            className="cursor-pointer group inline-block"
+                            title="Clique para abrir o simulador e ajustar prazo ou amortização"
                           >
-                            <AlertCircle className="w-3 h-3 mr-1 text-amber-600" />
-                            Revisar Prazo
-                          </Badge>
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-50 text-amber-700 border-amber-300 group-hover:bg-amber-100 group-hover:border-amber-400 text-[10px] font-bold transition-all shadow-2xs"
+                            >
+                              <AlertCircle className="w-3 h-3 mr-1 text-amber-600" />
+                              Revisar Prazo ↗
+                            </Badge>
+                          </button>
                         ) : prop.status === 'INCOMPATIVEL' ? (
-                          <Badge
-                            variant="outline"
-                            className="bg-rose-50 text-rose-700 border-rose-300 text-[10px] font-bold"
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenSimulator) {
+                                onOpenSimulator(prop.id)
+                              } else {
+                                router.push(`/admin/credit-limit?propertyId=${prop.id}&tab=simulator`)
+                              }
+                            }}
+                            className="cursor-pointer group inline-block"
+                            title="Abrir simulação de crédito"
                           >
-                            <AlertCircle className="w-3 h-3 mr-1 text-rose-600" />
-                            Incompatível
-                          </Badge>
+                            <Badge
+                              variant="outline"
+                              className="bg-rose-50 text-rose-700 border-rose-300 group-hover:bg-rose-100 text-[10px] font-bold transition-all"
+                            >
+                              <AlertCircle className="w-3 h-3 mr-1 text-rose-600" />
+                              Incompatível
+                            </Badge>
+                          </button>
                         ) : (
-                          <Badge
-                            variant="outline"
-                            className="bg-slate-50 text-slate-600 border-slate-200 text-[10px]"
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onOpenSimulator) {
+                                onOpenSimulator(prop.id)
+                              } else {
+                                router.push(`/admin/credit-limit?propertyId=${prop.id}&tab=simulator`)
+                              }
+                            }}
+                            className="cursor-pointer group inline-block"
+                            title="Iniciar simulação preliminar"
                           >
-                            <Clock className="w-3 h-3 mr-1 text-slate-400" />
-                            Pendente
-                          </Badge>
+                            <Badge
+                              variant="outline"
+                              className="bg-slate-50 text-slate-600 border-slate-200 group-hover:bg-slate-100 text-[10px] transition-all"
+                            >
+                              <Clock className="w-3 h-3 mr-1 text-slate-400" />
+                              Pendente
+                            </Badge>
+                          </button>
                         )}
                       </TableCell>
 
                       {/* Coluna 8: Ações */}
                       <TableCell className="text-center">
-                        <Link href={`/admin/crm/properties/${prop.id}/edit`}>
+                        <div className="flex items-center justify-center gap-1">
+                          {/* Ação 1: Simular / Ajustar Condições */}
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 px-2 text-xs text-[#1B4D3E] hover:text-[#13382D] hover:bg-emerald-50"
-                            title="Abrir Análise de Limite no Wizard"
+                            onClick={() => {
+                              if (onOpenSimulator) {
+                                onOpenSimulator(prop.id)
+                              } else {
+                                router.push(`/admin/credit-limit?propertyId=${prop.id}&tab=simulator`)
+                              }
+                            }}
+                            className="h-8 w-8 p-0 text-[#1B4D3E] hover:text-[#13382D] hover:bg-emerald-50 cursor-pointer"
+                            title="Simular / Ajustar Condições MCR"
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <Calculator className="w-3.5 h-3.5" />
                           </Button>
-                        </Link>
+
+                          {/* Ação 2: Pré-Visualizar e Emitir Dossiê Técnico Oficial em PDF */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenPreview(prop)}
+                            className="h-8 w-8 p-0 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 cursor-pointer"
+                            title="Pré-Visualizar e Emitir Dossiê Técnico (PDF)"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                          </Button>
+
+                          {/* Ação 3: Editar Cadastro Patrimonial no CRM */}
+                          <Link href={`/admin/crm/properties/${prop.id}/edit`}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                              title="Editar Ativos e Terras no CRM"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Button>
+                          </Link>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )
@@ -420,6 +542,44 @@ export function CreditLimitPortfolioTable({
           </p>
         </div>
       </div>
+
+      {/* MODAL DE PRÉ-VISUALIZAÇÃO DO DOSSIÊ TÉCNICO */}
+      <DossiePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false)
+          setPreviewProperty(null)
+          setPreviewHtml(null)
+        }}
+        html={previewHtml}
+        isLoading={isLoadingPreview}
+        fileName={previewFileName}
+        propertyId={previewProperty?.id}
+        propertyName={previewProperty?.propertyName || previewProperty?.name || 'Propriedade Rural'}
+        producerName={previewProperty?.primaryProducerName}
+        icsdStatus={
+          previewProperty?.status === 'COMPATIVEL'
+            ? 'APROVADO'
+            : previewProperty?.status === 'REVISAR_PRAZO'
+            ? 'ALERTA'
+            : 'REPROVADO'
+        }
+        icsdValue={
+          previewProperty?.estimatedAnnualInstallment && previewProperty.estimatedAnnualInstallment > 0
+            ? Number((previewProperty.netMargin / previewProperty.estimatedAnnualInstallment).toFixed(2))
+            : undefined
+        }
+        ltvPercent={
+          previewProperty?.creditLimitRequested && previewProperty.creditLimitRequested > 0
+            ? Number(((previewProperty.totalCollateralLimit / previewProperty.creditLimitRequested) * 100).toFixed(1))
+            : undefined
+        }
+        ltvApproved={
+          previewProperty?.totalCollateralLimit
+            ? previewProperty.totalCollateralLimit >= (previewProperty.creditLimitRequested || 0)
+            : undefined
+        }
+      />
     </div>
   )
 }

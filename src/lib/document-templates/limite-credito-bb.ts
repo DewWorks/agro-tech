@@ -1,6 +1,22 @@
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 import { getDocumentTypeAndLabel } from '@/lib/utils/masks'
-import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
+import {
+  calculateFullCreditRiskAnalysis,
+  AmortizationSystem,
+  CreditLineAxis,
+  AgroActivityType,
+  RevenueRealizationType,
+  ExpenseCategory,
+  UrbanPropertyType,
+  VehicleType,
+  LiquidityRating,
+} from '@/lib/financial-engine'
+import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
+
+import { documentStyles } from './limite-credito-bb/styles'
+import { renderPage1EnquadramentoAndRealEstate } from './limite-credito-bb/sections/Page1EnquadramentoAndRealEstate'
+import { renderPage2CollateralAndCashFlow } from './limite-credito-bb/sections/Page2CollateralAndCashFlow'
+import { renderPage3DebtServiceIcsdAndSignatures } from './limite-credito-bb/sections/Page3DebtServiceIcsdAndSignatures'
 
 export interface LimiteCreditoDocumentData {
   producer: {
@@ -26,7 +42,10 @@ export interface LimiteCreditoDocumentData {
     name: string
     registrationNumber?: string
     registryOffice?: string
+    comarca?: string
     car?: string
+    ccir?: string
+    itr?: string
     city?: string
     state?: string
     totalAreaHa?: number
@@ -35,6 +54,23 @@ export interface LimiteCreditoDocumentData {
     pastureAreaHa?: number
     agricultureAreaHa?: number
     accessRoute?: string
+    machineries?: Array<{
+      specification?: string
+      brand?: string
+      model?: string
+      year?: number
+      value?: number
+      hasLien?: boolean
+      lienInstitution?: string
+    }>
+    improvementsList?: Array<{
+      specification?: string
+      unit?: string
+      quantity?: number
+      unitValue?: number
+      conservationState?: string
+      observation?: string
+    }>
     livestockData?: {
       totalCattle?: number
       brandRegistrationAdapec?: string
@@ -78,6 +114,23 @@ export interface LimiteCreditoDocumentData {
     existingDebts?: number
     hasFinancialModule?: boolean
     livestockItems?: Array<any>
+    creditLimitRequested?: number
+    creditLimitPurpose?: string
+    creditLimitTargetBank?: string
+    creditLimitTermMonths?: number
+    gracePeriodMonths?: number
+    interestRateAnnual?: number
+    amortizationSystem?: 'PRICE' | 'SAC'
+    creditLineCode?: string
+    urbanProperties?: Array<any>
+    vehicles?: Array<any>
+    customAgroRevenues?: Array<any>
+    customExpenses?: Array<any>
+    effectiveAgroRevenue?: number
+    projectedAgroRevenue?: number
+    familyLivingCosts?: number
+    operationalExpenses?: number
+    existingDebtService?: number
     [key: string]: any
   }
 }
@@ -86,366 +139,230 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const p = data.producer
   const prop = data.property
   const opt = data.options || {}
-  
-  const orgName = data.organization?.name || 'Organização'
+
+  const orgName = data.organization?.name || 'LN Consultoria e Projetos'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
-  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Responsável Técnico'
-  
+  const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Lindomar Pereira Cardoso'
+  const crea = opt.creaNumber || 'CREA-TO / Visto'
+  const art = opt.artNumber || 'ART-2026/89412'
+
   const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(p.document, p.type)
   const spouseDocFormatted = p.spouseCpf ? formatCPF(p.spouseCpf) : ''
   const repCpfFormatted = p.representativeCpf ? formatCPF(p.representativeCpf) : ''
-  
+
   const pastArea = prop.pastureAreaHa || 0
   const agricArea = prop.agricultureAreaHa || 0
   const resArea = prop.preservationAreaHa || 0
-  const totalArea = prop.totalAreaHa && prop.totalAreaHa > 0 ? prop.totalAreaHa : (pastArea + agricArea + resArea)
+  const totalArea = prop.totalAreaHa && prop.totalAreaHa > 0 ? prop.totalAreaHa : pastArea + agricArea + resArea
 
   const landValuePerHa = opt.estimatedLandValuePerHa && opt.estimatedLandValuePerHa > 0 ? opt.estimatedLandValuePerHa : 0
   const totalLandValue = totalArea * landValuePerHa
 
   const livestockItems: any[] = prop.livestockList || opt.livestockItems || []
   const hasLivestockItems = livestockItems.length > 0
-
   const totalCattleFromList = livestockItems.reduce((acc: number, item: any) => acc + (Number(item.quantity) || 0), 0)
-  const totalCattle = hasLivestockItems ? totalCattleFromList : (prop.livestockData?.totalCattle || 0)
-  
+  const totalCattle = hasLivestockItems ? totalCattleFromList : prop.livestockData?.totalCattle || 0
   const cattleHeadValue = opt.estimatedCattleHeadValue && opt.estimatedCattleHeadValue > 0 ? opt.estimatedCattleHeadValue : 0
+
   const totalValueFromList = livestockItems.reduce((acc: number, item: any) => {
     const qty = Number(item.quantity) || 0
     const uVal = Number(item.unitValue) || cattleHeadValue || 0
-    return acc + (qty * uVal)
+    return acc + qty * uVal
   }, 0)
 
-  const cattleEstimatedValue = hasLivestockItems 
-    ? totalValueFromList 
-    : (totalCattle > 0 && cattleHeadValue > 0 ? totalCattle * cattleHeadValue : 0)
+  const cattleEstimatedValue = hasLivestockItems
+    ? totalValueFromList
+    : totalCattle > 0 && cattleHeadValue > 0
+    ? totalCattle * cattleHeadValue
+    : 0
 
-  const improvementsValue = opt.improvementsValue !== undefined ? opt.improvementsValue : 0
-  const machineryValue = opt.machineryValue !== undefined ? opt.machineryValue : 0
+  const improvementsList = prop.improvementsList || []
+  const computedImprovementsValue = improvementsList.length > 0
+    ? improvementsList.reduce((acc, item) => acc + (Number(item.quantity) || 0) * (Number(item.unitValue) || 0), 0)
+    : 0
+  const improvementsValue = opt.improvementsValue !== undefined && opt.improvementsValue > 0
+    ? opt.improvementsValue
+    : computedImprovementsValue
 
-  const totalPatrimony = totalLandValue + cattleEstimatedValue + improvementsValue + machineryValue
+  const machineriesList = prop.machineries || []
+  const computedMachineryValue = machineriesList.length > 0
+    ? machineriesList.reduce((acc, m) => acc + (Number(m.value) || 0), 0)
+    : 0
+  const machineryValue = opt.machineryValue !== undefined && opt.machineryValue > 0
+    ? opt.machineryValue
+    : computedMachineryValue
 
-  const annualRev = opt.annualRevenue || 0
-  const annualExp = opt.annualExpenses || 0
-  const debts = opt.existingDebts || 0
-  const netCapacity = Math.max(0, annualRev - annualExp - debts)
-  const showFinancial = opt.hasFinancialModule !== false
+  const urbanProperties = opt.urbanProperties || []
+  const vehicles = opt.vehicles || []
+  const customAgroRevenues = opt.customAgroRevenues || []
+  const customExpenses = opt.customExpenses || []
 
-  const formatBRL = (val: number | null | undefined): string => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(val) || 0)
-  }
+  // Parâmetros de Crédito e Enquadramento
+  const creditLineCode = opt.creditLineCode || 'PRONAMP_CUSTEIO'
+  const lineDef = CREDIT_LINES_CATALOG.find((l) => l.code === creditLineCode) || CREDIT_LINES_CATALOG[0]
+  const targetBank = opt.creditLimitTargetBank || 'BANCO_DO_BRASIL'
+  const creditLimitRequested = opt.creditLimitRequested !== undefined && opt.creditLimitRequested > 0
+    ? Number(opt.creditLimitRequested)
+    : 250000
+  const termMonths = opt.creditLimitTermMonths || lineDef.defaultTermMonths || 12
+  const graceMonths = opt.gracePeriodMonths ?? lineDef.defaultGraceMonths ?? 0
+  const interestRate = opt.interestRateAnnual ?? lineDef.defaultInterestRate ?? 8.0
+  const system = (opt.amortizationSystem || (lineDef.axis === CreditLineAxis.INVESTIMENTO ? 'SAC' : 'PRICE')) as AmortizationSystem
 
-  const formatMarriageRegime = (regime?: string | null): string => {
-    if (!regime) return 'Não informado'
-    switch (regime) {
-      case 'COMUNHAO_PARCIAL':
-        return 'Comunhão Parcial de Bens'
-      case 'COMUNHAO_UNIVERSAL':
-        return 'Comunhão Universal de Bens'
-      case 'SEPARACAO_TOTAL':
-        return 'Separação Total de Bens'
-      case 'PARTICIPACAO_FINAL':
-        return 'Participação Final nos Aquestos'
-      default:
-        return regime
-    }
-  }
+  // Rendas e despesas consolidadas
+  const effectiveAgroRev = opt.effectiveAgroRevenue || opt.annualRevenue || 0
+  const projectedAgroRev = opt.projectedAgroRevenue || 0
+  const nonAgroRev = opt.otherRevenues || 0
+  const operationalExp = opt.operationalExpenses || opt.annualExpenses || 0
+  const existingDebt = opt.existingDebtService || opt.existingDebts || 0
+  const familyCosts = opt.familyLivingCosts || 0
+
+  // Executa o Motor Financeiro Completo
+  const engineResult = calculateFullCreditRiskAnalysis({
+    requestedAmount: creditLimitRequested,
+    termMonths,
+    graceMonths,
+    annualInterestRate: interestRate,
+    amortizationSystem: system,
+    creditLineAxis: lineDef.axis,
+    creditLineCode: lineDef.code,
+    creditLineName: lineDef.name,
+    agroRevenues: customAgroRevenues.length > 0
+      ? customAgroRevenues.map((r: any) => ({
+          activityType: (r.activityType as AgroActivityType) || AgroActivityType.AGRICOLA_GRAOS,
+          realizationType: (r.realizationType as RevenueRealizationType) || RevenueRealizationType.PROJETADA_SAFRA,
+          description: r.description || 'Cultura Agrícola',
+          quantity: Number(r.quantity) || 1,
+          unit: r.unit || 'sc',
+          unitPrice: Number(r.unitPrice) || 0,
+          productionCostTotal: Number(r.productionCostTotal) || 0,
+        }))
+      : [
+          ...(effectiveAgroRev > 0 ? [{
+            activityType: AgroActivityType.AGRICOLA_GRAOS,
+            realizationType: RevenueRealizationType.EFETIVA_HISTORICA,
+            description: 'Receita Agropecuária Safra Anterior (Efetiva)',
+            quantity: 1,
+            unit: 'un',
+            unitPrice: effectiveAgroRev,
+            productionCostTotal: 0,
+          }] : []),
+          ...(projectedAgroRev > 0 ? [{
+            activityType: AgroActivityType.AGRICOLA_GRAOS,
+            realizationType: RevenueRealizationType.PROJETADA_SAFRA,
+            description: 'Receita Agropecuária Safra Vigente (Projetada)',
+            quantity: 1,
+            unit: 'un',
+            unitPrice: projectedAgroRev,
+            productionCostTotal: operationalExp,
+          }] : []),
+        ],
+    nonAgroRevenues: nonAgroRev > 0 ? [{ description: 'Outras Receitas Comprovadas', annualAmount: nonAgroRev }] : [],
+    expenses: customExpenses.length > 0
+      ? customExpenses.map((e: any) => ({
+          category: (e.category as ExpenseCategory) || ExpenseCategory.CUSTEIO_OPERACIONAL,
+          description: e.description || 'Despesa',
+          annualAmount: Number(e.annualAmount) || 0,
+          installmentValue: Number(e.installmentValue) || null,
+          isContinuingLiability: e.isContinuingLiability ?? true,
+        }))
+      : [
+          ...(operationalExp > 0 ? [{ category: ExpenseCategory.CUSTEIO_OPERACIONAL, description: 'Custos de Produção e Custeio Operacional', annualAmount: operationalExp }] : []),
+          ...(familyCosts > 0 ? [{ category: ExpenseCategory.MANUTENCAO_FAMILIAR, description: 'Manutenção Familiar Anual', annualAmount: familyCosts }] : []),
+          ...(existingDebt > 0 ? [{ category: ExpenseCategory.PASSIVO_EXISTENTE_BANCARIO, description: 'Serviço da Dívida e Passivo Bancário Existente', annualAmount: existingDebt }] : []),
+        ],
+    ruralCollateral: {
+      landValue: totalLandValue,
+      improvementsValue,
+      machineryValue,
+      livestockValue: cattleEstimatedValue,
+    },
+    urbanProperties: urbanProperties.map((u: any, i: number) => ({
+      description: u.description || `Imóvel Urbano ${i + 1}`,
+      propertyType: (u.propertyType as UrbanPropertyType) || UrbanPropertyType.RESIDENCIAL,
+      marketValue: Number(u.marketValue) || 0,
+      hasLien: Boolean(u.hasLien),
+      liquidityRating: (u.liquidityRating as LiquidityRating) || LiquidityRating.MEDIA,
+    })),
+    vehicles: vehicles.map((v: any, i: number) => ({
+      brand: v.brand || 'Veículo',
+      model: v.model || `Utilitário ${i + 1}`,
+      vehicleType: (v.vehicleType as VehicleType) || VehicleType.CAMINHONETE,
+      declaredValue: Number(v.declaredValue) || 0,
+      hasLien: Boolean(v.hasLien),
+    })),
+  })
 
   return `
-  <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.4; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
-    
-    <!-- CABEÇALHO OFICIAL -->
-    <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 8px; margin-bottom: 14px;">
-      <h1 style="font-size: 16px; font-weight: 800; color: #1B4D3E; margin: 0; text-transform: uppercase;">
-        Ficha Cadastral e Levantamento Patrimonial
-      </h1>
-      <p style="font-size: 10px; color: #6b7280; margin: 2px 0 0 0;">
-        Dossiê para Proposta de Limite de Crédito Rural • Banco do Brasil
-      </p>
-    </div>
+  ${documentStyles}
 
-    <!-- I. IDENTIFICAÇÃO DO PROPONENTE -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 12px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        ${isCnpj ? 'I - Identificação da Empresa Proponente & Representante Legal' : 'I - Identificação do Proponente e Cônjuge'}
-      </div>
-      <div style="padding: 8px 12px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px 16px; font-size: 11px; line-height: 1.5;">
-        <div><strong>${isCnpj ? 'Razão Social:' : 'Nome:'}</strong> ${p.name || '-'}</div>
-        <div style="white-space: nowrap;"><strong>${docLabel}:</strong> ${docFormatted || '-'}</div>
-        ${isCnpj ? `
-          <div><strong>Representante Legal:</strong> ${p.representativeName || 'Administrador(a) / Titular'}</div>
-          <div style="white-space: nowrap;"><strong>CPF Representante:</strong> ${repCpfFormatted || '-'}</div>
-          <div><strong>Natureza:</strong> Pessoa Jurídica (PJ)</div>
-          <div style="white-space: nowrap;"><strong>Telefone:</strong> ${p.phone || '-'}</div>
-        ` : `
-          <div><strong>Cônjuge:</strong> ${p.spouseName || 'Não informado / Não aplicável'}</div>
-          <div style="white-space: nowrap;"><strong>CPF Cônjuge:</strong> ${spouseDocFormatted || '-'}</div>
-          <div><strong>Estado Civil:</strong> ${p.civilStatus || 'Solteiro(a)'}${p.spouseRg ? ` | <strong>RG Cônjuge:</strong> ${p.spouseRg}` : ''}</div>
-          <div style="white-space: nowrap;"><strong>Regime de Bens:</strong> ${formatMarriageRegime(p.marriageRegime)}</div>
-          <div style="white-space: nowrap;"><strong>Telefone:</strong> ${p.phone || '-'}</div>
-          ${p.spouseNationality ? `<div><strong>Nacionalidade Cônjuge:</strong> ${p.spouseNationality}</div>` : ''}
-        `}
-        <div style="grid-column: span 2;"><strong>Endereço / Município:</strong> ${p.street ? p.street + ', ' : ''}${p.city || ''} - ${p.state || ''}</div>
-      </div>
-    </div>
+  ${renderPage1EnquadramentoAndRealEstate({
+    p,
+    isCnpj,
+    docLabel,
+    docFormatted,
+    spouseDocFormatted,
+    repCpfFormatted,
+    prop,
+    orgName,
+    orgCnpj,
+    branchName: data.branch?.name,
+    orgOwnerName,
+    crea,
+    art,
+    lineDef,
+    targetBank,
+    creditLimitRequested,
+    interestRate,
+    termMonths,
+    graceMonths,
+    system,
+    purpose: opt.creditLimitPurpose,
+    pastArea,
+    agricArea,
+    resArea,
+    totalArea,
+    landValuePerHa,
+    totalLandValue,
+    improvementsValue,
+  })}
 
-    <!-- II. PATRIMÔNIO FUNDIÁRIO (TERRAS) -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 12px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        II - Discriminação de Terras e Uso Atual do Solo (${prop.name || 'Propriedade Principal'})
-      </div>
-      <div style="padding: 6px 10px; background: #fafafa; border-bottom: 1px solid #e5e7eb; display: flex; justify-content: space-between;">
-        <span><strong>Matrícula:</strong> ${prop.registrationNumber || 'Pendente'} (${prop.registryOffice || 'CRI Local'})</span>
-        <span><strong>CAR:</strong> ${prop.car || 'Pendente'}</span>
-        <span><strong>Localização:</strong> ${prop.city || ''}/${prop.state || ''}</span>
-      </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
-        <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 10px;">
-            <th style="padding: 4px 8px;">Uso / Discriminação do Solo</th>
-            <th style="padding: 4px 8px; text-align: right;">Área (Hectares)</th>
-            <th style="padding: 4px 8px; text-align: right;">Valor Unit. Médio (R$/ha)</th>
-            <th style="padding: 4px 8px; text-align: right;">Valor Total Estimado</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Pastagem Formada / Artificial</td>
-            <td style="padding: 4px 8px; text-align: right;">${pastArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa)}</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(pastArea * landValuePerHa)}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Agricultura / Lavoura Anual</td>
-            <td style="padding: 4px 8px; text-align: right;">${agricArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa * 1.2)}</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(agricArea * landValuePerHa * 1.2)}</td>
-          </tr>
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Reserva Legal e APP</td>
-            <td style="padding: 4px 8px; text-align: right;">${resArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa * 0.4)}</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(resArea * landValuePerHa * 0.4)}</td>
-          </tr>
-          <tr style="background: #f3f4f6; font-weight: bold;">
-            <td style="padding: 5px 8px;">ÁREA TOTAL DO IMÓVEL</td>
-            <td style="padding: 5px 8px; text-align: right;">${totalArea.toFixed(2)} ha</td>
-            <td style="padding: 5px 8px; text-align: right;">-</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E;">${formatBRL(totalLandValue)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+  ${renderPage2CollateralAndCashFlow({
+    prop,
+    cattleEstimatedValue,
+    totalCattle,
+    livestockItems,
+    cattleHeadValue,
+    machineryValue,
+    urbanProperties,
+    vehicles,
+    engineResult,
+    creditLimitRequested,
+    orgName,
+    customAgroRevenues,
+    effectiveAgroRev,
+    projectedAgroRev,
+    operationalExp,
+    familyCosts,
+    existingDebt,
+  })}
 
-    <!-- III. BENFEITORIAS E INSTALAÇÕES (TABELA BB) -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 12px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
-        III - Benfeitorias e Instalações (Referência Banco do Brasil)
-      </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left;">
-        <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 10px;">
-            <th style="padding: 4px 8px;">Tipo da Benfeitoria</th>
-            <th style="padding: 4px 8px;">Dimensão / Quant.</th>
-            <th style="padding: 4px 8px;">Estado de Conservação</th>
-            <th style="padding: 4px 8px; text-align: right;">Valor Estimado</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${improvementsValue > 0 ? `
-          <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Benfeitorias, Edificações e Cercas Avaliadas</td>
-            <td style="padding: 4px 8px;">Conforme Vistoria</td>
-            <td style="padding: 4px 8px;">Bom Estado Geral</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(improvementsValue)}</td>
-          </tr>
-          ` : `
-          <tr>
-            <td colspan="4" style="padding: 8px; text-align: center; color: #6b7280; font-style: italic;">
-              Nenhuma benfeitoria informada (R$ 0,00). Informe o valor no painel de parâmetros para compor a garantia.
-            </td>
-          </tr>
-          `}
-          <tr style="background: #f3f4f6; font-weight: bold;">
-            <td colspan="3" style="padding: 5px 8px;">TOTAL BENFEITORIAS</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E;">${formatBRL(improvementsValue)}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- IV. SEMOVENTES (REBANHO BOVINO) -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 12px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center;">
-        <span>IV - Semoventes e Rebanho Bovino</span>
-        <span style="font-size: 10px; color: #4b5563;">Registro ADAPEC: ${prop.livestockData?.brandRegistrationAdapec || 'Não informado / Pendente'}</span>
-      </div>
-
-      ${hasLivestockItems ? `
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9.5px;">
-        <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 9px; text-transform: uppercase; color: #374151;">
-            <th style="padding: 5px 6px;">Categoria (BB)</th>
-            <th style="padding: 5px 6px;">Finalidade</th>
-            <th style="padding: 5px 6px;">Raça</th>
-            <th style="padding: 5px 6px; text-align: center;">Qtd (Cab.)</th>
-            <th style="padding: 5px 6px; text-align: center;">Idade</th>
-            <th style="padding: 5px 6px; text-align: center;">Peso Médio</th>
-            <th style="padding: 5px 6px; text-align: right;">Valor Unit.</th>
-            <th style="padding: 5px 6px; text-align: right;">Total Estimado</th>
-            <th style="padding: 5px 6px;">Marca e Local</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${livestockItems.map((item: any) => {
-            const qty = Number(item.quantity) || 0
-            const unitVal = Number(item.unitValue) || cattleHeadValue || 0
-            const tot = qty * unitVal
-            const catLabel = item.category || denormalizeCategoryBB(item.categoryBB) || item.categoryBB || 'Bovino'
-            const purpLabel = denormalizePurposeBB(item.purposeBB) || item.purposeBB || 'Produção'
-            const brandInfo = [item.brandingType, item.brandingLocation].filter(Boolean).join(' - ') || prop.livestockData?.brandLocation || 'Conforme Ficha'
-            return `
-            <tr style="border-bottom: 1px solid #f3f4f6; page-break-inside: avoid; break-inside: avoid;">
-              <td style="padding: 5px 6px; font-weight: 600; color: #111827;">${catLabel}</td>
-              <td style="padding: 5px 6px; color: #4b5563;">${purpLabel}</td>
-              <td style="padding: 5px 6px;">${item.breed || 'Nelore / Anelorado'}</td>
-              <td style="padding: 5px 6px; text-align: center; font-weight: bold;">${qty}</td>
-              <td style="padding: 5px 6px; text-align: center;">${item.ageMonths ? `${item.ageMonths} m` : '-'}</td>
-              <td style="padding: 5px 6px; text-align: center;">${item.avgWeightKg ? `${item.avgWeightKg} kg` : '-'}</td>
-              <td style="padding: 5px 6px; text-align: right;">${formatBRL(unitVal)}</td>
-              <td style="padding: 5px 6px; text-align: right; font-weight: 600; color: #1B4D3E;">${formatBRL(tot)}</td>
-              <td style="padding: 5px 6px; font-size: 8.5px; color: #6b7280;">${brandInfo}</td>
-            </tr>
-            `
-          }).join('')}
-          <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
-            <td colspan="3" style="padding: 5px 6px; text-transform: uppercase;">Total Rebanho Declarado</td>
-            <td style="padding: 5px 6px; text-align: center; color: #1B4D3E; font-size: 11px;">${totalCattle} cab</td>
-            <td colspan="3"></td>
-            <td style="padding: 5px 6px; text-align: right; color: #1B4D3E; font-size: 11px;">${formatBRL(cattleEstimatedValue)}</td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
-      ` : `
-      <div style="padding: 8px 10px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center;">
-        <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
-          <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Matrizes / Vacas</div>
-          <div style="font-size: 13px; font-weight: bold; color: #1B4D3E;">${totalCattle > 0 ? Math.round(totalCattle * 0.45) : 0} cab</div>
-        </div>
-        <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
-          <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Novilhas / Novilhos</div>
-          <div style="font-size: 13px; font-weight: bold; color: #1B4D3E;">${totalCattle > 0 ? Math.round(totalCattle * 0.30) : 0} cab</div>
-        </div>
-        <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
-          <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Bezerros / Cria</div>
-          <div style="font-size: 13px; font-weight: bold; color: #1B4D3E;">${totalCattle > 0 ? Math.round(totalCattle * 0.22) : 0} cab</div>
-        </div>
-        <div style="background: #fafafa; border: 1px solid #e5e7eb; padding: 6px; border-radius: 4px;">
-          <div style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Touros / Reprodutores</div>
-          <div style="font-size: 13px; font-weight: bold; color: #1B4D3E;">${totalCattle > 0 ? Math.max(1, Math.round(totalCattle * 0.03)) : 0} cab</div>
-        </div>
-      </div>
-      `}
-      <div style="padding: 6px 10px; background: #f3f4f6; display: flex; justify-content: space-between; font-weight: bold;">
-        <span>Total de Cabeças Cadastradas: ${totalCattle} cabeças</span>
-        <span style="color: #1B4D3E;">Valor Estimado Rebanho: ${formatBRL(cattleEstimatedValue)}</span>
-      </div>
-    </div>
-
-    <!-- V. SÍNTESE PATRIMONIAL E CAPACIDADE DE PAGAMENTO -->
-    <div style="display: grid; grid-template-columns: ${showFinancial ? '1fr 1fr' : '1fr'}; gap: 12px; margin-bottom: 16px;">
-      
-      <div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 10px; background: #f9fafb;">
-        <h3 style="margin: 0 0 6px 0; font-size: 11px; color: #111827; font-weight: bold; text-transform: uppercase;">
-          Quadro Sintético de Bens Avaliados
-        </h3>
-        <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>1. Terras (Valor da Terra Nua):</span>
-          <strong>${formatBRL(totalLandValue)}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>2. Benfeitorias e Instalações:</span>
-          <strong>${formatBRL(improvementsValue)}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>3. Máquinas e Implementos:</span>
-          <strong>${formatBRL(machineryValue)}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>4. Semoventes (Bovinos):</span>
-          <strong>${formatBRL(cattleEstimatedValue)}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 5px 0 0 0; font-weight: bold; color: #1B4D3E; font-size: 12px;">
-          <span>PATRIMÔNIO TOTAL BRUTO:</span>
-          <span>${formatBRL(totalPatrimony)}</span>
-        </div>
-      </div>
-
-      ${showFinancial ? `
-      <div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 10px; background: #f9fafb;">
-        <h3 style="margin: 0 0 6px 0; font-size: 11px; color: #111827; font-weight: bold; text-transform: uppercase;">
-          Demonstração da Capacidade de Pagamento
-        </h3>
-        <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>Receita Bruta Agropecuária Anual:</span>
-          <strong>${formatBRL(annualRev)}</strong>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>(-) Custos Operacionais / Custeio:</span>
-          <span style="color: #dc2626;">- ${formatBRL(annualExp)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed #e5e7eb;">
-          <span>(-) Dívidas Existentes (SCR / BACEN):</span>
-          <span style="color: #dc2626;">- ${formatBRL(debts)}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 5px 0 0 0; font-weight: bold; color: #065f46; font-size: 12px;">
-          <span>CAPACIDADE LÍQUIDA ANUAL:</span>
-          <span>${formatBRL(netCapacity)}</span>
-        </div>
-      </div>
-      ` : ''}
-
-    </div>
-
-    <!-- DECLARAÇÃO E ASSINATURA -->
-    <div style="font-size: 10px; color: #4b5563; text-align: justify; margin-bottom: 24px;">
-      Declaro, sob as penas da lei, que as informações cadastrais e os bens patrimoniais acima discriminados são a expressão fiel da verdade e refletem a real situação fundiária, zootécnica e financeira da propriedade rural, autorizando a instituição financeira a realizar as devidas averiguações perante os órgãos competentes e consulta ao SCR/BACEN.
-    </div>
-
-    <div style="display: grid; grid-template-columns: ${p.spouseName ? '1fr 1fr 1fr' : '1fr 1fr'}; gap: 24px; text-align: center; font-size: 11px;">
-      <!-- Assinatura do Proponente -->
-      <div>
-        <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${p.name || 'Proponente'}</strong>
-        </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">${docLabel}: ${docFormatted || '-'}</div>
-        ${isCnpj && p.representativeCpf ? `<div style="color: #374151; font-size: 9.5px; white-space: nowrap;">Rep. Legal CPF: ${formatCPF(p.representativeCpf)}</div>` : ''}
-        <div style="color: #6b7280; font-size: 10px;">Assinatura do Proponente</div>
-      </div>
-
-      <!-- Assinatura do Cônjuge (se houver / Outorga Uxória) -->
-      ${p.spouseName ? `
-      <div>
-        <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${p.spouseName}</strong>
-        </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px; white-space: nowrap;">CPF: ${spouseDocFormatted || '-'}</div>
-        <div style="color: #6b7280; font-size: 10px;">Assinatura do Cônjuge (Outorga Uxória)</div>
-      </div>
-      ` : ''}
-
-      <!-- Responsável Técnico / Owner da Organização -->
-      <div>
-        <div style="border-bottom: 1px solid #374151; padding-bottom: 4px; margin-bottom: 6px;">
-          <strong>${orgOwnerName}</strong>
-        </div>
-        <div style="color: #111827; font-weight: 600; font-size: 10.5px;">${orgName}</div>
-        ${orgCnpj ? `<div style="color: #4b5563; font-size: 10px;">CNPJ: ${orgCnpj}</div>` : ''}
-        <div style="color: #6b7280; font-size: 10px;">Responsável Técnico / Elaborador</div>
-      </div>
-    </div>
-
-  </div>
+  ${renderPage3DebtServiceIcsdAndSignatures({
+    system,
+    interestRate,
+    termMonths,
+    graceMonths,
+    engineResult,
+    creditLimitRequested,
+    p,
+    isCnpj,
+    docLabel,
+    docFormatted,
+    spouseDocFormatted,
+    orgOwnerName,
+    orgName,
+    crea,
+    art,
+  })}
   `
 }

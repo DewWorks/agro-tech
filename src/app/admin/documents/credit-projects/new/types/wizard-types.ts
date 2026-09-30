@@ -139,7 +139,7 @@ export interface CustomOptions {
   renovagroGraceMonths: number
   renovagroInterestRate: number
 
-  // Custeio Safra
+  // Custeio Safra & Pecuária Expandido
   custeioSafraYear: string
   custeioCropName: string
   custeioAreaHa: number
@@ -147,6 +147,11 @@ export interface CustomOptions {
   custeioPricePerUnit: number
   custeioCostPerHa: number
   custeioInterestRate: number
+  custeioActivityType?: 'AGRICOLA' | 'PECUARIA'
+  custeioPecuariaModality?: 'AQUISICAO_ANIMAIS' | 'CUSTEIO_PRODUCAO'
+  custeioQuantity?: number
+  custeioUnitPrice?: number
+  custeioTotalAmount?: number
 
   // Dados Fundiários do Imóvel Beneficiado
   propertyRegistrationNumber: string
