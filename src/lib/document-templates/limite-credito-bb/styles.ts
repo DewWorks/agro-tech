@@ -93,20 +93,38 @@ export const documentStyles = `
       border-spacing: 0;
       text-align: left;
       font-size: 9px;
-      line-height: 1.35;
+      line-height: 1.25;
+      font-variant-numeric: tabular-nums;
     }
     .dossie-table th {
       background: #f9fafb;
       border-bottom: 1px solid #e5e7eb;
-      padding: 4.5px 8px;
+      padding: 5px 8px;
       font-weight: 700;
       color: #374151;
       font-size: 8.5px;
       text-transform: uppercase;
+      vertical-align: middle !important;
+      box-sizing: border-box;
     }
     .dossie-table td {
-      padding: 4.5px 8px;
+      padding: 5px 8px;
+      vertical-align: middle !important;
+      box-sizing: border-box;
+      line-height: 1.25;
+    }
+    .dossie-table td > div,
+    .dossie-table td > span {
+      line-height: 1.25;
       vertical-align: middle;
+    }
+    .dossie-total-row,
+    .dossie-total-row td {
+      padding: 7px 8px !important;
+      font-size: 9.5px !important;
+      font-weight: 700 !important;
+      line-height: 1.3 !important;
+      vertical-align: middle !important;
       box-sizing: border-box;
     }
     .badge-approved {

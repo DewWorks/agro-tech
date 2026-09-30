@@ -4,7 +4,6 @@ import React from 'react'
 import Link from 'next/link'
 import {
   ShieldCheck,
-  TrendingUp,
   AlertTriangle,
   CheckCircle2,
   Lightbulb,
@@ -13,7 +12,7 @@ import {
   Calculator,
   Calendar,
 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 export interface PrescriptiveActionCardProps {
   propertyId: string
@@ -44,14 +43,12 @@ export function PrescriptiveActionCard({
   paymentCapacity,
   icsd,
   ltvPercent,
-  totalCollateral,
   acceptableCollateral,
   creditLineName,
   termMonths,
   amortizationSystem,
   purpose = '',
   hasRevenues,
-  isApproved,
   overallStatus,
   summaryOpinion,
   regulatoryNotes = [],
@@ -73,54 +70,70 @@ export function PrescriptiveActionCard({
   const isIcsdOk = icsd >= 1.20
   const isCusteio = (purpose || '').toUpperCase().includes('CUSTEIO')
 
-  const statusColorClass =
-    overallStatus === 'APROVADO'
-      ? 'bg-emerald-600 text-white'
-      : overallStatus === 'APROVADO_COM_RESTRICOES'
-      ? 'bg-amber-600 text-white'
-      : 'bg-rose-600 text-white'
-
   return (
-    <div className="bg-slate-900 border border-slate-700/80 text-white rounded-xl p-5 mt-4 space-y-4 shadow-xl">
-      {/* 1. Header Unificado com Status Executivo do Parecer de Risco */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+    <div
+      className={cn(
+        'bg-white rounded-xl border shadow-xs p-6 space-y-5 transition-all mt-4',
+        // Borda dinâmica semântica
+        overallStatus === 'REPROVADO'
+          ? 'border-slate-200 border-l-4 border-l-red-500'
+          : overallStatus === 'APROVADO_COM_RESTRICOES'
+          ? 'border-slate-200 border-l-4 border-l-amber-500'
+          : 'border-slate-200 border-l-4 border-l-emerald-600'
+      )}
+    >
+      {/* =================================================================== */}
+      {/* A. CABEÇALHO DO CARD                                               */}
+      {/* =================================================================== */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/80 pb-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-emerald-50 text-emerald-800 border border-emerald-200/60 p-2 rounded-lg shrink-0">
             <Lightbulb className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-2">
+            <h4 className="text-base font-bold text-slate-900 flex items-center gap-2">
               Inteligência Consultiva & Diagnóstico Prescritivo
             </h4>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-xs text-slate-500">
               Parecer analítico do projetista rural e plano de viabilização para deferimento no comitê bancário
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-          <Badge className={`text-[10px] font-bold px-2.5 py-0.5 tracking-wider uppercase ${statusColorClass}`}>
+          <span
+            className={cn(
+              'font-semibold px-3 py-1 rounded-full text-xs tracking-wide uppercase border',
+              overallStatus === 'REPROVADO'
+                ? 'bg-red-50 text-red-700 border-red-200'
+                : overallStatus === 'APROVADO_COM_RESTRICOES'
+                ? 'bg-amber-50 text-amber-800 border-amber-200'
+                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+            )}
+          >
             {overallStatus.replace(/_/g, ' ')}
-          </Badge>
+          </span>
         </div>
       </div>
 
-      {/* 2. Parecer Preliminar e Fundamentação Normativa MCR Integrada */}
-      <div className="p-3.5 rounded-lg bg-slate-800/60 border border-slate-700/60 space-y-2">
-        <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold uppercase tracking-wider">
-          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+      {/* =================================================================== */}
+      {/* B. BLOCO UNIFICADO DE PARECER PRELIMINAR (SEÇÃO SUPERIOR)           */}
+      {/* =================================================================== */}
+      <div className="bg-slate-50/70 border border-slate-200/80 rounded-lg p-4 space-y-3">
+        <div className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+          <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
           <span>Parecer Preliminar de Risco Bancário</span>
         </div>
-        <p className="text-xs leading-relaxed text-slate-300">
+        <p className="text-xs leading-relaxed text-slate-700">
           {summaryOpinion}
         </p>
 
         {regulatoryNotes.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-700/60">
+          <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/80">
             {regulatoryNotes.map((note: string, idx: number) => (
               <span
                 key={idx}
-                className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-mono border border-slate-700"
+                className="bg-white border border-slate-200 text-slate-600 text-[11px] font-medium px-2 py-0.5 rounded shadow-2xs"
               >
                 {note}
               </span>
@@ -129,219 +142,234 @@ export function PrescriptiveActionCard({
         )}
       </div>
 
-      {/* 3. Diagnóstico dos 3 Pilares Fundamentais (Cards Rápidos) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* =================================================================== */}
+      {/* C. OS 3 PILARES FUNDAMENTAIS (CARDS RÁPIDOS)                        */}
+      {/* =================================================================== */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {/* Pilar 1: Garantias & Lastro */}
-        <div className="p-3 rounded-lg bg-slate-800/70 border border-slate-700/60 flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               1. Garantias & Lastro
             </span>
-            <Badge
-              className={`text-[9px] font-bold px-1.5 py-0 ${
+            <span
+              className={cn(
+                'text-[10px] font-bold px-2 py-0.5 rounded-full border',
                 isLtvOk
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-              }`}
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+              )}
             >
-              {isLtvOk ? `Adequado (${ltvPercent.toFixed(1)}%)` : `Insuficiente (${ltvPercent.toFixed(1)}%)`}
-            </Badge>
+              {isLtvOk ? `Adequado (${ltvPercent.toFixed(1)}%)` : `Déficit (${ltvPercent.toFixed(1)}%)`}
+            </span>
           </div>
-          <div className="text-xs font-semibold text-slate-200">
+          <div className="mt-1">
             {isLtvOk ? (
-              <span className="text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                Patrimônio cobre a operação com folga
-              </span>
+              <div className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5 mt-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Patrimônio cobre a operação com folga</span>
+              </div>
             ) : (
-              <span className="text-rose-400 flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                Déficit de garantias reais/pignoratícias
-              </span>
+              <div className="text-xs font-semibold text-red-700 flex items-center gap-1.5 mt-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                <span>Déficit de garantias reais/pignoratícias</span>
+              </div>
             )}
+            <div className="text-[11px] text-slate-500 mt-1">
+              Lastro aceito: <strong className="text-slate-700 font-semibold">{formatBRL(acceptableCollateral)}</strong>
+            </div>
           </div>
-          <span className="text-[10px] text-slate-400 mt-1 block">
-            Lastro aceito: {formatBRL(acceptableCollateral)}
-          </span>
         </div>
 
         {/* Pilar 2: Enquadramento MCR */}
-        <div className="p-3 rounded-lg bg-slate-800/70 border border-slate-700/60 flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               2. Enquadramento MCR
             </span>
-            <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold px-1.5 py-0">
+            <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
               {creditLineName ? `Elegível: ${creditLineName.split('-')[0].trim()}` : 'Elegível ao PRONAMP'}
-            </Badge>
+            </span>
           </div>
-          <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-            Em conformidade com as normas BACEN
+          <div className="mt-1">
+            <div className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5 mt-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              <span>Em conformidade com as normas BACEN</span>
+            </div>
+            <div className="text-[11px] text-slate-500 mt-1">
+              Juros regulamentados e finalidade compatível
+            </div>
           </div>
-          <span className="text-[10px] text-slate-400 mt-1 block">
-            Juros regulamentados e finalidade compatível
-          </span>
         </div>
 
         {/* Pilar 3: Capacidade de Pagamento (ICSD) */}
-        <div className="p-3 rounded-lg bg-slate-800/70 border border-slate-700/60 flex flex-col justify-between">
+        <div className="bg-white border border-slate-200 rounded-lg p-3.5 shadow-2xs flex flex-col justify-between">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
               3. Solvência & ICSD
             </span>
-            <Badge
-              className={`text-[9px] font-bold px-1.5 py-0 ${
+            <span
+              className={cn(
+                'text-[10px] font-bold px-2 py-0.5 rounded-full border',
                 isIcsdOk
-                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                  : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-              }`}
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-red-50 text-red-700 border-red-200'
+              )}
             >
               {isIcsdOk ? `Viável (${icsd.toFixed(2)}x)` : `Inviável (${icsd.toFixed(2)}x)`}
-            </Badge>
+            </span>
           </div>
-          <div className="text-xs font-semibold">
+          <div className="mt-1">
             {isIcsdOk ? (
-              <span className="text-emerald-400 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                Fluxo livre cobre o encargo com folga
-              </span>
+              <div className="text-xs font-semibold text-emerald-800 flex items-center gap-1.5 mt-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Fluxo livre cobre o encargo com folga</span>
+              </div>
             ) : (
-              <span className="text-rose-400 flex items-center gap-1">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                Déficit no fluxo operacional livre
-              </span>
+              <div className="text-xs font-semibold text-red-700 flex items-center gap-1.5 mt-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+                <span>Déficit no fluxo operacional livre</span>
+              </div>
             )}
+            <div className="text-[11px] text-slate-500 mt-1">
+              {cpDeficit > 0 ? (
+                <span>
+                  Falta: <strong className="text-red-700 font-semibold">{formatBRL(cpDeficit)}</strong> de margem
+                </span>
+              ) : (
+                <span className="text-emerald-700 font-medium">Margem aprovada (≥ 1,20x)</span>
+              )}
+            </div>
           </div>
-          <span className="text-[10px] text-slate-400 mt-1 block">
-            {cpDeficit > 0 ? `Falta: ${formatBRL(cpDeficit)} de margem` : `Margem aprovada (≥ 1,20x)`}
-          </span>
         </div>
       </div>
 
-      {/* 4. Detalhamento do Motivo da Reprovação */}
-      <div className="p-3.5 rounded-lg bg-slate-800/40 border border-slate-700/50 text-xs leading-relaxed text-slate-300">
+      {/* =================================================================== */}
+      {/* D. CAIXA EDITORIAL DA JUSTIFICATIVA MATEMÁTICA                      */}
+      {/* =================================================================== */}
+      <div className="bg-amber-50/60 border border-amber-200/70 rounded-lg p-4 text-xs leading-relaxed text-slate-800">
         <p>
-          O proponente possui patrimônio sólido ({formatBRL(acceptableCollateral)} em garantias regulamentares aceitáveis pelo MCR), porém{' '}
+          O proponente possui patrimônio sólido ({formatBRL(acceptableCollateral)} em garantias), porém{' '}
           {!hasRevenues ? (
-            <span className="text-amber-300 font-semibold">
-              não registrou receitas operacionais ou histórico de safra comprovada no exercício
+            <span className="font-bold text-amber-950">
+              não registrou receitas operacionais no exercício
             </span>
           ) : paymentCapacity <= 0 ? (
-            <span className="text-rose-300 font-semibold">
+            <span className="font-bold text-red-950">
               o total de despesas e passivos supera o faturamento apurado, resultando em capacidade de pagamento nula
             </span>
           ) : (
-            <span className="text-rose-300 font-semibold">
+            <span className="font-bold text-amber-950">
               a capacidade de pagamento apurada de {formatBRL(paymentCapacity)} não atinge a margem de estresse exigida
             </span>
           )}
-          . Para suportar o encargo anual de <span className="font-mono text-white font-bold">{formatBRL(annualDebtService)}</span>, o Banco do Brasil exige Capacidade de Pagamento líquida comprovada de no mínimo{' '}
-          <strong className="text-emerald-400 font-mono">{formatBRL(targetCPForApproval)}</strong> (índice regulamentar ICSD ≥ 1,20).
+          . Para suportar o encargo anual de <span className="font-bold text-slate-900">{formatBRL(annualDebtService)}</span>, o Banco do Brasil exige Capacidade de Pagamento líquida de no mínimo{' '}
+          <span className="font-bold text-emerald-900 bg-emerald-100/60 px-1 py-0.5 rounded">{formatBRL(targetCPForApproval)}</span> (ICSD ≥ 1,20).
         </p>
       </div>
 
-      {/* 5. Plano de Ação para Viabilização com Gatilhos 1-Clique */}
-      <div className="space-y-2 pt-1">
-        <h5 className="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-1.5">
-          <ArrowRight className="w-3.5 h-3.5" />
+      {/* =================================================================== */}
+      {/* E. PLANO DE AÇÃO PARA VIABILIZAÇÃO (GATILHOS RÁPIDOS)               */}
+      {/* =================================================================== */}
+      <div className="space-y-3 pt-1">
+        <h5 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+          <ArrowRight className="w-3.5 h-3.5 text-emerald-700" />
           Plano de Ação para Viabilização da Proposta (Gatilhos Rápidos)
         </h5>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Ação 1: Comprovação de Renda no CRM com Link 1-Clique */}
-          <div className="p-3.5 rounded-lg bg-slate-800/80 border border-slate-700 flex flex-col justify-between text-xs space-y-2">
-            <div className="flex gap-2.5">
-              <div className="p-1.5 rounded bg-blue-500/10 text-blue-400 h-fit mt-0.5 shrink-0">
-                <FileSpreadsheet className="w-4 h-4" />
+          <div className="bg-slate-50/80 border border-slate-200/90 rounded-lg p-4 flex flex-col justify-between hover:border-slate-300 transition-all">
+            <div>
+              <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                <div className="p-1 rounded bg-emerald-100 text-emerald-800 shrink-0">
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                </div>
+                <span>Ação 1: Comprovação de Receitas no CRM</span>
               </div>
-              <div className="space-y-1">
-                <span className="font-bold text-slate-100 block">
-                  Ação 1: Comprovação de Receitas no CRM
-                </span>
-                <p className="text-slate-300 text-[11px] leading-snug">
-                  Cadastrar no CRM as notas fiscais de venda da safra passada ou contratos de compra e venda futura totalizando margem líquida de ao menos{' '}
-                  <strong className="text-emerald-300 font-mono">{formatBRL(targetCPForApproval)}</strong>.
-                </p>
-              </div>
+              <p className="text-[11px] text-slate-600 leading-relaxed my-2">
+                Cadastrar no CRM as notas fiscais de venda da safra passada ou contratos de compra e venda futura totalizando margem líquida de ao menos{' '}
+                <strong className="text-emerald-900 font-semibold">{formatBRL(targetCPForApproval)}</strong>.
+              </p>
             </div>
 
-            <div className="pt-2 border-t border-slate-700/60">
+            <div className="pt-2 border-t border-slate-200/80 mt-1">
               <Link
                 href={`/admin/crm/properties/${propertyId}/edit?step=4`}
-                className="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-2.5 py-1 rounded inline-flex items-center gap-1 transition-colors shadow-xs"
+                className="bg-[#1B4D3E] hover:bg-[#143e32] text-white text-xs font-medium px-3.5 py-1.5 rounded-md shadow-2xs inline-flex items-center gap-1.5 w-fit mt-1 transition-colors"
               >
-                Adicionar Receitas no CRM ↗
+                <span>Adicionar Receitas no CRM</span>
+                <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
           </div>
 
           {/* Ação 2: Ajuste de Condições com Gatilhos Rápidos */}
-          <div className="p-3.5 rounded-lg bg-slate-800/80 border border-slate-700 flex flex-col justify-between text-xs space-y-2">
-            <div className="flex gap-2.5">
-              <div className="p-1.5 rounded bg-amber-500/10 text-amber-400 h-fit mt-0.5 shrink-0">
-                <Calculator className="w-4 h-4" />
+          <div className="bg-slate-50/80 border border-slate-200/90 rounded-lg p-4 flex flex-col justify-between hover:border-slate-300 transition-all">
+            <div>
+              <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                <div className="p-1 rounded bg-amber-100 text-amber-800 shrink-0">
+                  <Calculator className="w-3.5 h-3.5" />
+                </div>
+                <span>Ação 2: Ajuste de Prazo e Amortização</span>
               </div>
-              <div className="space-y-1">
-                <span className="font-bold text-slate-100 block">
-                  Ação 2: Ajuste de Prazo e Amortização
-                </span>
-                <p className="text-slate-300 text-[11px] leading-snug">
-                  {isCusteio ? (
-                    <span>
-                      Operações de custeio possuem limite de ciclo produtivo. Para diluir o encargo, avalie adequar o montante pretendido ou utilizar o Sistema SAC para amortização decrescente.
-                    </span>
-                  ) : (
-                    <span>
-                      Simular a extensão de prazo (ex: 24 ou 36 meses se a linha permitir), diluindo a parcela anual do encargo. Comparar com o Sistema SAC para amortização decrescente.
-                    </span>
-                  )}
-                  {paymentCapacity > 0 && maxCreditSupportedWithCurrentCP > 0 && (
-                    <span className="block mt-1 text-emerald-300">
-                      Com a renda líquida atual de {formatBRL(paymentCapacity)}, o limite máximo aprovável de imediato é de <strong className="font-mono">{formatBRL(maxCreditSupportedWithCurrentCP)}</strong>.
-                    </span>
-                  )}
-                </p>
+              <div className="text-[11px] text-slate-600 leading-relaxed my-2 space-y-1">
+                {isCusteio ? (
+                  <p>
+                    Operações de custeio possuem limite de ciclo produtivo. Para diluir o encargo, avalie adequar o montante pretendido ou utilizar o Sistema SAC para amortização decrescente.
+                  </p>
+                ) : (
+                  <p>
+                    Simular a extensão de prazo (ex: 24 ou 36 meses se a linha permitir), diluindo a parcela anual do encargo. Comparar com o Sistema SAC para amortização decrescente.
+                  </p>
+                )}
+                {paymentCapacity > 0 && maxCreditSupportedWithCurrentCP > 0 && (
+                  <p className="text-emerald-800 font-medium pt-0.5">
+                    Com a renda líquida atual de {formatBRL(paymentCapacity)}, o limite máximo aprovável de imediato é de{' '}
+                    <strong className="font-bold text-emerald-900">{formatBRL(maxCreditSupportedWithCurrentCP)}</strong>.
+                  </p>
+                )}
               </div>
             </div>
 
-            <div className="pt-2 border-t border-slate-700/60 flex flex-wrap items-center gap-2">
+            <div className="pt-2 border-t border-slate-200/80 mt-1 flex flex-wrap items-center gap-2">
               {/* Botão para alternar Sistema de Amortização */}
               {amortizationSystem === 'PRICE' ? (
                 <button
                   type="button"
                   onClick={() => onSetAmortizationSystem?.('SAC')}
-                  className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded text-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-xs"
+                  className="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-medium px-3.5 py-1.5 rounded-md shadow-2xs inline-flex items-center gap-1.5 w-fit mt-1 transition-colors cursor-pointer"
                 >
-                  <Calculator className="w-3 h-3 text-amber-400" />
-                  Testar Tabela SAC
+                  <Calculator className="w-3 h-3 text-amber-600" />
+                  <span>Testar Tabela SAC</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={() => onSetAmortizationSystem?.('PRICE')}
-                  className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-2.5 py-1 rounded text-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-xs"
+                  className="bg-white hover:bg-slate-100 border border-slate-300 text-slate-700 text-xs font-medium px-3.5 py-1.5 rounded-md shadow-2xs inline-flex items-center gap-1.5 w-fit mt-1 transition-colors cursor-pointer"
                 >
-                  <Calculator className="w-3 h-3 text-emerald-400" />
-                  Voltar para Tabela PRICE
+                  <Calculator className="w-3 h-3 text-emerald-600" />
+                  <span>Voltar para Tabela PRICE</span>
                 </button>
               )}
 
               {/* Botões rápidos de prazo quando não for custeio (linhas de investimento) */}
               {!isCusteio && onSetTermMonths && (
-                <div className="flex items-center gap-1 text-[11px] text-slate-400">
-                  <Calendar className="w-3 h-3 ml-1" />
-                  <span>Prazos:</span>
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-1">
+                  <Calendar className="w-3 h-3 text-slate-400" />
+                  <span className="font-medium">Prazos:</span>
                   {[24, 36, 48].map((m) => (
                     <button
                       key={m}
                       type="button"
                       onClick={() => onSetTermMonths(m)}
-                      className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                      className={cn(
+                        'text-xs px-2.5 py-0.5 rounded border transition-colors cursor-pointer',
                         termMonths === m
-                          ? 'bg-emerald-600 border-emerald-500 text-white font-bold'
-                          : 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-300'
-                      }`}
+                          ? 'bg-emerald-600 border-emerald-600 text-white font-bold'
+                          : 'bg-white hover:bg-slate-100 border-slate-300 text-slate-700'
+                      )}
                     >
                       {m}m
                     </button>

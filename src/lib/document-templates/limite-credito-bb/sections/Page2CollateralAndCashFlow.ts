@@ -117,6 +117,12 @@ export function renderPage2CollateralAndCashFlow(params: Page2Params): string {
 
   // Máquinas cadastradas
   const machineries = prop.machineries || []
+  const totalMachineryDeclared = machineries.length > 0
+    ? machineries.reduce((acc: number, m: any) => acc + (Number(m.value) || 0), 0)
+    : machineryValue
+  const totalMachineryAcceptable = machineries.length > 0
+    ? machineries.reduce((acc: number, m: any) => acc + (m.hasLien ? 0 : (Number(m.value) || 0) * 0.50), 0)
+    : (machineryValue * 0.50)
 
   return `
   <!-- =================================================================== -->
@@ -176,11 +182,11 @@ export function renderPage2CollateralAndCashFlow(params: Page2Params): string {
               <td style="padding: 4px 6px; text-align: right; font-weight: 600; color: #1B4D3E; vertical-align: middle;">${formatBRL(item.total)}</td>
             </tr>
           `).join('')}
-          <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
-            <td colspan="3" style="padding: 6px 6px; text-transform: uppercase; color: #111827;">Total Rebanho Declarado</td>
-            <td style="padding: 6px 6px; text-align: center; color: #1B4D3E; font-size: 10px;">${totalCattle} cab</td>
-            <td style="padding: 6px 6px; text-align: center; font-size: 8px; color: #6b7280;">Margem 50%:</td>
-            <td colspan="2" style="padding: 6px 6px; text-align: right; color: #1B4D3E; font-size: 10px;">
+          <tr class="dossie-total-row" style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
+            <td colspan="3" style="padding: 7px 6px; text-transform: uppercase; color: #111827;">Total Rebanho Declarado</td>
+            <td style="padding: 7px 6px; text-align: center; color: #1B4D3E; font-size: 10px;">${totalCattle} cab</td>
+            <td style="padding: 7px 6px; text-align: center; font-size: 8px; color: #6b7280;">Margem 50%:</td>
+            <td colspan="2" style="padding: 7px 6px; text-align: right; color: #1B4D3E; font-size: 10px;">
               ${formatBRL(cattleEstimatedValue)} <span style="font-size: 8px; color: #065f46; font-weight: bold; margin-left: 3px;">(${formatBRL(cattleEstimatedValue * 0.50)})</span>
             </td>
           </tr>
@@ -240,6 +246,14 @@ export function renderPage2CollateralAndCashFlow(params: Page2Params): string {
               </td>
             </tr>
           `)}
+          ${(machineries.length > 0 || machineryValue > 0) ? `
+          <tr class="dossie-total-row" style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
+            <td colspan="3" style="padding: 7px 8px; color: #111827; text-transform: uppercase;">Subtotal Máquinas & Equipamentos</td>
+            <td style="padding: 7px 8px; text-align: right; color: #1B4D3E;">${formatBRL(totalMachineryDeclared)}</td>
+            <td style="padding: 7px 8px; text-align: center; color: #6b7280; font-size: 8px;">Margem MCR:</td>
+            <td style="padding: 7px 8px; text-align: right; color: #065f46;">${formatBRL(totalMachineryAcceptable)}</td>
+          </tr>
+          ` : ''}
         </tbody>
       </table>
     </div>
@@ -375,9 +389,9 @@ export function renderPage2CollateralAndCashFlow(params: Page2Params): string {
             <td style="padding: 4px 8px;">Endividamento Bancário Vigente e Amortizações Anuais:</td>
             <td style="padding: 4px 8px; text-align: right; color: #dc2626; font-weight: 600;">- ${formatBRL(existingDebt)}</td>
           </tr>
-          <tr style="background: #fef2f2; font-weight: bold; border-top: 1px solid #fca5a5;">
-            <td style="padding: 6.5px 8px; color: #991b1b;">TOTAL DE OBRIGAÇÕES ANUAIS APURADAS:</td>
-            <td style="padding: 6.5px 8px; text-align: right; color: #dc2626;">- ${formatBRL(operationalExp + familyCosts + existingDebt)}</td>
+          <tr class="dossie-total-row" style="background: #fef2f2; font-weight: bold; border-top: 1px solid #fca5a5;">
+            <td style="padding: 7px 8px; color: #991b1b;">TOTAL DE OBRIGAÇÕES ANUAIS APURADAS:</td>
+            <td style="padding: 7px 8px; text-align: right; color: #dc2626;">- ${formatBRL(operationalExp + familyCosts + existingDebt)}</td>
           </tr>
         </tbody>
       </table>

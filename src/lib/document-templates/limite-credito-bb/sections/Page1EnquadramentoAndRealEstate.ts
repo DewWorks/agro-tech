@@ -138,9 +138,9 @@ export function renderPage1EnquadramentoAndRealEstate(params: Page1Params): stri
 
     <!-- SEÇÃO IV: ENQUADRAMENTO NO MANUAL DE CRÉDITO RURAL (MCR) -->
     <div style="border: 1.5px solid #1B4D3E; border-radius: 4px; margin-bottom: 9px; background: #fbfdfc;">
-      <div style="background: #1B4D3E; color: #ffffff; padding: 4px 10px; font-weight: bold; text-transform: uppercase; font-size: 9.5px; display: flex; justify-content: space-between; align-items: center;">
-        <span>IV - Enquadramento no Manual de Crédito Rural (MCR / BACEN)</span>
-        <span style="font-size: 8.5px; font-weight: normal; color: #a7f3d0; background: rgba(255,255,255,0.15); padding: 1px 6px; border-radius: 3px;">Plano Safra Oficial</span>
+      <div style="background: #1B4D3E; color: #ffffff; padding: 4px 12px; font-weight: 700; text-transform: uppercase; font-size: 9.5px; display: flex; justify-content: space-between; align-items: center; min-height: 28px; box-sizing: border-box;">
+        <span style="display: inline-flex; align-items: center; line-height: 1;">IV - Enquadramento no Manual de Crédito Rural (MCR / BACEN)</span>
+        <span style="font-size: 8px; font-weight: 700; color: #065f46; background: #d1fae5; border: 1px solid #6ee7b7; padding: 2.5px 8px; border-radius: 4px; text-transform: uppercase; line-height: 1; display: inline-flex; align-items: center; letter-spacing: 0.5px;">Plano Safra Oficial</span>
       </div>
       <div style="padding: 7px 10px;">
         <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 9px;">
@@ -218,12 +218,12 @@ export function renderPage1EnquadramentoAndRealEstate(params: Page1Params): stri
             <td style="padding: 5px 8px; text-align: right;">${formatBRL(resArea * landValuePerHa * 0.4)}</td>
             <td style="padding: 5px 8px; text-align: right; color: #065f46; font-weight: 600;">${formatBRL((resArea * landValuePerHa * 0.4) * 0.65)}</td>
           </tr>
-          <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
-            <td style="padding: 6.5px 8px; color: #111827;">ÁREA TOTAL / VALOR TERRA NUA</td>
-            <td style="padding: 6.5px 8px; text-align: right; color: #111827;">${totalArea.toFixed(2)} ha</td>
-            <td style="padding: 6.5px 8px; text-align: right; color: #6b7280;">-</td>
-            <td style="padding: 6.5px 8px; text-align: right; color: #1B4D3E;">${formatBRL(totalLandValue)}</td>
-            <td style="padding: 6.5px 8px; text-align: right; color: #065f46;">${formatBRL(totalLandValue * 0.65)}</td>
+          <tr class="dossie-total-row" style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
+            <td style="padding: 7px 8px; color: #111827;">ÁREA TOTAL / VALOR TERRA NUA</td>
+            <td style="padding: 7px 8px; text-align: right; color: #111827;">${totalArea.toFixed(2)} ha</td>
+            <td style="padding: 7px 8px; text-align: right; color: #6b7280;">-</td>
+            <td style="padding: 7px 8px; text-align: right; color: #1B4D3E;">${formatBRL(totalLandValue)}</td>
+            <td style="padding: 7px 8px; text-align: right; color: #065f46;">${formatBRL(totalLandValue * 0.65)}</td>
           </tr>
         </tbody>
       </table>
@@ -260,10 +260,10 @@ export function renderPage1EnquadramentoAndRealEstate(params: Page1Params): stri
             </td>
           </tr>
           `}
-          <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
-            <td colspan="3" style="padding: 6.5px 8px; color: #111827;">SUBTOTAL BENFEITORIAS</td>
-            <td style="padding: 6.5px 8px; text-align: right; color: #1B4D3E;">${formatBRL(improvementsValue)}</td>
-            <td style="padding: 6.5px 8px; text-align: right; color: #065f46;">${formatBRL(improvementsValue * 0.65)}</td>
+          <tr class="dossie-total-row" style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
+            <td colspan="3" style="padding: 7px 8px; color: #111827;">SUBTOTAL BENFEITORIAS</td>
+            <td style="padding: 7px 8px; text-align: right; color: #1B4D3E;">${formatBRL(improvementsValue)}</td>
+            <td style="padding: 7px 8px; text-align: right; color: #065f46;">${formatBRL(improvementsValue * 0.65)}</td>
           </tr>
         </tbody>
       </table>

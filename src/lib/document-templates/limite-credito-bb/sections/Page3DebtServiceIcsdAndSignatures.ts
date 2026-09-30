@@ -96,9 +96,9 @@ export function renderPage3DebtServiceIcsdAndSignatures(params: Page3Params): st
             <td style="padding: 4px 8px; text-align: right;">${formatBRL(row.closingBalance)}</td>
           </tr>
           `).join('')}
-          <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
-            <td colspan="4" style="padding: 6.5px 8px; text-transform: uppercase; color: #111827;">Parcela Anual Crítica de Estresse Financeiro:</td>
-            <td colspan="2" style="padding: 6.5px 8px; text-align: right; color: #1B4D3E; font-size: 10.5px;">
+          <tr class="dossie-total-row" style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
+            <td colspan="4" style="padding: 7px 8px; text-transform: uppercase; color: #111827;">Parcela Anual Crítica de Estresse Financeiro:</td>
+            <td colspan="2" style="padding: 7px 8px; text-align: right; color: #1B4D3E; font-size: 10.5px;">
               ${formatBRL(engineResult.amortization.annualDebtService)} / ano
             </td>
           </tr>

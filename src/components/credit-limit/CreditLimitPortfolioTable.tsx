@@ -48,6 +48,7 @@ import {
   generateCreditLimitDossierHtml,
 } from '@/actions/credit-limit'
 import { downloadCreditLimitDossierPdf } from '@/lib/utils/dossie-pdf-downloader'
+import { DossiePreviewModal } from './DossiePreviewModal'
 import { formatCPF, formatCNPJ } from '@/lib/utils'
 
 interface CreditLimitPortfolioTableProps {
@@ -113,29 +114,29 @@ export function CreditLimitPortfolioTable({
   const [selectedBank, setSelectedBank] = useState('TODOS')
   const [selectedStatus, setSelectedStatus] = useState('TODOS')
   const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null)
+  const [previewProperty, setPreviewProperty] = useState<CreditLimitPropertyItem | null>(null)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [previewFileName, setPreviewFileName] = useState<string>('')
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false)
+  const [isLoadingPreview, setIsLoadingPreview] = useState<boolean>(false)
 
-  const handleDownloadDirectDossier = async (propertyId: string) => {
-    setGeneratingPdfId(propertyId)
-    const toastId = toast.loading('Compilando Dossiê Técnico de Limite de Crédito...')
+  const handleOpenPreview = async (prop: CreditLimitPropertyItem) => {
+    setPreviewProperty(prop)
+    setIsPreviewOpen(true)
+    setIsLoadingPreview(true)
     try {
-      const res = await generateCreditLimitDossierHtml(propertyId)
+      const res = await generateCreditLimitDossierHtml(prop.id)
       if (!res.success || !res.html) {
         throw new Error(res.error || 'Erro ao gerar HTML do dossiê.')
       }
 
-      await downloadCreditLimitDossierPdf(
-        res.html,
-        res.fileName || `Dossie_Limite_Credito_${Date.now()}.pdf`
-      )
-
-      toast.dismiss(toastId)
-      toast.success('Dossiê Técnico baixado com sucesso!')
+      setPreviewHtml(res.html)
+      setPreviewFileName(res.fileName || `Dossie_Limite_Credito_${Date.now()}.pdf`)
     } catch (err: any) {
       console.error(err)
-      toast.dismiss(toastId)
-      toast.error(err.message || 'Falha na compilação do PDF.')
+      toast.error(err.message || 'Falha ao carregar pré-visualização do dossiê.')
     } finally {
-      setGeneratingPdfId(null)
+      setIsLoadingPreview(false)
     }
   }
 
@@ -492,20 +493,15 @@ export function CreditLimitPortfolioTable({
                             <Calculator className="w-3.5 h-3.5" />
                           </Button>
 
-                          {/* Ação 2: Emitir Dossiê Técnico Oficial em PDF */}
+                          {/* Ação 2: Pré-Visualizar e Emitir Dossiê Técnico Oficial em PDF */}
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDownloadDirectDossier(prop.id)}
-                            disabled={generatingPdfId === prop.id}
+                            onClick={() => handleOpenPreview(prop)}
                             className="h-8 w-8 p-0 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 cursor-pointer"
-                            title="Emitir Dossiê Técnico de Limite (PDF)"
+                            title="Pré-Visualizar e Emitir Dossiê Técnico (PDF)"
                           >
-                            {generatingPdfId === prop.id ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Download className="w-3.5 h-3.5" />
-                            )}
+                            <Download className="w-3.5 h-3.5" />
                           </Button>
 
                           {/* Ação 3: Editar Cadastro Patrimonial no CRM */}
@@ -546,6 +542,44 @@ export function CreditLimitPortfolioTable({
           </p>
         </div>
       </div>
+
+      {/* MODAL DE PRÉ-VISUALIZAÇÃO DO DOSSIÊ TÉCNICO */}
+      <DossiePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false)
+          setPreviewProperty(null)
+          setPreviewHtml(null)
+        }}
+        html={previewHtml}
+        isLoading={isLoadingPreview}
+        fileName={previewFileName}
+        propertyId={previewProperty?.id}
+        propertyName={previewProperty?.propertyName || previewProperty?.name || 'Propriedade Rural'}
+        producerName={previewProperty?.primaryProducerName}
+        icsdStatus={
+          previewProperty?.status === 'COMPATIVEL'
+            ? 'APROVADO'
+            : previewProperty?.status === 'REVISAR_PRAZO'
+            ? 'ALERTA'
+            : 'REPROVADO'
+        }
+        icsdValue={
+          previewProperty?.estimatedAnnualInstallment && previewProperty.estimatedAnnualInstallment > 0
+            ? Number((previewProperty.netMargin / previewProperty.estimatedAnnualInstallment).toFixed(2))
+            : undefined
+        }
+        ltvPercent={
+          previewProperty?.creditLimitRequested && previewProperty.creditLimitRequested > 0
+            ? Number(((previewProperty.totalCollateralLimit / previewProperty.creditLimitRequested) * 100).toFixed(1))
+            : undefined
+        }
+        ltvApproved={
+          previewProperty?.totalCollateralLimit
+            ? previewProperty.totalCollateralLimit >= (previewProperty.creditLimitRequested || 0)
+            : undefined
+        }
+      />
     </div>
   )
 }

@@ -53,6 +53,7 @@ import {
 } from '@/actions/credit-limit'
 import { downloadCreditLimitDossierPdf } from '@/lib/utils/dossie-pdf-downloader'
 import { PrescriptiveActionCard } from './PrescriptiveActionCard'
+import { DossiePreviewModal } from './DossiePreviewModal'
 import { toast } from 'sonner'
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 
@@ -113,6 +114,10 @@ export function CreditRiskSimulator({
   // Estados de ações
   const [isSaving, setIsSaving] = useState<boolean>(false)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState<boolean>(false)
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
+  const [previewFileName, setPreviewFileName] = useState<string>('')
+  const [isLoadingPreview, setIsLoadingPreview] = useState<boolean>(false)
 
   // 1. Carregar lista de propriedades para o seletor
   useEffect(() => {
@@ -291,11 +296,11 @@ export function CreditRiskSimulator({
     }
   }
 
-  // Emitir / Baixar Dossiê Técnico Oficial em PDF (Aditivo 003)
-  const handleDownloadDossier = async () => {
+  // Abrir Pré-Visualização do Dossiê Técnico Oficial
+  const handleOpenPreviewModal = async () => {
     if (!selectedPropertyId) return
-    setIsGeneratingPdf(true)
-    const toastId = toast.loading('Gerando Dossiê Técnico de Limite de Crédito (BB/Sicredi)...')
+    setIsPreviewOpen(true)
+    setIsLoadingPreview(true)
     try {
       const res = await generateCreditLimitDossierHtml(selectedPropertyId, {
         creditLineCode,
@@ -312,19 +317,13 @@ export function CreditRiskSimulator({
         throw new Error(res.error || 'Erro ao gerar HTML do dossiê.')
       }
 
-      await downloadCreditLimitDossierPdf(
-        res.html,
-        res.fileName || `Dossie_Limite_Credito_${Date.now()}.pdf`
-      )
-
-      toast.dismiss(toastId)
-      toast.success('Dossiê Técnico emitido e baixado com sucesso!')
+      setPreviewHtml(res.html)
+      setPreviewFileName(res.fileName || `Dossie_Limite_Credito_${Date.now()}.pdf`)
     } catch (err: any) {
       console.error(err)
-      toast.dismiss(toastId)
-      toast.error(err.message || 'Falha na compilação do PDF.')
+      toast.error(err.message || 'Falha ao carregar pré-visualização do dossiê.')
     } finally {
-      setIsGeneratingPdf(false)
+      setIsLoadingPreview(false)
     }
   }
 
@@ -409,15 +408,11 @@ export function CreditRiskSimulator({
 
           <Button
             type="button"
-            onClick={handleDownloadDossier}
-            disabled={isGeneratingPdf || !simulationData}
+            onClick={handleOpenPreviewModal}
+            disabled={loadingProperty || !simulationData}
             className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs h-10 px-4 font-bold gap-1.5 shadow-sm"
           >
-            {isGeneratingPdf ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Download className="w-4 h-4" />
-            )}
+            <Download className="w-4 h-4" />
             <span>Emitir Dossiê Técnico (PDF)</span>
           </Button>
         </div>
@@ -942,6 +937,22 @@ export function CreditRiskSimulator({
           </Card>
         </div>
       )}
+
+      {/* MODAL DE PRÉ-VISUALIZAÇÃO DO DOSSIÊ TÉCNICO */}
+      <DossiePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        html={previewHtml}
+        isLoading={isLoadingPreview}
+        fileName={previewFileName}
+        propertyId={selectedPropertyId}
+        propertyName={currentProperty?.name || currentProperty?.propertyName || 'Propriedade Rural'}
+        producerName={currentProperty?.producerName}
+        icsdStatus={riskAnalysis?.icsd.classification}
+        icsdValue={riskAnalysis?.icsd.icsdValue}
+        ltvPercent={riskAnalysis?.ltv.coverageRatioPercent}
+        ltvApproved={riskAnalysis?.ltv.isApproved}
+      />
     </div>
   )
 }
