@@ -29,6 +29,8 @@ import {
   deleteChecklistItem,
 } from '@/actions/demands'
 import { getSignedUrlForUpload, getSignedUrlForView } from '@/actions/documents'
+import DocumentPreviewModal from '@/components/ged/DocumentPreviewModal'
+import type { DocumentRow } from '@/components/ged/DocumentTable'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
@@ -89,6 +91,7 @@ export function DemandChecklistSection({
   const [viewingItemId, setViewingItemId] = useState<string | null>(null)
   const [linkModalItemId, setLinkModalItemId] = useState<string | null>(null)
   const [docFilterQuery, setDocFilterQuery] = useState('')
+  const [previewDoc, setPreviewDoc] = useState<DocumentRow | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [activeUploadTargetItem, setActiveUploadTargetItem] = useState<ChecklistItemData | null>(null)
@@ -191,25 +194,30 @@ export function DemandChecklistSection({
     }
   }
 
-  // Visualização rápida via Signed URL segura
-  const handleQuickView = async (item: ChecklistItemData) => {
+  // Visualização via Modal Executivo Universal
+  const handleQuickView = (item: ChecklistItemData) => {
     if (!item.document?.storagePath) {
       toast.error('Caminho de armazenamento do documento não encontrado.')
       return
     }
 
-    try {
-      setViewingItemId(item.id)
-      const res = await getSignedUrlForView(item.document.storagePath)
-      if (!res.success || !res.data?.signedUrl) {
-        throw new Error(res.error || 'Falha ao gerar link seguro de visualização.')
-      }
-      window.open(res.data.signedUrl, '_blank')
-    } catch (err: any) {
-      toast.error(err.message || 'Erro ao abrir visualização do arquivo.')
-    } finally {
-      setViewingItemId(null)
+    const docRow: DocumentRow = {
+      id: item.document.id,
+      fileName: item.document.fileName,
+      documentType: item.documentType || 'DOCUMENTO',
+      fileSize: 0,
+      mimeType: item.document.fileName.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg',
+      storagePath: item.document.storagePath,
+      issueDate: null,
+      expirationDate: null,
+      cropYear: null,
+      inheritedFromId: null,
+      isInherited: false,
+      calculatedStatus: (item.document.complianceStatus as any) || 'SEM_VALIDADE',
+      producer: { id: producerId || '', name: producerName },
+      property: propertyId ? { id: propertyId, name: 'Imóvel Beneficiado' } : null,
     }
+    setPreviewDoc(docRow)
   }
 
   // Marcar/Desmarcar manualmente
@@ -624,6 +632,15 @@ export function DemandChecklistSection({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Visualizador Executivo Modular Universal */}
+      {previewDoc && (
+        <DocumentPreviewModal
+          document={previewDoc}
+          isOpen={!!previewDoc}
+          onClose={() => setPreviewDoc(null)}
+        />
       )}
     </div>
   )
