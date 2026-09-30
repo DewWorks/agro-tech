@@ -13,6 +13,7 @@ import {
   Calendar,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatBRL } from '@/lib/utils/formatters'
 
 export interface PrescriptiveActionCardProps {
   propertyId: string
@@ -55,9 +56,6 @@ export function PrescriptiveActionCard({
   onSetAmortizationSystem,
   onSetTermMonths,
 }: PrescriptiveActionCardProps) {
-  const formatBRL = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0)
-
   // Cálculos de Prescrição Financeira
   const targetCPForApproval = annualDebtService * 1.20
   const cpDeficit = Math.max(0, targetCPForApproval - paymentCapacity)

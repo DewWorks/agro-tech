@@ -9,69 +9,162 @@ import {
 } from '@/lib/document-templates/limite-credito-bb'
 import { saveCreditAnalysis } from '@/actions/credit-analysis'
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
+import { COLLATERAL_WEIGHTS } from '@/lib/financial-engine'
+import type {
+  CreditLimitFilter,
+  CreditLimitPropertyItem,
+  CreditLimitPortfolioKPIs,
+  CreditLimitPortfolioResult,
+  CreditSimulationSaveParams,
+  PropertySimulationData,
+} from '@/types/credit-limit.types'
 
-export interface CreditLimitFilter {
-  branchId?: string
-  search?: string
-  purpose?: string
-  bank?: string
-  status?: string
+export type {
+  CreditLimitFilter,
+  CreditLimitPropertyItem,
+  CreditLimitPortfolioKPIs,
+  CreditLimitPortfolioResult,
+  CreditSimulationSaveParams,
+  PropertySimulationData,
 }
 
-export interface CreditLimitPropertyItem {
-  id: string
-  name: string
-  propertyName: string | null
-  city: string | null
-  state: string | null
-  totalArea: number
-  branchId: string
-  branchName: string
-  primaryProducerName: string
-  primaryProducerDocument: string | null
-  landValue: number
-  improvementsValue: number
-  machineryValue: number
-  livestockValue: number
-  totalAssets: number
-  realEstateCollateral: number
-  pledgeCollateral: number
-  totalCollateralLimit: number
-  effectiveAgroRevenue: number
-  projectedAgroRevenue: number
-  operationalExpenses: number
-  existingDebtService: number
-  familyLivingCosts: number
-  netMargin: number
-  creditLimitRequested: number
-  creditLimitPurpose: string
-  creditLimitTargetBank: string
-  creditLimitTermMonths: number
-  estimatedAnnualInstallment: number
-  hasFinancialData: boolean
-  status: 'COMPATIVEL' | 'REVISAR_PRAZO' | 'INCOMPATIVEL' | 'PENDENTE'
-  updatedAt: Date
+/**
+ * Consulta otimizada e unificada que extrai o snapshot financeiro e patrimonial
+ * de uma propriedade rural (terra, benfeitorias, máquinas, semoventes, urbanos e fluxo de caixa).
+ * Compartilhado entre a simulação de risco e a emissão do dossiê oficial (Single Source of Truth).
+ */
+export async function fetchPropertyFinancialSnapshot(propertyId: string) {
+  const property = await prisma.property.findUnique({
+    where: { id: propertyId },
+    include: {
+      branch: { include: { organization: true } },
+      producers: { include: { producer: true } },
+      machineries: true,
+      improvementsList: true,
+      livestockList: true,
+      creditAnalyses: {
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+      },
+    },
+  })
+
+  if (!property) return null
+
+  const primaryProducer = property.producers[0]?.producer
+  if (!primaryProducer) return null
+
+  const urbanProperties = await prisma.urbanProperty.findMany({
+    where: { producerId: primaryProducer.id },
+  })
+
+  const vehicles = await prisma.vehicle.findMany({
+    where: { producerId: primaryProducer.id },
+  })
+
+  const poss = (property.possessionData as any) || {}
+  const latestAnalysis = property.creditAnalyses[0]
+
+  const totalArea = Number(property.totalArea) || 0
+  const vtnPerHectare = Number(poss.vtnPerHectare) || 0
+  const landValue = Math.round(totalArea * vtnPerHectare * 100) / 100
+
+  const machineryValue = property.machineries.reduce(
+    (acc, m) => acc + (Number(m.value) || 0),
+    0
+  )
+  const improvementsValue = property.improvementsList.reduce(
+    (acc, i) => acc + Number(i.quantity || 0) * Number(i.unitValue || 0),
+    0
+  )
+  const livestockValue = property.livestockList.reduce(
+    (acc, l) => acc + Number(l.quantity || 0) * Number(l.unitValue || 0),
+    0
+  )
+  const ruralAssetsTotal = landValue + machineryValue + improvementsValue + livestockValue
+
+  const urbanList =
+    urbanProperties.length > 0 ? urbanProperties : poss.urbanProperties || []
+  const vehicleList =
+    vehicles.length > 0 ? vehicles : poss.vehicles || []
+
+  const urbanTotal = urbanList.reduce(
+    (acc: number, u: any) => acc + (Number(u.marketValue) || 0),
+    0
+  )
+  const vehiclesTotal = vehicleList.reduce(
+    (acc: number, v: any) => acc + (Number(v.declaredValue) || 0),
+    0
+  )
+  const totalAssets = ruralAssetsTotal + urbanTotal + vehiclesTotal
+
+  const urbanAcceptable = urbanList.reduce(
+    (acc: number, u: any) =>
+      acc + (u.hasLien ? 0 : (Number(u.marketValue) || 0) * COLLATERAL_WEIGHTS.URBAN_PROPERTY),
+    0
+  )
+  const vehiclesAcceptable = vehicleList.reduce(
+    (acc: number, v: any) =>
+      acc + (v.hasLien ? 0 : (Number(v.declaredValue) || 0) * COLLATERAL_WEIGHTS.VEHICLES),
+    0
+  )
+
+  const acceptableCollateral =
+    (landValue + improvementsValue) * COLLATERAL_WEIGHTS.RURAL_REAL_ESTATE +
+    (machineryValue + livestockValue) * COLLATERAL_WEIGHTS.RURAL_PLEDGE +
+    urbanAcceptable +
+    vehiclesAcceptable
+
+  const effectiveAgroRevenue = Number(poss.effectiveAgroRevenue) || 0
+  const projectedAgroRevenue = Number(poss.projectedAgroRevenue) || 0
+  const otherRevenues = Number(poss.otherRevenues) || 0
+  const operationalExpenses = Number(poss.operationalExpenses) || 0
+  const familyLivingCosts = Number(poss.familyLivingCosts) || 0
+  const existingDebtService = Number(poss.existingDebtService) || 0
+
+  const baseAgro = projectedAgroRevenue > 0 ? projectedAgroRevenue : effectiveAgroRevenue
+  const totalInflows = baseAgro + otherRevenues
+  const totalOutflows = operationalExpenses + familyLivingCosts + existingDebtService
+  const netMargin = totalInflows - totalOutflows
+  const netOperational = Math.max(0, totalInflows - operationalExpenses)
+  const paymentCapacity = netOperational - (familyLivingCosts + existingDebtService)
+
+  return {
+    property,
+    primaryProducer,
+    urbanProperties: urbanList,
+    vehicles: vehicleList,
+    poss,
+    latestAnalysis,
+    financials: {
+      totalArea,
+      vtnPerHectare,
+      landValue,
+      machineryValue,
+      improvementsValue,
+      livestockValue,
+      ruralAssetsTotal,
+      urbanTotal,
+      vehiclesTotal,
+      totalAssets,
+      urbanAcceptable,
+      vehiclesAcceptable,
+      acceptableCollateral,
+      effectiveAgroRevenue,
+      projectedAgroRevenue,
+      otherRevenues,
+      operationalExpenses,
+      familyLivingCosts,
+      existingDebtService,
+      netMargin,
+      paymentCapacity,
+    },
+  }
 }
 
-export interface CreditLimitPortfolioKPIs {
-  totalRequestedLimit: number
-  totalCollateralAvailable: number
-  totalAnalyzedProperties: number
-  totalProperties: number
-  compatibleCount: number
-  reviewCount: number
-  averageNetMargin: number
-}
-
-export interface CreditLimitPortfolioResult {
-  success: boolean
-  error?: string
-  isFinancialModuleDisabledForOrg: boolean
-  kpis: CreditLimitPortfolioKPIs
-  properties: CreditLimitPropertyItem[]
-  branches: { id: string; name: string }[]
-}
-
+/**
+ * Consulta a carteira consolidada de propriedades para a visão de portfólio.
+ */
 export async function getCreditLimitPortfolioData(
   filters?: CreditLimitFilter
 ): Promise<CreditLimitPortfolioResult> {
@@ -161,10 +254,12 @@ export async function getCreditLimitPortfolioData(
     })
 
     const branchIdFilter =
-      filters?.branchId && filters.branchId !== 'TODOS' ? filters.branchId : undefined
+      filters?.branchId && filters.branchId !== 'TODAS'
+        ? filters.branchId
+        : undefined
     const search = filters?.search?.trim()
 
-    // Consulta de propriedades com ativos e vínculos
+    // Buscar propriedades pertencentes à organização
     const propertiesData = await prisma.property.findMany({
       where: {
         branch: {
@@ -218,20 +313,22 @@ export async function getCreditLimitPortfolioData(
       )
       const improvementsValue = (prop.improvementsList || []).reduce(
         (acc: number, cur: any) =>
-          acc + (Number(cur.quantity || 0) * Number(cur.unitValue || 0)),
+          acc + Number(cur.quantity || 0) * Number(cur.unitValue || 0),
         0
       )
       const livestockValue = (prop.livestockList || []).reduce(
         (acc: number, cur: any) =>
-          acc + (Number(cur.quantity || 0) * Number(cur.unitValue || 0)),
+          acc + Number(cur.quantity || 0) * Number(cur.unitValue || 0),
         0
       )
 
       const totalAssets = landValue + machineryValue + improvementsValue + livestockValue
 
       // Margens de Garantia Aceitas (MCR)
-      const realEstateCollateral = (landValue + improvementsValue) * 0.65
-      const pledgeCollateral = (machineryValue + livestockValue) * 0.5
+      const realEstateCollateral =
+        (landValue + improvementsValue) * COLLATERAL_WEIGHTS.RURAL_REAL_ESTATE
+      const pledgeCollateral =
+        (machineryValue + livestockValue) * COLLATERAL_WEIGHTS.RURAL_PLEDGE
       const totalCollateralLimit = realEstateCollateral + pledgeCollateral
 
       // Fluxo Financeiro e Capacidade de Pagamento
@@ -386,83 +483,9 @@ export async function getCreditLimitPortfolioData(
   }
 }
 
-export interface CreditSimulationSaveParams {
-  requestedAmount: number
-  creditLineCode: string
-  creditLimitPurpose: string
-  creditLimitTargetBank: string
-  termMonths: number
-  graceMonths: number
-  interestRateAnnual: number
-  amortizationSystem: 'PRICE' | 'SAC'
-  notes?: string
-}
-
-export interface PropertySimulationData {
-  property: {
-    id: string
-    name: string
-    propertyName: string | null
-    city: string | null
-    state: string | null
-    registrationNumber: string | null
-    car: string | null
-    ccir: string | null
-    itr: string | null
-    totalArea: number
-    vtnPerHectare: number
-    landValue: number
-    branchId: string
-    branchName: string
-  }
-  producer: {
-    id: string
-    name: string
-    document: string
-    type: string
-    spouseName?: string | null
-    spouseCpf?: string | null
-    marriageRegime?: string | null
-    profession?: string | null
-    phone?: string | null
-  }
-  collateral: {
-    landValue: number
-    improvementsValue: number
-    machineryValue: number
-    livestockValue: number
-    ruralAssetsTotal: number
-    urbanTotal: number
-    vehiclesTotal: number
-    totalAssets: number
-    acceptableCollateral: number
-    urbanProperties: any[]
-    vehicles: any[]
-  }
-  cashFlow: {
-    effectiveAgroRevenue: number
-    projectedAgroRevenue: number
-    otherRevenues: number
-    operationalExpenses: number
-    familyLivingCosts: number
-    existingDebtService: number
-    netMargin: number
-    paymentCapacity: number
-    customAgroRevenues: any[]
-    customExpenses: any[]
-  }
-  simulationParams: {
-    creditLineCode: string
-    creditLimitPurpose: string
-    creditLimitTargetBank: string
-    requestedAmount: number
-    termMonths: number
-    graceMonths: number
-    interestRateAnnual: number
-    amortizationSystem: 'PRICE' | 'SAC'
-  }
-}
-
+/**
+ * Retorna as propriedades disponíveis para o Select do Simulador de Limite.
+ */
 export async function getPropertiesForCreditLimitSelect(): Promise<
   Array<{
     id: string
@@ -529,6 +552,10 @@ export async function getPropertiesForCreditLimitSelect(): Promise<
   })
 }
 
+/**
+ * Retorna todos os dados analíticos necessários para a simulação de risco MCR da propriedade.
+ * Consome o snapshot financeiro unificado (Single Source of Truth).
+ */
 export async function getPropertySimulationData(
   propertyId: string
 ): Promise<{ success: boolean; data?: PropertySimulationData; error?: string }> {
@@ -536,110 +563,21 @@ export async function getPropertySimulationData(
     const dbUser = await getUserContext()
     if (!dbUser) return { success: false, error: 'Usuário não autenticado' }
 
-    const property = await prisma.property.findUnique({
-      where: { id: propertyId },
-      include: {
-        branch: { select: { id: true, name: true, organizationId: true } },
-        producers: {
-          include: {
-            producer: true,
-          },
-        },
-        machineries: true,
-        improvementsList: true,
-        livestockList: true,
-        creditAnalyses: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-    })
-
-    if (!property) {
-      return { success: false, error: 'Propriedade não encontrada' }
+    const snapshot = await fetchPropertyFinancialSnapshot(propertyId)
+    if (!snapshot) {
+      return { success: false, error: 'Propriedade ou produtor não encontrado' }
     }
 
-    const primaryProducer = property.producers[0]?.producer
-    if (!primaryProducer) {
-      return { success: false, error: 'Propriedade não possui produtor vinculado' }
-    }
+    const {
+      property,
+      primaryProducer,
+      urbanProperties,
+      vehicles,
+      poss,
+      latestAnalysis,
+      financials,
+    } = snapshot
 
-    const urbanProperties = await prisma.urbanProperty.findMany({
-      where: { producerId: primaryProducer.id },
-    })
-
-    const vehicles = await prisma.vehicle.findMany({
-      where: { producerId: primaryProducer.id },
-    })
-
-    const poss = (property.possessionData as any) || {}
-    const latestAnalysis = property.creditAnalyses[0]
-
-    const totalArea = Number(property.totalArea) || 0
-    const vtnPerHectare = Number(poss.vtnPerHectare) || 0
-    const landValue = Math.round(totalArea * vtnPerHectare * 100) / 100
-
-    const machineryValue = property.machineries.reduce(
-      (acc, m) => acc + (Number(m.value) || 0),
-      0
-    )
-    const improvementsValue = property.improvementsList.reduce(
-      (acc, i) => acc + (Number(i.quantity || 0) * Number(i.unitValue || 0)),
-      0
-    )
-    const livestockValue = property.livestockList.reduce(
-      (acc, l) => acc + (Number(l.quantity || 0) * Number(l.unitValue || 0)),
-      0
-    )
-    const ruralAssetsTotal = landValue + machineryValue + improvementsValue + livestockValue
-
-    const urbanList =
-      urbanProperties.length > 0 ? urbanProperties : poss.urbanProperties || []
-    const vehicleList =
-      vehicles.length > 0 ? vehicles : poss.vehicles || []
-
-    const urbanTotal = urbanList.reduce(
-      (acc: number, u: any) => acc + (Number(u.marketValue) || 0),
-      0
-    )
-    const vehiclesTotal = vehicleList.reduce(
-      (acc: number, v: any) => acc + (Number(v.declaredValue) || 0),
-      0
-    )
-    const totalAssets = ruralAssetsTotal + urbanTotal + vehiclesTotal
-
-    const urbanAcceptable = urbanList.reduce(
-      (acc: number, u: any) =>
-        acc + (u.hasLien ? 0 : (Number(u.marketValue) || 0) * 0.5),
-      0
-    )
-    const vehiclesAcceptable = vehicleList.reduce(
-      (acc: number, v: any) =>
-        acc + (v.hasLien ? 0 : (Number(v.declaredValue) || 0) * 0.4),
-      0
-    )
-
-    const acceptableCollateral =
-      (landValue + improvementsValue) * 0.65 +
-      (machineryValue + livestockValue) * 0.5 +
-      urbanAcceptable +
-      vehiclesAcceptable
-
-    const effectiveAgroRevenue = Number(poss.effectiveAgroRevenue) || 0
-    const projectedAgroRevenue = Number(poss.projectedAgroRevenue) || 0
-    const otherRevenues = Number(poss.otherRevenues) || 0
-    const operationalExpenses = Number(poss.operationalExpenses) || 0
-    const familyLivingCosts = Number(poss.familyLivingCosts) || 0
-    const existingDebtService = Number(poss.existingDebtService) || 0
-
-    const baseAgro = projectedAgroRevenue > 0 ? projectedAgroRevenue : effectiveAgroRevenue
-    const totalInflows = baseAgro + otherRevenues
-    const totalOutflows = operationalExpenses + familyLivingCosts + existingDebtService
-    const netMargin = totalInflows - totalOutflows
-    const netOperational = Math.max(0, totalInflows - operationalExpenses)
-    const paymentCapacity = netOperational - (familyLivingCosts + existingDebtService)
-
-    // Parâmetros de simulação priorizando análise mais recente ou possessionData
     const lineCode =
       latestAnalysis?.creditLineCode ||
       poss.creditLineCode ||
@@ -687,9 +625,9 @@ export async function getPropertySimulationData(
           car: property.car,
           ccir: property.ccir,
           itr: property.itr,
-          totalArea,
-          vtnPerHectare,
-          landValue,
+          totalArea: financials.totalArea,
+          vtnPerHectare: financials.vtnPerHectare,
+          landValue: financials.landValue,
           branchId: property.branchId,
           branchName: property.branch.name,
         },
@@ -705,27 +643,27 @@ export async function getPropertySimulationData(
           phone: primaryProducer.phone,
         },
         collateral: {
-          landValue,
-          improvementsValue,
-          machineryValue,
-          livestockValue,
-          ruralAssetsTotal,
-          urbanTotal,
-          vehiclesTotal,
-          totalAssets,
-          acceptableCollateral,
-          urbanProperties: urbanList,
-          vehicles: vehicleList,
+          landValue: financials.landValue,
+          improvementsValue: financials.improvementsValue,
+          machineryValue: financials.machineryValue,
+          livestockValue: financials.livestockValue,
+          ruralAssetsTotal: financials.ruralAssetsTotal,
+          urbanTotal: financials.urbanTotal,
+          vehiclesTotal: financials.vehiclesTotal,
+          totalAssets: financials.totalAssets,
+          acceptableCollateral: financials.acceptableCollateral,
+          urbanProperties,
+          vehicles,
         },
         cashFlow: {
-          effectiveAgroRevenue,
-          projectedAgroRevenue,
-          otherRevenues,
-          operationalExpenses,
-          familyLivingCosts,
-          existingDebtService,
-          netMargin,
-          paymentCapacity,
+          effectiveAgroRevenue: financials.effectiveAgroRevenue,
+          projectedAgroRevenue: financials.projectedAgroRevenue,
+          otherRevenues: financials.otherRevenues,
+          operationalExpenses: financials.operationalExpenses,
+          familyLivingCosts: financials.familyLivingCosts,
+          existingDebtService: financials.existingDebtService,
+          netMargin: financials.netMargin,
+          paymentCapacity: financials.paymentCapacity,
           customAgroRevenues: poss.customAgroRevenues || [],
           customExpenses: poss.customExpenses || [],
         },
@@ -741,6 +679,10 @@ export async function getPropertySimulationData(
   }
 }
 
+/**
+ * Salva as alterações de simulação no possessionData da propriedade
+ * e persiste uma análise formal no banco de dados.
+ */
 export async function saveCreditLimitSimulation(
   propertyId: string,
   params: CreditSimulationSaveParams
@@ -749,21 +691,11 @@ export async function saveCreditLimitSimulation(
     const dbUser = await getUserContext()
     if (!dbUser) return { success: false, error: 'Usuário não autenticado' }
 
-    const property = await prisma.property.findUnique({
-      where: { id: propertyId },
-      include: {
-        producers: { include: { producer: true } },
-        machineries: true,
-        improvementsList: true,
-        livestockList: true,
-      },
-    })
-    if (!property) return { success: false, error: 'Propriedade não encontrada' }
-
-    const primaryProducer = property.producers[0]?.producer
-    if (!primaryProducer) return { success: false, error: 'Produtor não vinculado' }
-
-    const poss = (property.possessionData as any) || {}
+    const snapshot = await fetchPropertyFinancialSnapshot(propertyId)
+    if (!snapshot) {
+      return { success: false, error: 'Propriedade ou produtor não encontrado' }
+    }
+    const { property, primaryProducer, poss, financials } = snapshot
 
     // 1. Atualizar possessionData na propriedade
     const updatedPossession = {
@@ -785,22 +717,6 @@ export async function saveCreditLimitSimulation(
     })
 
     // 2. Persistir análise de crédito relacional formal no banco
-    const totalArea = Number(property.totalArea) || 0
-    const vtnPerHectare = Number(poss.vtnPerHectare) || 0
-    const landValue = totalArea * vtnPerHectare
-    const improvementsValue = property.improvementsList.reduce(
-      (sum, i) => sum + (Number(i.quantity || 0) * Number(i.unitValue || 0)),
-      0
-    )
-    const machineryValue = property.machineries.reduce(
-      (sum, m) => sum + (Number(m.value) || 0),
-      0
-    )
-    const livestockValue = property.livestockList.reduce(
-      (sum, l) => sum + (Number(l.quantity || 0) * Number(l.unitValue || 0)),
-      0
-    )
-
     const res = await saveCreditAnalysis({
       producerId: primaryProducer.id,
       propertyId: property.id,
@@ -813,16 +729,16 @@ export async function saveCreditLimitSimulation(
       totalTermMonths: params.termMonths,
       gracePeriodMonths: params.graceMonths,
       interestRateAnnual: params.interestRateAnnual,
-      effectiveAgroRevenue: Number(poss.effectiveAgroRevenue) || 0,
-      projectedAgroRevenue: Number(poss.projectedAgroRevenue) || 0,
-      nonAgroRevenue: Number(poss.otherRevenues) || 0,
-      productionCosts: Number(poss.operationalExpenses) || 0,
-      familyLivingExpenses: Number(poss.familyLivingCosts) || 0,
-      existingDebtService: Number(poss.existingDebtService) || 0,
-      landValue,
-      improvementsValue,
-      machineryValue,
-      livestockValue,
+      effectiveAgroRevenue: financials.effectiveAgroRevenue,
+      projectedAgroRevenue: financials.projectedAgroRevenue,
+      nonAgroRevenue: financials.otherRevenues,
+      productionCosts: financials.operationalExpenses,
+      familyLivingExpenses: financials.familyLivingCosts,
+      existingDebtService: financials.existingDebtService,
+      landValue: financials.landValue,
+      improvementsValue: financials.improvementsValue,
+      machineryValue: financials.machineryValue,
+      livestockValue: financials.livestockValue,
       customAgroRevenues: poss.customAgroRevenues || [],
       customExpenses: poss.customExpenses || [],
     })
@@ -843,6 +759,10 @@ export async function saveCreditLimitSimulation(
   }
 }
 
+/**
+ * Gera o código HTML completo do Dossiê Técnico Oficial de Limite de Crédito.
+ * Reutiliza a projeção unificada de dados de fetchPropertyFinancialSnapshot.
+ */
 export async function generateCreditLimitDossierHtml(
   propertyId: string,
   customParams?: any
@@ -858,37 +778,17 @@ export async function generateCreditLimitDossierHtml(
     const dbUser = await getUserContext()
     if (!dbUser) return { success: false, error: 'Usuário não autenticado' }
 
-    const property = await prisma.property.findUnique({
-      where: { id: propertyId },
-      include: {
-        branch: { include: { organization: true } },
-        producers: { include: { producer: true } },
-        machineries: true,
-        improvementsList: true,
-        livestockList: true,
-        creditAnalyses: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
-        },
-      },
-    })
+    const snapshot = await fetchPropertyFinancialSnapshot(propertyId)
+    if (!snapshot) return { success: false, error: 'Propriedade ou produtor não encontrado' }
 
-    if (!property) return { success: false, error: 'Propriedade não encontrada' }
-
-    const producer = property.producers[0]?.producer
-    if (!producer) {
-      return { success: false, error: 'Produtor não vinculado à propriedade' }
-    }
-
-    const urbanProperties = await prisma.urbanProperty.findMany({
-      where: { producerId: producer.id },
-    })
-    const vehicles = await prisma.vehicle.findMany({
-      where: { producerId: producer.id },
-    })
-
-    const poss = (property.possessionData as any) || {}
-    const latestAnalysis = property.creditAnalyses[0]
+    const {
+      property,
+      primaryProducer: producer,
+      urbanProperties,
+      vehicles,
+      poss,
+      latestAnalysis,
+    } = snapshot
 
     const mergedOptions = {
       ...poss,
@@ -903,12 +803,8 @@ export async function generateCreditLimitDossierHtml(
             creditLimitTargetBank: latestAnalysis.targetBank,
           }
         : {}),
-      urbanProperties:
-        urbanProperties.length > 0
-          ? urbanProperties
-          : poss.urbanProperties || [],
-      vehicles:
-        vehicles.length > 0 ? vehicles : poss.vehicles || [],
+      urbanProperties,
+      vehicles,
       estimatedLandValuePerHa: poss.vtnPerHectare || 0,
       estimatedCattleHeadValue: poss.estimatedCattleHeadValue || 2800,
       ...customParams,
@@ -1014,4 +910,3 @@ export async function generateCreditLimitDossierHtml(
     }
   }
 }
-

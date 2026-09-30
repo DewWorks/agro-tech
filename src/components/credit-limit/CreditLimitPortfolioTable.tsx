@@ -50,6 +50,7 @@ import {
 import { downloadCreditLimitDossierPdf } from '@/lib/utils/dossie-pdf-downloader'
 import { DossiePreviewModal } from './DossiePreviewModal'
 import { formatCPF, formatCNPJ } from '@/lib/utils'
+import { formatBRL, formatHectares } from '@/lib/utils/formatters'
 
 interface CreditLimitPortfolioTableProps {
   initialProperties: CreditLimitPropertyItem[]
@@ -139,9 +140,6 @@ export function CreditLimitPortfolioTable({
       setIsLoadingPreview(false)
     }
   }
-
-  const formatBRL = (val: number) =>
-    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
 
   const filteredProperties = useMemo(() => {
     return initialProperties.filter((item) => {
