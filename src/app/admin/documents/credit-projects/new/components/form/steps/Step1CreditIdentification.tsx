@@ -125,7 +125,7 @@ export function Step1CreditIdentification({
                 ) : null}
               </div>
               <Input
-                value={customOptions.representativeCpf || currentProducer.representativeCpf || ''}
+                value={formatCPF(customOptions.representativeCpf || currentProducer.representativeCpf || '')}
                 onChange={(e) => {
                   const masked = formatCPF(e.target.value)
                   setCustomOptions(prev => ({ ...prev, representativeCpf: masked }))
@@ -152,7 +152,7 @@ export function Step1CreditIdentification({
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-gray-700">Matrícula / Registro do Imóvel *</Label>
           <Input
-            value={customOptions.propertyRegistrationNumber || ''}
+            value={maskRegistrationNumber(customOptions.propertyRegistrationNumber || '')}
             onChange={(e) => {
               setCustomOptions(prev => ({ ...prev, propertyRegistrationNumber: maskRegistrationNumber(e.target.value) }))
             }}
@@ -175,7 +175,7 @@ export function Step1CreditIdentification({
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-gray-700">Nº do Recibo do CAR *</Label>
           <Input
-            value={customOptions.propertyCar || ''}
+            value={maskCAR(customOptions.propertyCar || '')}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: maskCAR(e.target.value) }))}
             maxLength={50}
             className={cn("h-10 text-xs uppercase font-medium", !customOptions.propertyCar?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
@@ -189,7 +189,7 @@ export function Step1CreditIdentification({
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-gray-700">CCIR / INCRA</Label>
           <Input
-            value={customOptions.propertyCcir || ''}
+            value={maskCCIR(customOptions.propertyCcir || '')}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCcir: maskCCIR(e.target.value) }))}
             maxLength={17}
             className="h-10 text-xs font-mono"
@@ -200,7 +200,7 @@ export function Step1CreditIdentification({
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-gray-700">CIB / NIRF / ITR (Receita Federal)</Label>
           <Input
-            value={customOptions.propertyItr || ''}
+            value={maskITR(customOptions.propertyItr || '')}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyItr: maskITR(e.target.value) }))}
             maxLength={12}
             className="h-10 text-xs font-mono uppercase"

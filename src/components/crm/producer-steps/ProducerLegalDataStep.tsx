@@ -79,7 +79,7 @@ export function ProducerLegalDataStep({
           <div className="space-y-2">
             <Label>Registro Geral (RG)</Label>
             <Input 
-              value={formData.rg}
+              value={formData.rg ? maskRG(formData.rg) : ''}
               onChange={(e) => handleChange('rg', maskRG(e.target.value))}
               placeholder="Ex: 0000000"
               maxLength={14}
@@ -90,7 +90,7 @@ export function ProducerLegalDataStep({
           <div className="space-y-2">
             <Label>Órgão Emissor do RG</Label>
             <Input 
-              value={formData.rgIssuer}
+              value={formData.rgIssuer ? maskIssuerUF(formData.rgIssuer) : ''}
               onChange={(e) => handleChange('rgIssuer', maskIssuerUF(e.target.value))}
               placeholder="Ex: SSP/TO"
               maxLength={8}

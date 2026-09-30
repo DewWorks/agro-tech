@@ -1,6 +1,14 @@
 'use client'
 
-import { formatCPF, formatCNPJ } from '@/lib/validations'
+import {
+  formatCPF,
+  formatCNPJ,
+  formatPhone,
+  maskCAR,
+  maskCCIR,
+  maskITR,
+  maskRegistrationNumber,
+} from '@/lib/utils/masks'
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -90,6 +98,16 @@ export function MissingFieldsForm({ missingFields, onSave, isSubmitting }: Missi
         finalValue = formatCPF(value)
       } else if (keyStr.includes('CNPJ') || labelStr.includes('CNPJ')) {
         finalValue = formatCNPJ(value)
+      } else if (keyStr.includes('CAR') || labelStr.includes('CAR')) {
+        finalValue = maskCAR(value)
+      } else if (keyStr.includes('CCIR') || labelStr.includes('CCIR')) {
+        finalValue = maskCCIR(value)
+      } else if (keyStr.includes('ITR') || keyStr.includes('NIRF') || keyStr.includes('CIB') || labelStr.includes('ITR') || labelStr.includes('NIRF') || labelStr.includes('CIB')) {
+        finalValue = maskITR(value)
+      } else if (keyStr.includes('PHONE') || keyStr.includes('TELEFONE') || labelStr.includes('TELEFONE')) {
+        finalValue = formatPhone(value)
+      } else if (keyStr.includes('REGISTRATION') || keyStr.includes('MATRICULA') || labelStr.includes('MATRÍCULA') || labelStr.includes('MATRICULA')) {
+        finalValue = maskRegistrationNumber(value)
       }
     }
 

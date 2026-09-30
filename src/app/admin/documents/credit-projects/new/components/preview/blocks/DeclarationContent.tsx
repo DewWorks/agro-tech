@@ -1,5 +1,5 @@
 import React from 'react'
-import { getDocumentTypeAndLabel, formatCPF } from '@/lib/utils/masks'
+import { getDocumentTypeAndLabel, formatCPF, maskRegistrationNumber, maskCAR } from '@/lib/utils/masks'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 
 interface DeclarationContentProps {
@@ -62,7 +62,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
               operações de crédito com entidades governamentais e instituições parceiras estritamente para a finalidade de análise e contratação de crédito rural, conforme diretrizes da Lei Geral de Proteção de Dados (LGPD).
             </p>
             <p style={{ marginTop: '15px' }}>
-              Esta autorização abrange as informações relativas à propriedade <strong>{property?.name}</strong>, de Matrícula <strong>{property?.registrationNumber || '_______'}</strong> e CAR <strong>{property?.car || '_______'}</strong>.
+              Esta autorização abrange as informações relativas à propriedade <strong>{property?.name}</strong>, de Matrícula <strong>{property?.registrationNumber ? maskRegistrationNumber(property.registrationNumber) : '_______'}</strong> e CAR <strong>{property?.car ? maskCAR(property.car) : '_______'}</strong>.
             </p>
           </div>
         )
@@ -90,7 +90,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
             <p>
               {qualification}, 
               autorizo o Banco do Brasil S.A. a consultar e registrar no Sistema de Operações do Crédito Rural e do Proagro (SICOR), administrado pelo Banco Central do Brasil, todas as informações 
-              necessárias à estruturação, concessão e acompanhamento das minhas operações de crédito rural, vinculadas à propriedade <strong>{property?.name}</strong> (CAR: {property?.car || '_______'}).
+              necessárias à estruturação, concessão e acompanhamento das minhas operações de crédito rural, vinculadas à propriedade <strong>{property?.name}</strong> (CAR: {property?.car ? maskCAR(property.car) : '_______'}).
             </p>
           </div>
         )
@@ -115,7 +115,7 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
           <div style={contentStyle}>
             <h3 style={{ textAlign: 'center', marginBottom: '20px', fontWeight: 'bold' }}>DECLARAÇÃO DE REGULARIDADE AMBIENTAL</h3>
             <p>
-              {qualification}, DECLARO sob as penas da lei que as atividades agropecuárias desenvolvidas no imóvel rural <strong>{property?.name || '_________________________'}</strong> (CAR: {property?.car || '_______'}) 
+              {qualification}, DECLARO sob as penas da lei que as atividades agropecuárias desenvolvidas no imóvel rural <strong>{property?.name || '_________________________'}</strong> (CAR: {property?.car ? maskCAR(property.car) : '_______'}) 
               estão em estrita conformidade com a Legislação Ambiental vigente.
             </p>
             <p style={{ marginTop: '15px' }}>

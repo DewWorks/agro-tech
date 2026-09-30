@@ -40,6 +40,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
                   placeholder="Ex: 2718"
                   maxLength={8}
                   {...field}
+                  value={maskRegistrationNumber(field.value || '')}
                   onChange={(e) => {
                     field.onChange(maskRegistrationNumber(e.target.value))
                   }}
@@ -91,6 +92,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
                   className="font-mono uppercase text-xs"
                   maxLength={50}
                   {...field}
+                  value={maskCAR(field.value || '')}
                   onChange={(e) => field.onChange(maskCAR(e.target.value))}
                 />
               </FormControl>
@@ -114,6 +116,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
                   maxLength={17}
                   className="font-mono"
                   {...field}
+                  value={maskCCIR(field.value || '')}
                   onChange={(e) => {
                     field.onChange(maskCCIR(e.target.value))
                   }}
@@ -137,6 +140,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
                   maxLength={12}
                   className="font-mono uppercase"
                   {...field}
+                  value={maskITR(field.value || '')}
                   onChange={(e) => {
                     field.onChange(maskITR(e.target.value))
                   }}

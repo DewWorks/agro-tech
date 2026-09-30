@@ -9,6 +9,7 @@ import { evaluateMcrCompliance } from './compliance'
 
 export * from './types'
 export * from './amortization'
+export * from './payment-capacity'
 export * from './icsd'
 export * from './ltv'
 export * from './compliance'

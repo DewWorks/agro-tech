@@ -142,7 +142,8 @@ export function ConfirmEmitModal({
       ? maskRegistrationNumber(currentProperty.registrationNumber)
       : 'Pendente'
 
-  const formattedCar = customOptions?.propertyCar || currentProperty?.car || 'Não informado / Pendente'
+  const rawCar = customOptions?.propertyCar || currentProperty?.car || ''
+  const formattedCar = rawCar ? maskCAR(rawCar) : 'Não informado / Pendente'
 
   const formattedCcir = customOptions?.propertyCcir
     ? maskCCIR(customOptions.propertyCcir)

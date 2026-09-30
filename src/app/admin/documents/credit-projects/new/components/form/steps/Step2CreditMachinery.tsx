@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { MACHINERY_CATEGORIES } from '@/lib/validations/reference-data'
+import { maskChassis } from '@/lib/utils/masks'
 import { CustomOptions } from '../../../types/wizard-types'
 
 interface Step2CreditMachineryProps {
@@ -186,9 +187,10 @@ export function Step2CreditMachinery({
                     <td className="p-2">
                       <Input
                         placeholder="Chassi"
-                        value={item.chassi || ''}
-                        onChange={(e) => updateMachineField(idx, 'chassi', e.target.value)}
-                        className="h-8 text-xs bg-white"
+                        value={maskChassis(item.chassi || '')}
+                        onChange={(e) => updateMachineField(idx, 'chassi', maskChassis(e.target.value))}
+                        maxLength={25}
+                        className="h-8 text-xs bg-white font-mono uppercase"
                       />
                     </td>
                     <td className="p-2">

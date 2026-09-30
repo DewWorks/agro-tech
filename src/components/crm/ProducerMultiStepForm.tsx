@@ -17,6 +17,10 @@ import {
   maskIssuerUF,
   maskBankAgency,
   maskBankAccount,
+  maskRegistrationNumber,
+  maskCAR,
+  maskCCIR,
+  maskITR,
 } from '@/lib/utils/masks'
 import { ProducerBasicInfoStep } from './producer-steps/ProducerBasicInfoStep'
 import { ProducerSpouseStep } from './producer-steps/ProducerSpouseStep'
@@ -54,8 +58,8 @@ export default function ProducerMultiStepForm({
     spouseName: initialData?.spouseName || '',
     spouseCpf: initialData?.spouseCpf ? formatCPF(initialData.spouseCpf) : '',
     dapCafNumber: initialData?.dapCafNumber || '',
-    rg: initialData?.rg || '',
-    rgIssuer: initialData?.rgIssuer || '',
+    rg: initialData?.rg ? maskRG(initialData.rg) : '',
+    rgIssuer: initialData?.rgIssuer ? maskIssuerUF(initialData.rgIssuer) : '',
     profession: initialData?.profession || '',
     nationality: initialData?.nationality || '',
     birthDate: initialData?.birthDate
@@ -70,11 +74,11 @@ export default function ProducerMultiStepForm({
     naturalness: initialData?.naturalness || '',
     producerSize: initialData?.producerSize || 'MEDIO',
     bankName: initialData?.bankName || '',
-    bankAgency: initialData?.bankAgency || '',
-    bankAccount: initialData?.bankAccount || '',
+    bankAgency: initialData?.bankAgency ? maskBankAgency(initialData.bankAgency) : '',
+    bankAccount: initialData?.bankAccount ? maskBankAccount(initialData.bankAccount) : '',
     bankAccountType: initialData?.bankAccountType || 'CORRENTE',
-    spouseRg: initialData?.spouseRg || '',
-    spouseRgIssuer: initialData?.spouseRgIssuer || '',
+    spouseRg: initialData?.spouseRg ? maskRG(initialData.spouseRg) : '',
+    spouseRgIssuer: initialData?.spouseRgIssuer ? maskIssuerUF(initialData.spouseRgIssuer) : '',
     spouseNationality: initialData?.spouseNationality || 'Brasileira',
     spouseEducationLevel: initialData?.spouseEducationLevel || '',
 
@@ -86,9 +90,9 @@ export default function ProducerMultiStepForm({
     totalHeadCount: (initialData?.properties?.[0]?.property?.livestock as any)?.totalHeadCount?.toString() || '',
     
     // GED Property Fields
-    registrationNumber: initialData?.properties?.[0]?.property?.registrationNumber || '',
+    registrationNumber: initialData?.properties?.[0]?.property?.registrationNumber ? maskRegistrationNumber(initialData.properties[0].property.registrationNumber) : '',
     registryOffice: initialData?.properties?.[0]?.property?.registryOffice || '',
-    car: initialData?.properties?.[0]?.property?.car || '',
+    car: initialData?.properties?.[0]?.property?.car ? maskCAR(initialData.properties[0].property.car) : '',
     possessionYears: (initialData?.properties?.[0]?.property?.possessionData as any)?.possessionYears?.toString() || '',
     explorationActivity: initialData?.properties?.[0]?.property?.explorationActivity || '',
     brandDescription: (initialData?.properties?.[0]?.property?.livestock as any)?.brandDescription || '',
@@ -156,6 +160,18 @@ export default function ProducerMultiStepForm({
     }
     if (field === 'bankAccount') {
       formattedValue = maskBankAccount(value)
+    }
+    if (field === 'registrationNumber') {
+      formattedValue = maskRegistrationNumber(value)
+    }
+    if (field === 'car') {
+      formattedValue = maskCAR(value)
+    }
+    if (field === 'ccir') {
+      formattedValue = maskCCIR(value)
+    }
+    if (field === 'itr') {
+      formattedValue = maskITR(value)
     }
 
     setFormData(prev => {

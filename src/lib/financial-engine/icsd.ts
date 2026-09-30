@@ -5,6 +5,7 @@ import {
   IcsdResult,
   IcsdClassification
 } from './types'
+import { calculatePaymentCapacity } from './payment-capacity'
 
 /**
  * Nota de corte regulatória e prudencial das cooperativas e bancos de fomento (MCR).
@@ -16,6 +17,8 @@ export const COMFORTABLE_ICSD_THRESHOLD = 1.30
 /**
  * Calcula a Capacidade de Pagamento (CP) e o Índice de Cobertura do Serviço da Dívida (ICSD),
  * gerando a classificação bancária e o parecer técnico fundamentado.
+ *
+ * Utiliza o motor matemático centralizado calculatePaymentCapacity (Cláusula 2.2 do Aditivo 003).
  *
  * @param agroRevenues Lista de receitas agrícolas e pecuárias
  * @param nonAgroRevenues Lista de receitas não-agropecuárias comprovadas
@@ -30,39 +33,29 @@ export function calculatePaymentCapacityAndIcsd(
   annualDebtService: number,
   icsdThreshold: number = DEFAULT_ICSD_THRESHOLD
 ): IcsdResult {
-  // 1. Receitas Agropecuárias
-  let grossAgroRevenue = 0
-  let totalProductionCosts = 0
-
-  for (const rev of agroRevenues) {
-    const qty = Number(rev.quantity) || 0
-    const price = Number(rev.unitPrice) || 0
-    const gross = Math.round(qty * price * 100) / 100
-    const cost = Number(rev.productionCostTotal) || 0
-
-    grossAgroRevenue += gross
-    totalProductionCosts += cost
-  }
-
-  const netAgroRevenue = Math.max(0, grossAgroRevenue - totalProductionCosts)
-
-  // 2. Receitas Não-Agropecuárias
   const nonAgroRevenueTotal = nonAgroRevenues.reduce((acc, cur) => {
     return acc + (Number(cur.annualAmount) || 0)
   }, 0)
 
-  const totalGrossInflows = grossAgroRevenue + nonAgroRevenueTotal
-  const totalNetInflows = netAgroRevenue + nonAgroRevenueTotal
+  // Executa o cálculo unificado da Capacidade de Pagamento (Cláusula 2.2)
+  const cpResult = calculatePaymentCapacity({
+    nonAgroRevenues: nonAgroRevenueTotal,
+    customAgroRevenues: agroRevenues,
+    customExpenses: expenses,
+  })
 
-  // 3. Despesas Gerais e Passivos Vigentes
-  const totalExpenses = expenses.reduce((acc, cur) => {
-    return acc + (Number(cur.annualAmount) || 0)
-  }, 0)
+  const {
+    grossAgroRevenue,
+    operationalExpenses: totalProductionCosts,
+    netAgroRevenue,
+    totalGrossInflows,
+    totalNetInflows,
+    totalLivingAndDebtExpenses,
+    totalExpenses,
+    paymentCapacity
+  } = cpResult
 
-  // 4. Capacidade de Pagamento (CP) Líquida
-  const paymentCapacity = Math.round((totalNetInflows - totalExpenses) * 100) / 100
-
-  // 5. Cálculo do ICSD
+  // Cálculo do ICSD
   const debtService = Math.max(0, Number(annualDebtService) || 0)
   let icsdValue = 0
 
@@ -70,7 +63,7 @@ export function calculatePaymentCapacityAndIcsd(
     icsdValue = Math.round((paymentCapacity / debtService) * 100) / 100
   }
 
-  // 6. Classificação e Parecer de Risco
+  // Classificação e Parecer de Risco
   let classification: IcsdClassification
   let isApproved = false
   let opinionText = ''
@@ -94,13 +87,13 @@ export function calculatePaymentCapacityAndIcsd(
   }
 
   return {
-    grossAgroRevenue: Math.round(grossAgroRevenue * 100) / 100,
-    totalProductionCosts: Math.round(totalProductionCosts * 100) / 100,
-    netAgroRevenue: Math.round(netAgroRevenue * 100) / 100,
-    nonAgroRevenueTotal: Math.round(nonAgroRevenueTotal * 100) / 100,
-    totalGrossInflows: Math.round(totalGrossInflows * 100) / 100,
-    totalNetInflows: Math.round(totalNetInflows * 100) / 100,
-    totalExpenses: Math.round(totalExpenses * 100) / 100,
+    grossAgroRevenue,
+    totalProductionCosts,
+    netAgroRevenue,
+    nonAgroRevenueTotal,
+    totalGrossInflows,
+    totalNetInflows,
+    totalExpenses: totalLivingAndDebtExpenses,
     paymentCapacity,
     annualDebtService: debtService,
     icsdValue,

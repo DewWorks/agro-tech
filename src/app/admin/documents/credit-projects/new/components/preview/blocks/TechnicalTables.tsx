@@ -1,5 +1,6 @@
 import React from 'react'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
+import { maskRegistrationNumber, maskCAR, maskChassis } from '@/lib/utils/masks'
 import { isAnimalOrEquipmentSubline } from '../../form/params/RenovagroParams'
 
 interface TechnicalTablesProps {
@@ -45,8 +46,8 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
             II - Discriminação de Terras e Uso Atual do Solo ({property.name || 'Propriedade Principal'})
           </div>
           <div style={{ padding: '6px 10px', background: '#fafafa', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-            <span><strong>Matrícula:</strong> {property.registrationNumber || 'Pendente'} ({property.registryOffice || 'CRI Local'})</span>
-            <span><strong>CAR:</strong> {property.car || 'Pendente'}</span>
+            <span><strong>Matrícula:</strong> {property.registrationNumber ? maskRegistrationNumber(property.registrationNumber) : 'Pendente'} ({property.registryOffice || 'CRI Local'})</span>
+            <span><strong>CAR:</strong> {property.car ? maskCAR(property.car) : 'Pendente'}</span>
             <span><strong>Localização:</strong> {property.city || ''}/{property.state || ''}</span>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -148,7 +149,7 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
                   <tr key={idx} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '4px 8px' }}>{m.type} - {m.brand} {m.model}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'center' }}>{m.year}</td>
-                    <td style={{ padding: '4px 8px' }}>{m.chassi || 'N/I'}</td>
+                    <td style={{ padding: '4px 8px' }}>{m.chassi ? maskChassis(m.chassi) : 'N/I'}</td>
                     <td style={{ padding: '4px 8px', textAlign: 'right' }}>{formatBRL(Number(m.value || 0))}</td>
                   </tr>
                 ))}
@@ -288,7 +289,7 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
         <div style={{ padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
           <div><strong>Sublinha do Programa:</strong> {options.subline || '-'}</div>
           <div><strong>{isAnimal ? 'Item Financiável / Quantidade:' : 'Área a Recuperar:'}</strong> {options.areaToRecoverHa ? `${options.areaToRecoverHa} ${isAnimal ? 'un/cab' : 'ha'}` : '-'}</div>
-          <div><strong>Matrícula Alvo:</strong> {property.registrationNumber || '-'}</div>
+          <div><strong>Matrícula Alvo:</strong> {property.registrationNumber ? maskRegistrationNumber(property.registrationNumber) : '-'}</div>
           <div><strong>Localização / Roteiro:</strong> {property.accessRoute || '-'}</div>
         </div>
       </div>
@@ -303,8 +304,8 @@ export const TechnicalTables = React.memo(({ templateCode, property, options }: 
         </div>
         <div style={{ padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
           <div><strong>Propriedade / Imóvel Beneficiado:</strong> {property.name || '-'}</div>
-          <div><strong>Matrícula (CRI):</strong> {property.registrationNumber || '-'} - {property.registryOffice || '-'}</div>
-          <div><strong>Nº do CAR:</strong> {property.car || '-'}</div>
+          <div><strong>Matrícula (CRI):</strong> {property.registrationNumber ? maskRegistrationNumber(property.registrationNumber) : '-'} - {property.registryOffice || '-'}</div>
+          <div><strong>Nº do CAR:</strong> {property.car ? maskCAR(property.car) : '-'}</div>
           <div><strong>Área Total:</strong> {property.totalAreaHa ? `${property.totalAreaHa} ha` : '-'}</div>
           <div><strong>Atividade Principal:</strong> {property.explorationActivity || '-'}</div>
           <div><strong>Roteiro de Acesso:</strong> {property.accessRoute || '-'}</div>

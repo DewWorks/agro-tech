@@ -9,7 +9,8 @@ import {
 } from '@/lib/document-templates/limite-credito-bb'
 import { saveCreditAnalysis } from '@/actions/credit-analysis'
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
-import { COLLATERAL_WEIGHTS } from '@/lib/financial-engine'
+import { COLLATERAL_WEIGHTS, calculatePaymentCapacity } from '@/lib/financial-engine'
+import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
 import type {
   CreditLimitFilter,
   CreditLimitPropertyItem,
@@ -122,12 +123,19 @@ export async function fetchPropertyFinancialSnapshot(propertyId: string) {
   const familyLivingCosts = Number(poss.familyLivingCosts) || 0
   const existingDebtService = Number(poss.existingDebtService) || 0
 
-  const baseAgro = projectedAgroRevenue > 0 ? projectedAgroRevenue : effectiveAgroRevenue
-  const totalInflows = baseAgro + otherRevenues
-  const totalOutflows = operationalExpenses + familyLivingCosts + existingDebtService
-  const netMargin = totalInflows - totalOutflows
-  const netOperational = Math.max(0, totalInflows - operationalExpenses)
-  const paymentCapacity = netOperational - (familyLivingCosts + existingDebtService)
+  const cpResult = calculatePaymentCapacity({
+    effectiveAgroRevenue,
+    projectedAgroRevenue,
+    operationalExpenses,
+    nonAgroRevenues: otherRevenues,
+    familyLivingCosts,
+    existingDebtService,
+    customAgroRevenues: poss.customAgroRevenues,
+    customExpenses: poss.customExpenses,
+  })
+
+  const netMargin = cpResult.paymentCapacity
+  const paymentCapacity = cpResult.paymentCapacity
 
   return {
     property,
@@ -339,9 +347,18 @@ export async function getCreditLimitPortfolioData(
       const existingDebtService = Number(possessionData.existingDebtService) || 0
       const familyLivingCosts = Number(possessionData.familyLivingCosts) || 0
 
-      const totalInflows = effectiveAgroRevenue + otherRevenues
-      const totalOutflows = operationalExpenses + existingDebtService + familyLivingCosts
-      const netMargin = totalInflows - totalOutflows
+      const cpResult = calculatePaymentCapacity({
+        effectiveAgroRevenue,
+        projectedAgroRevenue,
+        operationalExpenses,
+        nonAgroRevenues: otherRevenues,
+        familyLivingCosts,
+        existingDebtService,
+        customAgroRevenues: possessionData.customAgroRevenues,
+        customExpenses: possessionData.customExpenses,
+      })
+
+      const netMargin = cpResult.paymentCapacity
 
       // Parâmetros de Limite de Crédito
       const creditLimitRequested = Number(possessionData.creditLimitRequested) || 0
@@ -640,6 +657,8 @@ export async function getPropertySimulationData(
           spouseCpf: primaryProducer.spouseCpf,
           marriageRegime: primaryProducer.marriageRegime,
           profession: primaryProducer.profession,
+          representativeCpf: primaryProducer.representativeCpf || null,
+          representativeName: (primaryProducer as any).representativeName || null,
           phone: primaryProducer.phone,
         },
         collateral: {
@@ -820,6 +839,8 @@ export async function generateCreditLimitDossierHtml(
         spouseRg: producer.spouseRg || undefined,
         marriageRegime: producer.marriageRegime || undefined,
         profession: producer.profession || undefined,
+        representativeCpf: producer.representativeCpf || undefined,
+        representativeName: (producer as any).representativeName || undefined,
         phone: producer.phone || undefined,
         city: property.city || undefined,
         state: property.state || undefined,
@@ -847,7 +868,7 @@ export async function generateCreditLimitDossierHtml(
         preservationAreaHa: property.preserveArea
           ? Number(property.preserveArea)
           : undefined,
-        accessRoute: poss.accessRoute || undefined,
+        accessRoute: sanitizeAccessRoute(poss.accessRoute),
         machineries: property.machineries.map((m) => ({
           model: m.model || undefined,
           brand: m.brand || undefined,

@@ -25,6 +25,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { PURPOSE_OPTIONS, BANK_OPTIONS } from './options'
+import { calculatePaymentCapacity } from '@/lib/financial-engine'
 
 interface QuickLimitSummaryProps {
   activeForm: UseFormReturn<any>
@@ -48,20 +49,30 @@ export function QuickLimitSummary({
   const operationalExp = Number(watch('operationalExpenses')) || 0
   const familyCosts = Number(watch('familyLivingCosts')) || 0
   const existingDebt = Number(watch('existingDebtService')) || 0
+  const customAgroRevenues = watch('customAgroRevenues') || []
+  const customExpenses = watch('customExpenses') || []
 
-  // Total de receitas agro (usa projetada se informada, ou efetiva)
-  const baseAgroRevenue = projectedAgro > 0 ? projectedAgro : effectiveAgro
-  const grossRevenue = baseAgroRevenue + otherRev
+  // Motor unificado da Capacidade de Pagamento (Cláusula 2.2 do Aditivo 003)
+  const cpResult = calculatePaymentCapacity({
+    effectiveAgroRevenue: effectiveAgro,
+    projectedAgroRevenue: projectedAgro,
+    operationalExpenses: operationalExp,
+    nonAgroRevenues: otherRev,
+    familyLivingCosts: familyCosts,
+    existingDebtService: existingDebt,
+    customAgroRevenues,
+    customExpenses,
+  })
 
-  // Receita Líquida Operacional = Receitas - Custos Diretos
-  const netOperationalRevenue = Math.max(0, grossRevenue - operationalExp)
+  // Receita Líquida Operacional (Inflows Líquidos)
+  const netOperationalRevenue = cpResult.totalNetInflows
 
-  // Despesas & Encargos Totais
-  const totalExpensesAndCharges = familyCosts + existingDebt + (operationalExp > 0 && grossRevenue === 0 ? operationalExp : 0)
+  // Despesas & Encargos Familiares e Passivos Dedutíveis
+  const totalExpensesAndCharges = cpResult.totalLivingAndDebtExpenses
 
   // Capacidade de Pagamento Anual (CP)
-  const paymentCapacity = netOperationalRevenue - (familyCosts + existingDebt)
-  const isPositiveCp = paymentCapacity > 0
+  const paymentCapacity = cpResult.paymentCapacity
+  const isPositiveCp = cpResult.isPositive
 
   return (
     <div className="space-y-4">
