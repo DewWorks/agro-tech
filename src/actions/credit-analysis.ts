@@ -222,7 +222,7 @@ export async function saveCreditAnalysis(payload: SaveCreditAnalysisInput) {
       .update(JSON.stringify({ payload, riskAnalysis, timestamp: new Date().toISOString() }))
       .digest('hex')
 
-    const analysis = await prisma.$transaction(async (tx) => {
+    const analysis = await (prisma as any).$transaction(async (tx: any) => {
       // 1. Salvar ou atualizar bens secundários do produtor (se informados detalhadamente)
       if (payload.detailedUrbanProperties && payload.detailedUrbanProperties.length > 0) {
         for (const u of payload.detailedUrbanProperties) {
@@ -399,7 +399,7 @@ export async function getCreditAnalysisById(id: string) {
       return { success: false, error: 'Usuário não autenticado' }
     }
 
-    const analysis = await prisma.creditAnalysis.findUnique({
+    const analysis = await (prisma as any).creditAnalysis.findUnique({
       where: { id },
       include: {
         branch: { select: { id: true, name: true } },
@@ -463,7 +463,7 @@ export async function listCreditAnalyses(filters?: {
     if (filters?.branchId) where.branchId = filters.branchId
     else if (user.branchId) where.branchId = user.branchId
 
-    const analyses = await prisma.creditAnalysis.findMany({
+    const analyses = await (prisma as any).creditAnalysis.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {
