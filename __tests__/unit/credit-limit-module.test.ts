@@ -1,3 +1,8 @@
+jest.mock('next/cache', () => ({
+  revalidatePath: jest.fn(),
+  revalidateTag: jest.fn(),
+}))
+
 import { getCreditLimitPortfolioData } from '@/actions/credit-limit'
 import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'

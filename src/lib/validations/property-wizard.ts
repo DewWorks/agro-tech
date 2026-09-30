@@ -301,8 +301,55 @@ export type LivestockItemValues = z.infer<typeof livestockItemSchema>
 export type Step3ImprovementsAndHerdValues = z.infer<typeof step3ImprovementsAndHerdSchema>
 
 // ============================================================================
-// STEP 4: RESUMO FINANCEIRO E CAPACIDADE DE PAGAMENTO
+// STEP 4: RESUMO FINANCEIRO, FLUXO DE CAIXA E GARANTIAS (ADITIVO 003)
 // ============================================================================
+
+export const urbanPropertyItemSchema = z.object({
+  id: z.string().optional().nullable(),
+  propertyType: z.enum(['RESIDENCIAL', 'COMERCIAL', 'TERRENO_LOTE', 'GALPAO_INDUSTRIAL', 'OUTRO']).default('RESIDENCIAL'),
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  city: z.string().min(1, 'Cidade é obrigatória'),
+  state: z.string().min(2, 'UF é obrigatória'),
+  marketValue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
+  hasLien: z.boolean().default(false),
+  liquidityRating: z.enum(['ALTA', 'MEDIA', 'BAIXA']).default('MEDIA'),
+})
+
+export const vehicleItemSchema = z.object({
+  id: z.string().optional().nullable(),
+  vehicleType: z.enum(['AUTOMOVEL', 'CAMINHONETE', 'CAMINHAO', 'CARRETA', 'MOTO', 'TRATOR_UTILITARIO', 'OUTRO']).default('CAMINHONETE'),
+  brand: z.string().min(1, 'Marca é obrigatória'),
+  model: z.string().min(1, 'Modelo é obrigatório'),
+  modelYear: z.coerce.number().optional().nullable(),
+  licensePlate: z.string().optional().nullable(),
+  declaredValue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0),
+  hasLien: z.boolean().default(false),
+})
+
+export const agroRevenueItemSchema = z.object({
+  id: z.string().optional().nullable(),
+  activityType: z.enum(['AGRICOLA_GRAOS', 'PECUARIA_CORTE', 'PECUARIA_LEITE', 'HORTIFRUTI', 'SILVICULTURA', 'OUTRA']).default('AGRICOLA_GRAOS'),
+  realizationType: z.enum(['EFETIVA_HISTORICA', 'PROJETADA_SAFRA']).default('PROJETADA_SAFRA'),
+  description: z.string().min(1, 'Descrição da cultura/lote é obrigatória'),
+  quantity: z.coerce.number().min(0).default(0),
+  unit: z.string().default('sc'),
+  unitPrice: z.coerce.number().min(0).default(0),
+  productionCostTotal: z.coerce.number().min(0).default(0),
+})
+
+export const expenseItemSchema = z.object({
+  id: z.string().optional().nullable(),
+  category: z.enum(['CUSTEIO_OPERACIONAL', 'MANUTENCAO_FAMILIAR', 'PASSIVO_EXISTENTE_BANCARIO', 'ENCARGOS_TRIBUTOS', 'TRANSPORTE_FRETE', 'OUTROS']).default('MANUTENCAO_FAMILIAR'),
+  description: z.string().min(1, 'Descrição é obrigatória'),
+  creditorName: z.string().optional().nullable(),
+  annualAmount: z.coerce.number().min(0).default(0),
+  isContinuingLiability: z.boolean().default(true),
+})
+
+export type UrbanPropertyItemValues = z.infer<typeof urbanPropertyItemSchema>
+export type VehicleItemValues = z.infer<typeof vehicleItemSchema>
+export type AgroRevenueItemValues = z.infer<typeof agroRevenueItemSchema>
+export type ExpenseItemValues = z.infer<typeof expenseItemSchema>
 
 export const step4FinancialSummarySchema = z.object({
   // Totais Derivados (Calculados e exibidos em Cards Dashboard)
@@ -312,7 +359,7 @@ export const step4FinancialSummarySchema = z.object({
   computedLivestockValue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
   computedTotalAssets: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
 
-  // Entradas Manuais de Fluxo Financeiro
+  // Entradas Manuais de Fluxo Financeiro (Totais Globais)
   effectiveAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
   projectedAgroRevenue: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
   otherRevenues: z.coerce.number().min(0, 'Valor não pode ser negativo').default(0).optional().nullable(),
@@ -326,6 +373,20 @@ export const step4FinancialSummarySchema = z.object({
   creditLimitTargetBank: z.string().default('BANCO_DO_BRASIL').optional().nullable(),
   creditLimitTermMonths: z.coerce.number().min(1, 'Prazo mínimo de 1 mês').default(12).optional().nullable(),
   creditLimitNotes: z.string().optional().or(z.literal('')).nullable(),
+
+  // Novos Campos do Motor Financeiro (Aditivo 003)
+  amortizationSystem: z.enum(['PRICE', 'SAC']).default('PRICE').optional().nullable(),
+  creditLineCode: z.string().default('PRONAMP_CUSTEIO').optional().nullable(),
+  interestRateAnnual: z.coerce.number().min(0).default(8.0).optional().nullable(),
+  gracePeriodMonths: z.coerce.number().min(0).default(0).optional().nullable(),
+
+  // Bens Secundários de Garantia
+  urbanProperties: z.array(urbanPropertyItemSchema).optional().default([]),
+  vehicles: z.array(vehicleItemSchema).optional().default([]),
+
+  // Fluxos Detalhados (Linhas Dinâmicas)
+  customAgroRevenues: z.array(agroRevenueItemSchema).optional().default([]),
+  customExpenses: z.array(expenseItemSchema).optional().default([]),
 })
 
 export type Step4FinancialSummaryValues = z.infer<typeof step4FinancialSummarySchema>

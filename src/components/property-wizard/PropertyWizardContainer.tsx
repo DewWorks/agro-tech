@@ -3,8 +3,6 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import {
   ChevronLeft,
@@ -16,21 +14,17 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
-import {
-  propertyWizardSchema,
-  PropertyWizardFormValues,
-  STEP_FIELDS_MAP,
-  defaultPropertyWizardValues,
-} from '@/lib/validations/property-wizard'
+import { PropertyWizardFormValues } from '@/lib/validations/property-wizard'
 import { createProperty, updateProperty } from '@/actions/properties'
-import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
+import { saveCreditAnalysis } from '@/actions/credit-analysis'
 import { WizardStepperHeader } from './WizardStepperHeader'
 import { Step1Land } from './steps/Step1Land'
 import { Step2Machinery } from './steps/Step2Machinery'
 import { Step3ImprovementsHerd } from './steps/Step3ImprovementsHerd'
 import { Step4FinancialSummary } from './steps/Step4FinancialSummary'
 import { Step5ReviewDossier } from './steps/Step5ReviewDossier'
-import { toDMS } from './subcomponents/FarmMapModal'
+import { usePropertyWizardForm } from './hooks/usePropertyWizardForm'
+import { useWizardNavigation } from './hooks/useWizardNavigation'
 
 interface PropertyWizardContainerProps {
   initialData?: any
@@ -56,244 +50,30 @@ export function PropertyWizardContainer({
   isFinancialModuleDisabledForOrg = false,
 }: PropertyWizardContainerProps) {
   const router = useRouter()
-  const [currentStep, setCurrentStep] = useState<number>(1)
-  const [highestVisitedStep, setHighestVisitedStep] = useState<number>(isEditMode ? 5 : 1)
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
-  // Mapeamento dos valores iniciais se estiver em modo de edição ou com pré-seleção
-  const mappedInitialValues: Partial<PropertyWizardFormValues> = React.useMemo(() => {
-    if (!initialData) {
-      const selectedProducer = initialProducerId
-        ? producers.find((p) => p.id === initialProducerId)
-        : producers.length === 1
-        ? producers[0]
-        : null
-
-      const defaultBranchId =
-        initialBranchId ||
-        selectedProducer?.branchId ||
-        branches[0]?.id ||
-        ''
-
-      return {
-        ...defaultPropertyWizardValues,
-        branchId: defaultBranchId,
-        producerId: selectedProducer?.id || '',
-      }
-    }
-
-    const primaryProducer =
-      initialData.producers && initialData.producers.length > 0
-        ? initialData.producers[0]
-        : null
-
-    return {
-      ...defaultPropertyWizardValues,
-      name: initialData.name || initialData.propertyName || '',
-      branchId: initialData.branchId || branches[0]?.id || '',
-      producerId: primaryProducer?.producerId || initialData.producerId || producers[0]?.id || '',
-      ownershipType: primaryProducer?.ownershipType || initialData.ownershipType || 'PROPRIETARIO',
-      propertyStatus: initialData.propertyStatus || initialData.financialStatus || 'QUITADA',
-      explorationPercentage: primaryProducer?.explorationPercentage ?? 100,
-      contractStartDate: primaryProducer?.contractStartDate
-        ? new Date(primaryProducer.contractStartDate).toISOString().split('T')[0]
-        : '',
-      contractEndDate: primaryProducer?.contractEndDate
-        ? new Date(primaryProducer.contractEndDate).toISOString().split('T')[0]
-        : '',
-      landlordName: primaryProducer?.landlordName || '',
-      landlordDocument: primaryProducer?.landlordDocument || '',
-      contractType: primaryProducer?.contractType || 'ARRENDAMENTO',
-      exploredAreaHa: Number(primaryProducer?.exploredAreaHa) || 0,
-      registrationNumber: initialData.registrationNumber || '',
-      registryOffice: initialData.registryOffice || '',
-      comarca: initialData.comarca || '',
-      car: initialData.car || '',
-      ccir: initialData.ccir || '',
-      itr: initialData.itr || '',
-      explorationActivity: initialData.explorationActivity || 'Pecuária de Cria',
-      possessionYears: initialData.possessionData?.possessionYears || 0,
-      totalArea: Number(initialData.totalArea) || 0,
-      consolidatedArea: Number(initialData.consolidatedArea) || 0,
-      productiveArea: Number(initialData.productiveArea) || 0,
-      pastureArea: Number(initialData.pastureArea) || 0,
-      preserveArea: Number(initialData.preserveArea) || 0,
-      ruralModules: Number(initialData.ruralModules) || 0,
-      vtnPerHectare: Number(initialData.vtnValuePerHa ?? initialData.vtnPerHectare ?? initialData.possessionData?.vtnPerHectare ?? initialData.improvements?.estimatedLandValuePerHa) || 0,
-      totalLandValue: Number(initialData.totalVtnAmount ?? initialData.totalLandValue ?? initialData.possessionData?.totalLandValue) || 0,
-      city: initialData.city || '',
-      state: initialData.state || 'TO',
-      latitude:
-        initialData.latitude !== undefined && initialData.latitude !== null && initialData.latitude !== ''
-          ? typeof initialData.latitude === 'number'
-            ? toDMS(initialData.latitude, true)
-            : String(initialData.latitude)
-          : '',
-      longitude:
-        initialData.longitude !== undefined && initialData.longitude !== null && initialData.longitude !== ''
-          ? typeof initialData.longitude === 'number'
-            ? toDMS(initialData.longitude, false)
-            : String(initialData.longitude)
-          : '',
-      accessRoute: initialData.accessRoute || '',
-      confrontantNorth: initialData.confrontantNorth || initialData.confrontants?.norte || initialData.confrontants?.north || '',
-      confrontantSouth: initialData.confrontantSouth || initialData.confrontants?.sul || initialData.confrontants?.south || '',
-      confrontantEast: initialData.confrontantEast || initialData.confrontants?.leste || initialData.confrontants?.east || '',
-      confrontantWest: initialData.confrontantWest || initialData.confrontants?.oeste || initialData.confrontants?.west || '',
-      impenhorabilidade: initialData.seizureStatus || 'PENHORAVEL',
-      hasLien: Boolean(initialData.hasLien),
-      hasInsurance: Boolean(initialData.hasInsurance),
-      isBorderProperty: Boolean(initialData.isBorderProperty),
-      conservationState: initialData.conservationState || 'BOM',
-
-      // Arrays relacionais
-      machineries: initialData.machineries?.map((m: any) => ({
-        id: m.id,
-        category: m.specification || 'Trator de Pneus',
-        brand: m.brand || '',
-        model: m.model || '',
-        year: m.year || new Date().getFullYear(),
-        powerCapacity: m.powerCapacity || '',
-        chassisSerial: m.chassisSerial || '',
-        participationPercent: m.participationPercent ?? 100,
-        value: Number(m.value) || 0,
-        hasLien: Boolean(m.hasLien),
-        lienInstitution: m.lienInstitution || '',
-      })) || [],
-
-      improvements: initialData.improvementsList?.map((imp: any) => ({
-        id: imp.id,
-        specification: imp.specification || '',
-        unit: imp.unit || (imp.isArtificialPasture ? 'ha' : 'm²'),
-        quantity: Number(imp.quantity) || 0,
-        unitValue: Number(imp.unitValue) || 0,
-        totalValue: (Number(imp.quantity) || 0) * (Number(imp.unitValue) || 0),
-        conservationState: 'BOM',
-        observation: imp.observation || '',
-        isArtificialPasture: Boolean(imp.isArtificialPasture || imp.specification === 'Pastagem Artificial'),
-      })) || [],
-
-      livestocks: (initialData.livestockList || initialData.livestocks)?.map((l: any) => {
-        const cat = denormalizeCategoryBB(l.categoryBB || l.category)
-        const pur = denormalizePurposeBB(l.purposeBB || l.purpose)
-        return {
-          id: l.id,
-          species: l.species || 'BOVINO',
-          category: cat,
-          categoryBB: cat,
-          purpose: pur,
-          purposeBB: pur,
-          breed: l.breed || 'Nelore',
-          geneticGrade: '1/2 Sangue',
-          quantity: Number(l.quantity) || 0,
-          ageMonths: Number(l.ageMonths) || 0,
-          avgWeightKg: Number(l.avgWeightKg) || 0,
-          unitValue: Number(l.unitValue) || 0,
-          totalValue: (Number(l.quantity) || 0) * (Number(l.unitValue) || 0),
-          markingType: l.brandingType || l.markingType || 'Ferro Quente',
-          markingLocation: l.brandingLocation || l.markingLocation || 'Perna Traseira Direita',
-        }
-      }) || [],
-
-      // Dados Financeiros e Base de Limite de Crédito
-      effectiveAgroRevenue: Number(initialData.possessionData?.effectiveAgroRevenue) || 0,
-      projectedAgroRevenue: Number(initialData.possessionData?.projectedAgroRevenue) || 0,
-      otherRevenues: Number(initialData.possessionData?.otherRevenues) || 0,
-      operationalExpenses: Number(initialData.possessionData?.operationalExpenses) || 0,
-      existingDebtService: Number(initialData.possessionData?.existingDebtService) || 0,
-      familyLivingCosts: Number(initialData.possessionData?.familyLivingCosts) || 0,
-      creditLimitRequested: Number(initialData.possessionData?.creditLimitRequested) || 0,
-      creditLimitPurpose: initialData.possessionData?.creditLimitPurpose || 'CUSTEIO_AGRICOLA',
-      creditLimitTargetBank: initialData.possessionData?.creditLimitTargetBank || 'BANCO_DO_BRASIL',
-      creditLimitTermMonths: Number(initialData.possessionData?.creditLimitTermMonths) || 12,
-      creditLimitNotes: initialData.possessionData?.creditLimitNotes || '',
-    }
-  }, [initialData, branches, producers, initialProducerId, initialBranchId])
-
-  // Inicialização do React Hook Form com Zod Resolver
-  const form = useForm<PropertyWizardFormValues>({
-    resolver: zodResolver(propertyWizardSchema) as any,
-    defaultValues: mappedInitialValues as PropertyWizardFormValues,
-    mode: 'onBlur',
+  // Hook isolado para gerenciamento do formulário RHF + Zod
+  const { form } = usePropertyWizardForm({
+    initialData,
+    branches,
+    producers,
+    initialProducerId,
+    initialBranchId,
+    isEditMode,
   })
 
-  // Sincronizar initialProducerId e initialBranchId dinamicamente se o form ainda nao tiver
-  React.useEffect(() => {
-    if (!isEditMode) {
-      if (initialProducerId && !form.getValues('producerId')) {
-        form.setValue('producerId', initialProducerId, { shouldValidate: true })
-      }
-      if (initialBranchId && !form.getValues('branchId')) {
-        form.setValue('branchId', initialBranchId, { shouldValidate: true })
-      }
-    }
-  }, [initialProducerId, initialBranchId, isEditMode, form])
-
-  const scrollToTop = () => {
-    const mainEl = document.querySelector('main')
-    if (mainEl) {
-      mainEl.scrollTo({ top: 0, behavior: 'smooth' })
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
-  // Validação Parcial (Partial Triggering) para Avançar
-  const handleNextStep = async () => {
-    if (!isEditMode) {
-      const fieldsToValidate = STEP_FIELDS_MAP[currentStep] || []
-      if (fieldsToValidate.length > 0) {
-        const isStepValid = await form.trigger(fieldsToValidate)
-        if (!isStepValid) {
-          toast.error('Por favor, preencha os campos obrigatórios destacados em vermelho.')
-          return
-        }
-      }
-    }
-
-    let next = Math.min(currentStep + 1, 5)
-    if (!hasFinancialModule && next === 4) {
-      next = 5
-    }
-    setCurrentStep(next)
-    setHighestVisitedStep((prev) => Math.max(prev, next))
-    scrollToTop()
-  }
-
-  const handlePrevStep = () => {
-    let prevStep = Math.max(currentStep - 1, 1)
-    if (!hasFinancialModule && prevStep === 4) {
-      prevStep = 3
-    }
-    setCurrentStep(prevStep)
-    scrollToTop()
-  }
-
-  const handleStepClick = async (targetStep: number) => {
-    if (!hasFinancialModule && targetStep === 4) {
-      return
-    }
-
-    if (isEditMode || targetStep <= currentStep) {
-      setCurrentStep(targetStep)
-      setHighestVisitedStep((prev) => Math.max(prev, targetStep))
-      scrollToTop()
-      return
-    }
-
-    // Se estiver em modo de criação pulando para a frente, valida o passo atual antes
-    const fieldsToValidate = STEP_FIELDS_MAP[currentStep] || []
-    if (fieldsToValidate.length > 0) {
-      const isStepValid = await form.trigger(fieldsToValidate)
-      if (!isStepValid) {
-        toast.error('Preencha os campos obrigatórios antes de avançar.')
-        return
-      }
-    }
-
-    setCurrentStep(targetStep)
-    setHighestVisitedStep((prev) => Math.max(prev, targetStep))
-    scrollToTop()
-  }
+  // Hook isolado para navegação e Feature Flags
+  const {
+    currentStep,
+    highestVisitedStep,
+    handleNextStep,
+    handlePrevStep,
+    handleStepClick,
+  } = useWizardNavigation({
+    form,
+    isEditMode,
+    hasFinancialModule,
+  })
 
   // Salvamento unificado no banco (Parcial ao salvar no passo, ou Final no passo 5)
   const executeSave = async (
@@ -327,8 +107,14 @@ export function PropertyWizardContainer({
         ruralModules: Number(values.ruralModules) || 0,
         vtnPerHectare: Number(values.vtnPerHectare) || 0,
         vtnValuePerHa: Number(values.vtnPerHectare) || 0,
-        totalLandValue: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || Number(values.totalLandValue) || 0,
-        totalVtnAmount: Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 || Number(values.totalLandValue) || 0,
+        totalLandValue:
+          Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 ||
+          Number(values.totalLandValue) ||
+          0,
+        totalVtnAmount:
+          Math.round((Number(values.totalArea) || 0) * (Number(values.vtnPerHectare) || 0) * 100) / 100 ||
+          Number(values.totalLandValue) ||
+          0,
 
         // Registros
         registrationNumber: values.registrationNumber || '',
@@ -413,9 +199,19 @@ export function PropertyWizardContainer({
         creditLimitTargetBank: values.creditLimitTargetBank || 'BANCO_DO_BRASIL',
         creditLimitTermMonths: Number(values.creditLimitTermMonths) || 12,
         creditLimitNotes: values.creditLimitNotes || '',
+
+        // Motor Financeiro Aditivo 003
+        creditLineCode: values.creditLineCode || 'PRONAMP_CUSTEIO',
+        amortizationSystem: values.amortizationSystem || 'PRICE',
+        interestRateAnnual: Number(values.interestRateAnnual) || 8.0,
+        gracePeriodMonths: Number(values.gracePeriodMonths) || 0,
+        urbanProperties: values.urbanProperties || [],
+        vehicles: values.vehicles || [],
+        customAgroRevenues: values.customAgroRevenues || [],
+        customExpenses: values.customExpenses || [],
       }
 
-      let res
+      let res: any
       if (isEditMode && propertyId) {
         res = await updateProperty(propertyId, payload)
       } else {
@@ -425,6 +221,63 @@ export function PropertyWizardContainer({
       if (res?.error) {
         toast.error(typeof res.error === 'string' ? res.error : 'Erro ao salvar propriedade.')
         return
+      }
+
+      // Sincronização atômica da Análise de Crédito no Banco de Dados
+      if (
+        values.producerId &&
+        (Number(values.creditLimitRequested) > 0 ||
+          Number(values.effectiveAgroRevenue) > 0 ||
+          Number(values.projectedAgroRevenue) > 0)
+      ) {
+        try {
+          const landVal =
+            values.totalArea && values.vtnPerHectare
+              ? Number(values.totalArea) * Number(values.vtnPerHectare)
+              : 0
+          const impVal = (values.improvements || []).reduce(
+            (sum: number, i: any) => sum + (Number(i.quantity) || 0) * (Number(i.unitValue) || 0),
+            0
+          )
+          const machVal = (values.machineries || []).reduce(
+            (sum: number, m: any) => sum + (Number(m.value) || 0),
+            0
+          )
+          const liveVal = (values.livestocks || []).reduce(
+            (sum: number, l: any) => sum + (Number(l.quantity) || 0) * (Number(l.unitValue) || 0),
+            0
+          )
+
+          await saveCreditAnalysis({
+            producerId: values.producerId,
+            propertyId: res?.data?.id || propertyId,
+            branchId: values.branchId || undefined,
+            creditLineCode: values.creditLineCode || undefined,
+            requestedAmount: Number(values.creditLimitRequested) || 0,
+            amortizationSystem: values.amortizationSystem as any,
+            totalTermMonths: Number(values.creditLimitTermMonths) || 12,
+            gracePeriodMonths: Number(values.gracePeriodMonths) || 0,
+            interestRateAnnual: Number(values.interestRateAnnual) || 8.0,
+            effectiveAgroRevenue: Number(values.effectiveAgroRevenue) || 0,
+            projectedAgroRevenue: Number(values.projectedAgroRevenue) || 0,
+            nonAgroRevenue: Number(values.otherRevenues) || 0,
+            productionCosts: Number(values.operationalExpenses) || 0,
+            familyLivingExpenses: Number(values.familyLivingCosts) || 0,
+            existingDebtService: Number(values.existingDebtService) || 0,
+            landValue: landVal,
+            improvementsValue: impVal,
+            machineryValue: machVal,
+            livestockValue: liveVal,
+            creditLimitPurpose: values.creditLimitPurpose || undefined,
+            creditLimitTargetBank: values.creditLimitTargetBank || undefined,
+            urbanProperties: values.urbanProperties as any,
+            vehicles: values.vehicles as any,
+            customAgroRevenues: values.customAgroRevenues as any,
+            customExpenses: values.customExpenses as any,
+          })
+        } catch (caErr) {
+          console.error('[PropertyWizardContainer] Erro na sincronização com CreditAnalysis:', caErr)
+        }
       }
 
       toast.success(
@@ -439,9 +292,12 @@ export function PropertyWizardContainer({
         router.push('/admin/crm/properties')
         router.refresh()
       }
+
+      return res?.data?.id || propertyId
     } catch (err: any) {
       console.error(err)
       toast.error('Erro inesperado ao salvar. Verifique sua conexão.')
+      return null
     } finally {
       setIsSubmitting(false)
     }
@@ -464,6 +320,27 @@ export function PropertyWizardContainer({
     }
   }
 
+  // Handler rápido para salvar dados atuais e navegar diretamente para o Simulador de Crédito
+  const handleSaveAndGoToCreditLimit = async () => {
+    try {
+      const values = form.getValues()
+      if (!values.name || values.name.trim().length < 2) {
+        toast.error('O nome da fazenda é obrigatório (mínimo 2 caracteres).')
+        return
+      }
+      const savedId = await executeSave(values, true)
+      const targetId = savedId || propertyId || initialData?.id
+      if (targetId) {
+        router.push(`/admin/credit-limit?propertyId=${targetId}&tab=simulator`)
+      } else {
+        router.push(`/admin/credit-limit?tab=simulator`)
+      }
+    } catch (err: any) {
+      console.error(err)
+      toast.error('Erro ao salvar dados para simulação.')
+    }
+  }
+
   const onFormError = (errors: any) => {
     console.error('Validation errors:', errors)
     const errorKeys = Object.keys(errors)
@@ -479,12 +356,8 @@ export function PropertyWizardContainer({
     await executeSave(values, false)
   }
 
-  const selectedProducer = producers.find(
-    (p) => p.id === form.watch('producerId')
-  )
-  const selectedBranch = branches.find(
-    (b) => b.id === form.watch('branchId')
-  )
+  const selectedProducer = producers.find((p) => p.id === form.watch('producerId'))
+  const selectedBranch = branches.find((b) => b.id === form.watch('branchId'))
 
   return (
     <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
@@ -576,11 +449,7 @@ export function PropertyWizardContainer({
         <form onSubmit={form.handleSubmit(onFinalSubmit, onFormError)} className="space-y-6">
           {/* RENDERIZAÇÃO CONDICIONAL DO PASSO ATIVO */}
           {currentStep === 1 && (
-            <Step1Land
-              form={form}
-              producers={producers}
-              branches={branches}
-            />
+            <Step1Land form={form} producers={producers} branches={branches} />
           )}
 
           {currentStep === 2 && <Step2Machinery form={form} />}
@@ -588,9 +457,11 @@ export function PropertyWizardContainer({
           {currentStep === 3 && <Step3ImprovementsHerd form={form} />}
 
           {hasFinancialModule && currentStep === 4 && (
-            <Step4FinancialSummary 
-              form={form} 
+            <Step4FinancialSummary
+              form={form}
               isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+              propertyId={propertyId || (initialData?.id as string)}
+              onSaveAndSimulate={handleSaveAndGoToCreditLimit}
             />
           )}
 
@@ -607,7 +478,7 @@ export function PropertyWizardContainer({
             />
           )}
 
-          {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD (FLUXO NATURAL - NÃO COBRE OS CAMPOS AO ROLAR) */}
+          {/* BARRA DE NAVEGAÇÃO INFERIOR DO WIZARD */}
           <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between mt-8 print:hidden">
             <div>
               {currentStep > 1 && (
@@ -625,7 +496,8 @@ export function PropertyWizardContainer({
 
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-500 hidden md:inline mr-2">
-                Passo {currentStep === 5 && !hasFinancialModule ? 4 : currentStep} de {hasFinancialModule ? 5 : 4}
+                Passo {currentStep === 5 && !hasFinancialModule ? 4 : currentStep} de{' '}
+                {hasFinancialModule ? 5 : 4}
               </span>
 
               {isEditMode && currentStep < 5 && (
