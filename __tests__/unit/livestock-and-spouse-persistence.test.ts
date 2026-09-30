@@ -170,8 +170,8 @@ describe('Livestock and Spouse Persistence & Document Emission Tests', () => {
 
       const html = generateLimiteCreditoBbHtml(mockData)
 
-      // Section IV Semoventes table
-      expect(html).toContain('IV - Semoventes e Rebanho Bovino')
+      // Section Semoventes table
+      expect(html).toContain('Semoventes e Rebanho Bovino')
       expect(html).toContain('Categoria (BB)')
       expect(html).toContain('Finalidade')
       expect(html).toContain('Nelore PO')

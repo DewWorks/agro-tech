@@ -52,6 +52,7 @@ import {
   PropertySimulationData,
 } from '@/actions/credit-limit'
 import { downloadCreditLimitDossierPdf } from '@/lib/utils/dossie-pdf-downloader'
+import { PrescriptiveActionCard } from './PrescriptiveActionCard'
 import { toast } from 'sonner'
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 
@@ -909,46 +910,32 @@ export function CreditRiskSimulator({
                     </div>
                   </div>
 
-                  {/* Parecer Técnico Conclusivo e Fundamentação MCR */}
-                  <div className="p-4 rounded-xl border bg-slate-900 text-slate-100 border-slate-800">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
-                          Parecer Preliminar Automatizado de Risco Bancário
-                        </span>
-                      </div>
-                      <Badge
-                        className={`text-[10px] font-bold uppercase ${
-                          riskAnalysis.overallStatus === 'APROVADO'
-                            ? 'bg-emerald-500 text-white'
-                            : riskAnalysis.overallStatus === 'APROVADO_COM_RESTRICOES'
-                            ? 'bg-amber-500 text-white'
-                            : 'bg-rose-500 text-white'
-                        }`}
-                      >
-                        {riskAnalysis.overallStatus.replace(/_/g, ' ')}
-                      </Badge>
-                    </div>
-
-                    <p className="text-xs leading-relaxed text-slate-300 mb-3">
-                      {riskAnalysis.summaryOpinion}
-                    </p>
-
-                    {/* Dispositivos MCR citados */}
-                    {riskAnalysis.regulatoryNotes && riskAnalysis.regulatoryNotes.length > 0 && (
-                      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800">
-                        {riskAnalysis.regulatoryNotes.map((note: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 font-mono"
-                          >
-                            {note}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {/* PAINEL EXECUTIVO UNIFICADO: INTELIGÊNCIA CONSULTIVA & DIAGNÓSTICO PRESCRITIVO */}
+                  <PrescriptiveActionCard
+                    propertyId={selectedPropertyId}
+                    requestedAmount={requestedAmount}
+                    annualDebtService={riskAnalysis.amortization.annualDebtService}
+                    paymentCapacity={riskAnalysis.icsd.paymentCapacity}
+                    icsd={riskAnalysis.icsd.icsdValue}
+                    ltvPercent={riskAnalysis.ltv.coverageRatioPercent}
+                    totalCollateral={riskAnalysis.ltv.totalDeclaredCollateral}
+                    acceptableCollateral={riskAnalysis.ltv.totalAcceptableCollateral}
+                    creditLineName={CREDIT_LINES_CATALOG.find((l) => l.code === creditLineCode)?.name || creditLineCode}
+                    termMonths={termMonths}
+                    amortizationSystem={amortizationSystem}
+                    purpose={purpose}
+                    hasRevenues={
+                      (simulationData.cashFlow.effectiveAgroRevenue || 0) > 0 ||
+                      (simulationData.cashFlow.projectedAgroRevenue || 0) > 0 ||
+                      (riskAnalysis.icsd.grossAgroRevenue || 0) > 0
+                    }
+                    isApproved={riskAnalysis.icsd.isApproved && riskAnalysis.ltv.isApproved}
+                    overallStatus={riskAnalysis.overallStatus}
+                    summaryOpinion={riskAnalysis.summaryOpinion}
+                    regulatoryNotes={riskAnalysis.regulatoryNotes || []}
+                    onSetAmortizationSystem={(sys) => setAmortizationSystem(sys)}
+                    onSetTermMonths={(months) => setTermMonths(months)}
+                  />
                 </div>
               )}
             </CardContent>

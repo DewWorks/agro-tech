@@ -44,11 +44,47 @@ export function renderPropertyAndCollateralSection({
   creditLimitRequested,
   orgName,
 }: PropertyAndCollateralSectionParams): string {
+  // Deduplicar e agrupar semoventes por lote/categoria
+  const groupedLivestockMap = new Map<string, any>()
+  if (livestockItems && livestockItems.length > 0) {
+    for (const item of livestockItems) {
+      const catLabel = item.category || denormalizeCategoryBB(item.categoryBB) || item.categoryBB || 'Bovino'
+      const purpLabel = denormalizePurposeBB(item.purposeBB) || item.purposeBB || 'Produção'
+      const breed = item.breed || 'Nelore PO'
+      const unitVal = Number(item.unitValue) || cattleHeadValue || 0
+      const brandInfo = [item.brandingType, item.brandingLocation].filter(Boolean).join(' - ') || prop.livestockData?.brandLocation || 'Conforme Ficha'
+      const key = `${catLabel}__${purpLabel}__${breed}__${unitVal}__${brandInfo}`
+
+      const qty = Number(item.quantity) || 0
+      const age = item.ageMonths ? `${item.ageMonths} m` : ''
+      const weight = item.avgWeightKg ? `${item.avgWeightKg} kg` : ''
+
+      if (groupedLivestockMap.has(key)) {
+        const existing = groupedLivestockMap.get(key)
+        existing.quantity += qty
+        existing.total += qty * unitVal
+      } else {
+        groupedLivestockMap.set(key, {
+          catLabel,
+          purpLabel,
+          breed,
+          quantity: qty,
+          age,
+          weight,
+          unitVal,
+          total: qty * unitVal,
+          brandInfo,
+        })
+      }
+    }
+  }
+  const consolidatedLivestock = Array.from(groupedLivestockMap.values())
+
   return `
   <!-- =================================================================== -->
   <!-- PÁGINA 2: DEMONSTRATIVO DE GARANTIAS REAIS & LOAN-TO-VALUE (LTV)    -->
   <!-- =================================================================== -->
-  <div class="dossie-page">
+  <div class="page-sheet dossie-page">
     ${renderPageHeader(
       'Quadro Demonstrativo de Garantias Reais & Ponderação MCR',
       'Dimensionamento do Lastro Patrimonial (Rural, Urbano e Frotas) para Alavancagem Bancária',
@@ -58,162 +94,163 @@ export function renderPropertyAndCollateralSection({
     )}
 
     <!-- II. PATRIMÔNIO FUNDIÁRIO (TERRAS) -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 10.5px;">
+    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 8px; overflow: hidden;">
+      <div style="background: #f3f4f6; padding: 3px 8px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 10px;">
         II - Discriminação de Terras e Uso Atual do Solo (${prop.name || 'Propriedade Principal'})
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9.5px;">
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-            <th style="padding: 4px 8px;">Uso / Discriminação do Solo</th>
-            <th style="padding: 4px 8px; text-align: right;">Área (Hectares)</th>
-            <th style="padding: 4px 8px; text-align: right;">Valor Unit. Médio</th>
-            <th style="padding: 4px 8px; text-align: right;">Valor Total Declarado</th>
-            <th style="padding: 4px 8px; text-align: right;">Margem Aceitável (65%)</th>
+            <th style="padding: 3px 6px;">Uso / Discriminação do Solo</th>
+            <th style="padding: 3px 6px; text-align: right;">Área (Hectares)</th>
+            <th style="padding: 3px 6px; text-align: right;">Valor Unit. Médio</th>
+            <th style="padding: 3px 6px; text-align: right;">Valor Total Declarado</th>
+            <th style="padding: 3px 6px; text-align: right;">Margem Aceitável (65%)</th>
           </tr>
         </thead>
         <tbody>
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Pastagem Formada / Artificial</td>
-            <td style="padding: 4px 8px; text-align: right;">${pastArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa)}</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(pastArea * landValuePerHa)}</td>
-            <td style="padding: 4px 8px; text-align: right; color: #065f46;">${formatBRL((pastArea * landValuePerHa) * 0.65)}</td>
+            <td style="padding: 3px 6px;">Pastagem Formada / Artificial</td>
+            <td style="padding: 3px 6px; text-align: right;">${pastArea.toFixed(2)} ha</td>
+            <td style="padding: 3px 6px; text-align: right;">${formatBRL(landValuePerHa)}</td>
+            <td style="padding: 3px 6px; text-align: right;">${formatBRL(pastArea * landValuePerHa)}</td>
+            <td style="padding: 3px 6px; text-align: right; color: #065f46;">${formatBRL((pastArea * landValuePerHa) * 0.65)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Agricultura / Lavoura Anual</td>
-            <td style="padding: 4px 8px; text-align: right;">${agricArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa * 1.2)}</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(agricArea * landValuePerHa * 1.2)}</td>
-            <td style="padding: 4px 8px; text-align: right; color: #065f46;">${formatBRL((agricArea * landValuePerHa * 1.2) * 0.65)}</td>
+            <td style="padding: 3px 6px;">Agricultura / Lavoura Anual</td>
+            <td style="padding: 3px 6px; text-align: right;">${agricArea.toFixed(2)} ha</td>
+            <td style="padding: 3px 6px; text-align: right;">${formatBRL(landValuePerHa * 1.2)}</td>
+            <td style="padding: 3px 6px; text-align: right;">${formatBRL(agricArea * landValuePerHa * 1.2)}</td>
+            <td style="padding: 3px 6px; text-align: right; color: #065f46;">${formatBRL((agricArea * landValuePerHa * 1.2) * 0.65)}</td>
           </tr>
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Reserva Legal e APP</td>
-            <td style="padding: 4px 8px; text-align: right;">${resArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(landValuePerHa * 0.4)}</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(resArea * landValuePerHa * 0.4)}</td>
-            <td style="padding: 4px 8px; text-align: right; color: #065f46;">${formatBRL((resArea * landValuePerHa * 0.4) * 0.65)}</td>
+            <td style="padding: 3px 6px;">Reserva Legal e APP</td>
+            <td style="padding: 3px 6px; text-align: right;">${resArea.toFixed(2)} ha</td>
+            <td style="padding: 3px 6px; text-align: right;">${formatBRL(landValuePerHa * 0.4)}</td>
+            <td style="padding: 3px 6px; text-align: right;">${formatBRL(resArea * landValuePerHa * 0.4)}</td>
+            <td style="padding: 3px 6px; text-align: right; color: #065f46;">${formatBRL((resArea * landValuePerHa * 0.4) * 0.65)}</td>
           </tr>
           <tr style="background: #f3f4f6; font-weight: bold;">
-            <td style="padding: 4px 8px;">ÁREA TOTAL / VALOR TERRA NUA</td>
-            <td style="padding: 4px 8px; text-align: right;">${totalArea.toFixed(2)} ha</td>
-            <td style="padding: 4px 8px; text-align: right;">-</td>
-            <td style="padding: 4px 8px; text-align: right; color: #1B4D3E;">${formatBRL(totalLandValue)}</td>
-            <td style="padding: 4px 8px; text-align: right; color: #065f46;">${formatBRL(totalLandValue * 0.65)}</td>
+            <td style="padding: 3px 6px;">ÁREA TOTAL / VALOR TERRA NUA</td>
+            <td style="padding: 3px 6px; text-align: right;">${totalArea.toFixed(2)} ha</td>
+            <td style="padding: 3px 6px; text-align: right;">-</td>
+            <td style="padding: 3px 6px; text-align: right; color: #1B4D3E;">${formatBRL(totalLandValue)}</td>
+            <td style="padding: 3px 6px; text-align: right; color: #065f46;">${formatBRL(totalLandValue * 0.65)}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- III. BENFEITORIAS E INSTALAÇÕES (TABELA BB) -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 10.5px;">
-        III - Benfeitorias e Instalações (Referência Banco do Brasil)
+    <!-- III. BENFEITORIAS E CONSTRUÇÕES RURAIS -->
+    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 8px; overflow: hidden;">
+      <div style="background: #f3f4f6; padding: 3px 8px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 10px;">
+        III - Benfeitorias, Instalações e Edificações Rurais
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9.5px;">
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-            <th style="padding: 4px 8px;">Especificação da Instalação</th>
-            <th style="padding: 4px 8px;">Dimensão / Quant.</th>
-            <th style="padding: 4px 8px;">Estado de Conservação</th>
-            <th style="padding: 4px 8px; text-align: right;">Valor Estimado</th>
-            <th style="padding: 4px 8px; text-align: right;">Margem MCR (65%)</th>
+            <th style="padding: 3px 6px;">Especificação da Benfeitoria</th>
+            <th style="padding: 3px 6px; text-align: center;">Qtd / Unid.</th>
+            <th style="padding: 3px 6px; text-align: right;">Valor Unit.</th>
+            <th style="padding: 3px 6px; text-align: right;">Valor Atual</th>
+            <th style="padding: 3px 6px; text-align: right;">Margem Aceitável (65%)</th>
           </tr>
         </thead>
         <tbody>
           ${improvementsValue > 0 ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 4px 8px;">Instalações, Galpões, Currais e Cercas Avaliadas</td>
-            <td style="padding: 4px 8px;">Conforme Vistoria</td>
-            <td style="padding: 4px 8px;">Bom Estado Geral</td>
-            <td style="padding: 4px 8px; text-align: right;">${formatBRL(improvementsValue)}</td>
-            <td style="padding: 4px 8px; text-align: right; color: #065f46;">${formatBRL(improvementsValue * 0.65)}</td>
+            <td style="padding: 3px 6px; font-weight: 600;">Cercas, Currais, Galpões e Casas de Funcionários</td>
+            <td style="padding: 3px 6px; text-align: center;">Lote Global</td>
+            <td style="padding: 3px 6px; text-align: right;">${formatBRL(improvementsValue)}</td>
+            <td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #1B4D3E;">${formatBRL(improvementsValue)}</td>
+            <td style="padding: 3px 6px; text-align: right; color: #065f46;">${formatBRL(improvementsValue * 0.65)}</td>
           </tr>
           ` : `
           <tr>
-            <td colspan="5" style="padding: 6px 8px; text-align: center; color: #6b7280; font-style: italic;">
+            <td colspan="5" style="padding: 4px 6px; text-align: center; color: #6b7280; font-style: italic;">
               Nenhuma benfeitoria adicional informada (R$ 0,00).
             </td>
           </tr>
           `}
           <tr style="background: #f3f4f6; font-weight: bold;">
-            <td colspan="3" style="padding: 4px 8px;">SUBTOTAL BENFEITORIAS</td>
-            <td style="padding: 4px 8px; text-align: right; color: #1B4D3E;">${formatBRL(improvementsValue)}</td>
-            <td style="padding: 4px 8px; text-align: right; color: #065f46;">${formatBRL(improvementsValue * 0.65)}</td>
+            <td colspan="3" style="padding: 3px 6px;">SUBTOTAL BENFEITORIAS</td>
+            <td style="padding: 3px 6px; text-align: right; color: #1B4D3E;">${formatBRL(improvementsValue)}</td>
+            <td style="padding: 3px 6px; text-align: right; color: #065f46;">${formatBRL(improvementsValue * 0.65)}</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- IV. SEMOVENTES (REBANHO BOVINO) -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; font-size: 10.5px;">
-        <span>IV - Semoventes e Rebanho Bovino</span>
-        <span style="font-size: 9.5px; color: #4b5563;">Registro ADAPEC: ${prop.livestockData?.brandRegistrationAdapec || 'Não informado / Pendente'}</span>
+    <!-- IV. SEMOVENTES (REBANHO BOVINO) - TABELA REFORMULADA (7 COLUNAS PROPORCIONAIS) -->
+    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 8px; overflow: hidden; page-break-inside: avoid; break-inside: avoid;">
+      <div style="background: #f3f4f6; padding: 3px 8px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; display: flex; justify-content: space-between; align-items: center; font-size: 10px;">
+        <span>IV - Semoventes e Rebanho Bovino (Ponderação MCR 50%)</span>
+        <span style="font-size: 9px; color: #4b5563;">Registro ADAPEC: ${prop.livestockData?.brandRegistrationAdapec || 'Não informado / Pendente'}</span>
       </div>
 
-      ${hasLivestockItems ? `
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9.5px;">
+      ${consolidatedLivestock.length > 0 ? `
+      <table style="width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; font-size: 9px;">
+        <colgroup>
+          <col style="width: 16%;">
+          <col style="width: 18%;">
+          <col style="width: 12%;">
+          <col style="width: 10%;">
+          <col style="width: 10%;">
+          <col style="width: 14%;">
+          <col style="width: 20%;">
+        </colgroup>
         <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 9px; text-transform: uppercase; color: #374151;">
-            <th style="padding: 4px 6px;">Categoria (BB)</th>
-            <th style="padding: 4px 6px;">Finalidade</th>
-            <th style="padding: 4px 6px;">Raça</th>
-            <th style="padding: 4px 6px; text-align: center;">Qtd (Cab.)</th>
-            <th style="padding: 4px 6px; text-align: center;">Idade</th>
-            <th style="padding: 4px 6px; text-align: center;">Peso Médio</th>
-            <th style="padding: 4px 6px; text-align: right;">Valor Unit.</th>
-            <th style="padding: 4px 6px; text-align: right;">Total Estimado</th>
-            <th style="padding: 4px 6px;">Marca e Local</th>
+          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; font-size: 8.5px; text-transform: uppercase; color: #374151;">
+            <th style="padding: 3px 5px;">Categoria (BB)</th>
+            <th style="padding: 3px 5px;">Finalidade</th>
+            <th style="padding: 3px 5px;">Raça</th>
+            <th style="padding: 3px 5px; text-align: center;">Qtd (Cab.)</th>
+            <th style="padding: 3px 5px; text-align: center;">Peso Médio</th>
+            <th style="padding: 3px 5px; text-align: right;">Valor Unit.</th>
+            <th style="padding: 3px 5px; text-align: right;">Subtotal</th>
           </tr>
         </thead>
         <tbody>
-          ${livestockItems.map((item: any) => {
-            const qty = Number(item.quantity) || 0
-            const unitVal = Number(item.unitValue) || cattleHeadValue || 0
-            const tot = qty * unitVal
-            const catLabel = item.category || denormalizeCategoryBB(item.categoryBB) || item.categoryBB || 'Bovino'
-            const purpLabel = denormalizePurposeBB(item.purposeBB) || item.purposeBB || 'Produção'
-            const brandInfo = [item.brandingType, item.brandingLocation].filter(Boolean).join(' - ') || prop.livestockData?.brandLocation || 'Conforme Ficha'
-            return `
+          ${consolidatedLivestock.map((item: any) => `
             <tr style="border-bottom: 1px solid #f3f4f6; page-break-inside: avoid; break-inside: avoid;">
-              <td style="padding: 4px 6px; font-weight: 600; color: #111827;">${catLabel}</td>
-              <td style="padding: 4px 6px; color: #4b5563;">${purpLabel}</td>
-              <td style="padding: 4px 6px;">${item.breed || 'Nelore PO'}</td>
-              <td style="padding: 4px 6px; text-align: center; font-weight: bold;">${qty}</td>
-              <td style="padding: 4px 6px; text-align: center;">${item.ageMonths ? `${item.ageMonths} m` : '-'}</td>
-              <td style="padding: 4px 6px; text-align: center;">${item.avgWeightKg ? `${item.avgWeightKg} kg` : '-'}</td>
-              <td style="padding: 4px 6px; text-align: right;">${formatBRL(unitVal)}</td>
-              <td style="padding: 4px 6px; text-align: right; font-weight: 600; color: #1B4D3E;">${formatBRL(tot)}</td>
-              <td style="padding: 4px 6px; font-size: 8.5px; color: #6b7280;">${brandInfo}</td>
+              <td style="padding: 3px 5px; font-weight: 600; color: #111827; vertical-align: middle;">
+                <div>${item.catLabel}</div>
+                <span style="display: block; font-size: 7.5px; color: #6b7280; font-weight: normal;">Marca: ${item.brandInfo}</span>
+              </td>
+              <td style="padding: 3px 5px; color: #4b5563; vertical-align: middle;">${item.purpLabel}</td>
+              <td style="padding: 3px 5px; color: #374151; vertical-align: middle;">${item.breed}</td>
+              <td style="padding: 3px 5px; text-align: center; font-weight: bold; color: #111827; vertical-align: middle;">${item.quantity}</td>
+              <td style="padding: 3px 5px; text-align: center; color: #4b5563; vertical-align: middle;">${item.weight || item.age || '-'}</td>
+              <td style="padding: 3px 5px; text-align: right; color: #374151; vertical-align: middle;">${formatBRL(item.unitVal)}</td>
+              <td style="padding: 3px 5px; text-align: right; font-weight: 600; color: #1B4D3E; vertical-align: middle;">${formatBRL(item.total)}</td>
             </tr>
-            `
-          }).join('')}
+          `).join('')}
           <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db;">
-            <td colspan="3" style="padding: 4px 6px; text-transform: uppercase;">Total Rebanho Declarado</td>
-            <td style="padding: 4px 6px; text-align: center; color: #1B4D3E; font-size: 10.5px;">${totalCattle} cab</td>
-            <td colspan="3"></td>
-            <td style="padding: 4px 6px; text-align: right; color: #1B4D3E; font-size: 10.5px;">${formatBRL(cattleEstimatedValue)}</td>
-            <td style="font-size: 9px; color: #065f46; font-weight: bold;">Margem 50%: ${formatBRL(cattleEstimatedValue * 0.50)}</td>
+            <td colspan="3" style="padding: 3px 5px; text-transform: uppercase;">Total Rebanho Declarado</td>
+            <td style="padding: 3px 5px; text-align: center; color: #1B4D3E; font-size: 10px;">${totalCattle} cab</td>
+            <td style="padding: 3px 5px; text-align: center; font-size: 8px; color: #6b7280;">Ponderação:</td>
+            <td colspan="2" style="padding: 3px 5px; text-align: right; color: #1B4D3E; font-size: 10px;">
+              ${formatBRL(cattleEstimatedValue)} <span style="font-size: 8px; color: #065f46; font-weight: bold; margin-left: 4px;">(Margem 50%: ${formatBRL(cattleEstimatedValue * 0.50)})</span>
+            </td>
           </tr>
         </tbody>
       </table>
       ` : `
-      <div style="padding: 8px 10px; display: flex; justify-content: space-between; font-weight: bold;">
+      <div style="padding: 6px 8px; display: flex; justify-content: space-between; font-weight: bold; font-size: 9.5px;">
         <span>Total de Cabeças Cadastradas: ${totalCattle} cab</span>
-        <span style="color: #1B4D3E;">Valor Estimado Rebanho: ${formatBRL(cattleEstimatedValue)}</span>
+        <span style="color: #1B4D3E;">Valor Estimado Rebanho: ${formatBRL(cattleEstimatedValue)} (Margem 50%: ${formatBRL(cattleEstimatedValue * 0.50)})</span>
       </div>
       `}
     </div>
 
     <!-- V. BENS SECUNDÁRIOS DE GARANTIA (URBANOS & VEÍCULOS) -->
     ${(urbanProperties.length > 0 || vehicles.length > 0) ? `
-    <div style="border: 1px solid #3b82f6; border-radius: 4px; margin-bottom: 10px; overflow: hidden; background: #f8fafc;">
-      <div style="background: #1e40af; color: #ffffff; padding: 4px 10px; font-weight: bold; text-transform: uppercase; font-size: 10px; display: flex; justify-content: space-between;">
+    <div style="border: 1px solid #3b82f6; border-radius: 4px; margin-bottom: 8px; overflow: hidden; background: #f8fafc;">
+      <div style="background: #1e40af; color: #ffffff; padding: 3px 8px; font-weight: bold; text-transform: uppercase; font-size: 9.5px; display: flex; justify-content: space-between;">
         <span>V - Bens Complementares de Lastro (Imóveis Urbanos & Veículos)</span>
-        <span style="font-size: 9px; color: #93c5fd;">Garantia Secundária</span>
+        <span style="font-size: 8.5px; color: #93c5fd;">Garantia Secundária</span>
       </div>
-      <div style="padding: 6px 10px; font-size: 9.5px;">
+      <div style="padding: 4px 8px; font-size: 9px;">
         ${urbanProperties.map((u: any, idx: number) => `
           <div style="display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px dashed #e2e8f0;">
             <span><strong>Imóvel Urbano ${idx + 1}:</strong> ${u.description || 'Residencial'} (${u.city || ''}/${u.state || ''}) ${u.hasLien ? '<span style="color:red">[Alienado]</span>' : '<span style="color:green">[Livre]</span>'}</span>
@@ -231,34 +268,34 @@ export function renderPropertyAndCollateralSection({
     ` : ''}
 
     <!-- SÍNTESE DO BALANÇO DE GARANTIAS & COBERTURA LTV -->
-    <div style="border: 1.5px solid #1B4D3E; border-radius: 4px; padding: 10px; background: #f0fdf4;">
-      <h3 style="margin: 0 0 6px 0; font-size: 11px; color: #1B4D3E; font-weight: bold; text-transform: uppercase; display: flex; justify-content: space-between;">
+    <div style="border: 1.5px solid #1B4D3E; border-radius: 4px; padding: 8px 10px; background: #f0fdf4;">
+      <h3 style="margin: 0 0 5px 0; font-size: 10.5px; color: #1B4D3E; font-weight: bold; text-transform: uppercase; display: flex; justify-content: space-between;">
         <span>Consolidação de Garantias e Balanço Loan-to-Value (LTV)</span>
         <span class="${engineResult.ltv.isApproved ? 'badge-approved' : 'badge-rejected'}">
           ${engineResult.ltv.isApproved ? 'Garantias Aprovadas' : 'Garantias Insuficientes'}
         </span>
       </h3>
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; margin-top: 6px;">
-        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 5px; border-radius: 4px;">
-          <span style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Patrimônio Total Declarado</span>
-          <strong style="font-size: 12px; color: #111827; display: block;">${formatBRL(engineResult.ltv.totalDeclaredCollateral)}</strong>
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; margin-top: 4px;">
+        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 4px; border-radius: 4px;">
+          <span style="font-size: 8.5px; color: #6b7280; text-transform: uppercase;">Patrimônio Declarado</span>
+          <strong style="font-size: 11px; color: #111827; display: block;">${formatBRL(engineResult.ltv.totalDeclaredCollateral)}</strong>
         </div>
-        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 5px; border-radius: 4px;">
-          <span style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Lastro Ponderado Aceito (MCR)</span>
-          <strong style="font-size: 12px; color: #065f46; display: block;">${formatBRL(engineResult.ltv.totalAcceptableCollateral)}</strong>
+        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 4px; border-radius: 4px;">
+          <span style="font-size: 8.5px; color: #6b7280; text-transform: uppercase;">Lastro Aceito (MCR)</span>
+          <strong style="font-size: 11px; color: #065f46; display: block;">${formatBRL(engineResult.ltv.totalAcceptableCollateral)}</strong>
         </div>
-        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 5px; border-radius: 4px;">
-          <span style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Crédito Pretendido</span>
-          <strong style="font-size: 12px; color: #1B4D3E; display: block;">${formatBRL(creditLimitRequested)}</strong>
+        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 4px; border-radius: 4px;">
+          <span style="font-size: 8.5px; color: #6b7280; text-transform: uppercase;">Crédito Pretendido</span>
+          <strong style="font-size: 11px; color: #1B4D3E; display: block;">${formatBRL(creditLimitRequested)}</strong>
         </div>
-        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 5px; border-radius: 4px;">
-          <span style="font-size: 9px; color: #6b7280; text-transform: uppercase;">Índice de Cobertura (LTV)</span>
-          <strong style="font-size: 13px; color: ${engineResult.ltv.isApproved ? '#065f46' : '#dc2626'}; display: block;">
+        <div style="background: #ffffff; border: 1px solid #d1d5db; padding: 4px; border-radius: 4px;">
+          <span style="font-size: 8.5px; color: #6b7280; text-transform: uppercase;">Cobertura (LTV)</span>
+          <strong style="font-size: 12px; color: ${engineResult.ltv.isApproved ? '#065f46' : '#dc2626'}; display: block;">
             ${engineResult.ltv.coverageRatioPercent.toFixed(1)}%
           </strong>
         </div>
       </div>
-      <p style="margin: 6px 0 0 0; font-size: 9.5px; color: #4b5563;">
+      <p style="margin: 4px 0 0 0; font-size: 9px; color: #4b5563;">
         ${engineResult.ltv.opinionText}
       </p>
     </div>

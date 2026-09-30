@@ -14,21 +14,9 @@ import {
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
 
 import { documentStyles } from './limite-credito-bb/styles'
-import { getBankNameLabel } from './limite-credito-bb/formatters'
-import {
-  renderPageHeader,
-  renderPageFooter,
-  renderPropertyIdentificationSection,
-  renderMcrClassificationSection,
-} from './limite-credito-bb/sections/HeaderSection'
-import {
-  renderProponentSection,
-  renderTechnicalResponsibilitySection,
-} from './limite-credito-bb/sections/ProponentSection'
-import { renderPropertyAndCollateralSection } from './limite-credito-bb/sections/PropertyAndCollateralSection'
-import { renderCashFlowSection } from './limite-credito-bb/sections/CashFlowSection'
-import { renderAmortizationAndIcsdSection } from './limite-credito-bb/sections/AmortizationAndIcsdSection'
-import { renderSignaturesSection } from './limite-credito-bb/sections/SignaturesSection'
+import { renderPage1EnquadramentoAndRealEstate } from './limite-credito-bb/sections/Page1EnquadramentoAndRealEstate'
+import { renderPage2CollateralAndCashFlow } from './limite-credito-bb/sections/Page2CollateralAndCashFlow'
+import { renderPage3DebtServiceIcsdAndSignatures } from './limite-credito-bb/sections/Page3DebtServiceIcsdAndSignatures'
 
 export interface LimiteCreditoDocumentData {
   producer: {
@@ -308,121 +296,73 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   return `
   ${documentStyles}
 
-  <!-- =================================================================== -->
-  <!-- PÁGINA 1: FOLHA DE ROSTO E ENQUADRAMENTO TÉCNICO NORMATIVO (MCR)    -->
-  <!-- =================================================================== -->
-  <div class="dossie-page">
-    ${renderPageHeader(
-      'Ficha Cadastral e Levantamento Patrimonial',
-      `Dossiê para Proposta de Limite de Crédito Rural • ${getBankNameLabel(targetBank)}`,
-      1,
-      4,
-      'Enquadramento'
-    )}
-
-    ${renderProponentSection({
-      p,
-      isCnpj,
-      docLabel,
-      docFormatted,
-      spouseDocFormatted,
-      repCpfFormatted,
-    })}
-
-    ${renderPropertyIdentificationSection(prop)}
-
-    ${renderTechnicalResponsibilitySection({
-      orgName,
-      orgCnpj,
-      branchName: data.branch?.name,
-      orgOwnerName,
-      crea,
-      art,
-    })}
-
-    ${renderMcrClassificationSection({
-      lineDef,
-      targetBank,
-      creditLimitRequested,
-      interestRate,
-      termMonths,
-      graceMonths,
-      system,
-      purpose: opt.creditLimitPurpose,
-    })}
-
-    ${renderPageFooter(orgName, 30)}
-  </div>
-
-  <div class="html2pdf__page-break" style="height: 0; page-break-after: always; break-after: page;"></div>
-
-  ${renderPropertyAndCollateralSection({
+  ${renderPage1EnquadramentoAndRealEstate({
+    p,
+    isCnpj,
+    docLabel,
+    docFormatted,
+    spouseDocFormatted,
+    repCpfFormatted,
     prop,
-    totalArea,
+    orgName,
+    orgCnpj,
+    branchName: data.branch?.name,
+    orgOwnerName,
+    crea,
+    art,
+    lineDef,
+    targetBank,
+    creditLimitRequested,
+    interestRate,
+    termMonths,
+    graceMonths,
+    system,
+    purpose: opt.creditLimitPurpose,
     pastArea,
     agricArea,
     resArea,
+    totalArea,
     landValuePerHa,
     totalLandValue,
     improvementsValue,
+  })}
+
+  ${renderPage2CollateralAndCashFlow({
+    prop,
     cattleEstimatedValue,
     totalCattle,
     livestockItems,
-    hasLivestockItems,
     cattleHeadValue,
+    machineryValue,
     urbanProperties,
     vehicles,
     engineResult,
     creditLimitRequested,
     orgName,
-  })}
-
-  <div class="html2pdf__page-break" style="height: 0; page-break-after: always; break-after: page;"></div>
-
-  ${renderCashFlowSection({
     customAgroRevenues,
     effectiveAgroRev,
     projectedAgroRev,
     operationalExp,
     familyCosts,
     existingDebt,
-    engineResult,
-    orgName,
   })}
 
-  <div class="html2pdf__page-break" style="height: 0; page-break-after: always; break-after: page;"></div>
-
-  <!-- =================================================================== -->
-  <!-- PÁGINA 4: SERVIÇO DA DÍVIDA, ÍNDICE ICSD & PARECER CONCLUSIVO       -->
-  <!-- =================================================================== -->
-  <div class="dossie-page">
-    ${renderPageHeader(
-      'Serviço da Dívida, ICSD e Parecer Técnico Conclusivo',
-      'Cronograma de Amortização Bancária • Teste de Estresse Financeiro (Trava ≥ 1,20) • Assinaturas',
-      4,
-      4,
-      'Parecer Conclusivo'
-    )}
-
-    ${renderAmortizationAndIcsdSection({
-      system,
-      interestRate,
-      termMonths,
-      graceMonths,
-      engineResult,
-    })}
-
-    ${renderSignaturesSection({
-      p,
-      isCnpj,
-      docLabel,
-      docFormatted,
-      spouseDocFormatted,
-      orgOwnerName,
-      orgName,
-      crea,
-      art,
-    })}
-  </div>
+  ${renderPage3DebtServiceIcsdAndSignatures({
+    system,
+    interestRate,
+    termMonths,
+    graceMonths,
+    engineResult,
+    creditLimitRequested,
+    p,
+    isCnpj,
+    docLabel,
+    docFormatted,
+    spouseDocFormatted,
+    orgOwnerName,
+    orgName,
+    crea,
+    art,
+  })}
   `
 }

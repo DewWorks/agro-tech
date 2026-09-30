@@ -44,12 +44,12 @@ export async function downloadCreditLimitDossierPdf(html: string, fileName: stri
         logging: false,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 1200,
+        windowWidth: 794,
         backgroundColor: '#ffffff',
         ignoreElements: (node: Element) => node.tagName?.toLowerCase() === 'noscript',
       },
       jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-      pagebreak: { mode: ['css', 'legacy'], after: ['.dossie-page', '.html2pdf__page-break'] },
+      pagebreak: { mode: ['css'] },
     }
 
     await html2pdf().set(opt).from(content).save()
