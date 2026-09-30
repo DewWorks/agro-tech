@@ -47,7 +47,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
   const isAnimalOrEquipment = isAnimalOrEquipmentSubline(customOptions.renovagroSubline)
 
   // Rótulos e placeholders dinâmicos conforme a sublinha
-  const qtyLabel = isAnimalOrEquipment ? 'Item Financiável / Quantidade *' : 'Área a Recuperar (ha) *'
+  const qtyLabel = isAnimalOrEquipment ? 'Item Financiável / Quantidade *' : 'Item Financiável'
   const qtyPlaceholder = isAnimalOrEquipment ? 'Ex: 40' : 'Ex: 40'
   const qtyUnitHint = isAnimalOrEquipment ? 'Cabeças / Unidades' : 'Hectares (ha)'
 
