@@ -49,10 +49,13 @@ const SaveDraftModal = dynamic(
 import { useCreditProjectWizard } from './hooks/useCreditProjectWizard';
 import { CreditProjectWizardProps } from './types/wizard-types';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { saveCreditProjectData, recordDocumentEmission } from '@/actions/credit-projects';
 import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner';
+import { UniversalDocumentPreviewModal } from '@/components/documents/UniversalDocumentPreviewModal';
+import { printElementCleanly } from '@/lib/utils/clean-print';
 
 export default function CreditProjectWizard({ 
   producers, 
@@ -121,12 +124,12 @@ export default function CreditProjectWizard({
   const [openTemplate, setOpenTemplate] = useState(false)
   const [loading, setLoading] = useState(false)
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false)
+  const [isUniversalPreviewOpen, setIsUniversalPreviewOpen] = useState(false)
 
   const contentRef = useRef<HTMLDivElement>(null)
 
   const handlePrintIsolated = () => {
-    // Para evitar janelas pop-up invasivas about:blank, acionamos a emissão direta do PDF oficial
-    handleDownloadPdf()
+    setIsUniversalPreviewOpen(true)
   }
 
   const handleGenerate = () => {
@@ -517,6 +520,45 @@ export default function CreditProjectWizard({
           selectedTemplateCode={selectedTemplateCode}
           isSavingDraft={isSavingDraft}
           executeSaveDraft={executeSaveDraft}
+        />
+      )}
+
+      {isUniversalPreviewOpen && (
+        <UniversalDocumentPreviewModal
+          isOpen={isUniversalPreviewOpen}
+          onClose={() => setIsUniversalPreviewOpen(false)}
+          title={`Pré-Visualização — ${documentData?.template?.title || 'Ficha Cadastral Oficial'} — ${documentData?.property?.name || 'Imóvel Rural'}`}
+          subtitle={documentData?.producer?.name}
+          badges={
+            <Badge
+              variant="outline"
+              className="text-[10px] font-bold px-2 py-0 border bg-emerald-50 text-emerald-700 border-emerald-300"
+            >
+              Padrão Banco do Brasil
+            </Badge>
+          }
+          children={
+            <div className="p-4 sm:p-6 bg-white w-full">
+              <A4DocumentPreview documentData={documentData} />
+            </div>
+          }
+          dpiInfo={
+            <>
+              Resolução Nativa <strong>336 DPI</strong> • Padrão Banco do Brasil / SICOR • Conformidade Regulatória
+            </>
+          }
+          primaryActionLabel="Confirmar e Baixar Documento Oficial (PDF)"
+          onConfirm={async () => {
+            await handleDownloadPdf()
+          }}
+          showPrintAction={true}
+          printActionLabel="Imprimir"
+          onPrint={() => {
+            if (contentRef.current) {
+              printElementCleanly(contentRef.current, documentData?.template?.title || 'Documento Oficial')
+            }
+          }}
+          isDownloading={isGeneratingPdf}
         />
       )}
     </div>

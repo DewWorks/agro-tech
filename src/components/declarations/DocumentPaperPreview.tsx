@@ -2,8 +2,11 @@
 
 import { useRef, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Printer } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Printer, Maximize2 } from 'lucide-react'
 import Handlebars from 'handlebars'
+import { UniversalDocumentPreviewModal } from '@/components/documents/UniversalDocumentPreviewModal'
+import { printElementCleanly } from '@/lib/utils/clean-print'
 
 interface DocumentPaperPreviewProps {
   template: any
@@ -15,6 +18,7 @@ export function DocumentPaperPreview({ template, resolvedVariables, onSavePdfMet
   const contentRef = useRef<HTMLDivElement>(null)
   const [htmlContent, setHtmlContent] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isUniversalPreviewOpen, setIsUniversalPreviewOpen] = useState(false)
 
   // Renderiza o template Handlebars com as variáveis sempre que elas mudarem
   useEffect(() => {
@@ -107,19 +111,31 @@ export function DocumentPaperPreview({ template, resolvedVariables, onSavePdfMet
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h3 className="text-lg font-bold text-slate-900">{template.title}</h3>
           <p className="text-sm text-slate-500">{template.description}</p>
         </div>
-        <Button 
-          onClick={generatePdf} 
-          disabled={isGenerating}
-          className="bg-[#1B4D3E] hover:bg-[#113025] text-white"
-        >
-          <Printer className="w-4 h-4 mr-2" />
-          {isGenerating ? 'Gerando...' : 'Emitir em 1 clique (PDF)'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsUniversalPreviewOpen(true)}
+            className="border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold h-9 px-3.5 flex items-center gap-1.5 cursor-pointer"
+            title="Abrir no Visualizador Executivo (Zoom, Ajustes e Impressão)"
+          >
+            <Maximize2 className="w-3.5 h-3.5 text-[#1B4D3E]" />
+            Visualizador Executivo
+          </Button>
+          <Button 
+            onClick={() => setIsUniversalPreviewOpen(true)} 
+            disabled={isGenerating}
+            className="bg-[#1B4D3E] hover:bg-[#113025] text-white text-xs font-bold h-9 px-4 cursor-pointer"
+          >
+            <Printer className="w-4 h-4 mr-2" />
+            Visualizar & Emitir (PDF)
+          </Button>
+        </div>
       </div>
 
       <div className="bg-slate-100 p-8 rounded-lg overflow-auto flex justify-center">
@@ -140,6 +156,41 @@ export function DocumentPaperPreview({ template, resolvedVariables, onSavePdfMet
           />
         </div>
       </div>
+
+      {isUniversalPreviewOpen && (
+        <UniversalDocumentPreviewModal
+          isOpen={isUniversalPreviewOpen}
+          onClose={() => setIsUniversalPreviewOpen(false)}
+          title={`Pré-Visualização — ${template.title}`}
+          subtitle={template.description}
+          badges={
+            <Badge
+              variant="outline"
+              className="text-[10px] font-bold px-2 py-0 border bg-emerald-50 text-emerald-700 border-emerald-300"
+            >
+              Minuta Jurídica Homologada
+            </Badge>
+          }
+          html={htmlContent}
+          dpiInfo={
+            <>
+              Resolução Nativa <strong>300+ DPI</strong> • Minuta Registrada • Conformidade Jurídica
+            </>
+          }
+          primaryActionLabel="Confirmar e Baixar Minuta Oficial (PDF)"
+          primaryActionIcon={<Printer className="w-4 h-4" />}
+          onConfirm={generatePdf}
+          showPrintAction={true}
+          printActionLabel="Imprimir Direto"
+          onPrint={() => {
+            if (contentRef.current) {
+              printElementCleanly(contentRef.current, template.title)
+            }
+          }}
+          isDownloading={isGenerating}
+          downloadingLabel="Compilando Minuta Oficial..."
+        />
+      )}
     </div>
   )
 }
