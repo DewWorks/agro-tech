@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { MapPin, Plus, Pencil } from 'lucide-react'
-import { formatCNPJ } from '@/lib/utils/masks'
+import { formatCNPJ, formatCPF, formatPhone } from '@/lib/utils/masks'
 
 interface ProducerBasicInfoStepProps {
   branches: any[]
@@ -155,7 +155,7 @@ export function ProducerBasicInfoStep({
       <div className="space-y-2">
         <Label>{formData.type === 'PF' ? 'CPF' : 'CNPJ'} *</Label>
         <Input 
-          value={formData.document}
+          value={formData.document ? (formData.type === 'PF' ? formatCPF(formData.document) : formatCNPJ(formData.document)) : ''}
           onChange={(e) => handleChange('document', e.target.value)}
           placeholder={formData.type === 'PF' ? '000.000.000-00' : '00.000.000/0000-00'}
           className={errors.document ? 'border-red-500 focus-visible:ring-red-500' : ''}
@@ -190,7 +190,7 @@ export function ProducerBasicInfoStep({
       <div className="space-y-2">
         <Label>Telemóvel / Telefone</Label>
         <Input 
-          value={formData.phone}
+          value={formData.phone ? formatPhone(formData.phone) : ''}
           onChange={(e) => handleChange('phone', e.target.value)}
           placeholder="(00) 00000-0000"
           maxLength={15}
@@ -203,7 +203,7 @@ export function ProducerBasicInfoStep({
         <div className="space-y-2 col-span-1 md:col-span-2 bg-slate-50 p-4 rounded-lg border">
           <Label className="text-[#1B4D3E]">CPF do Representante Legal *</Label>
           <Input 
-            value={formData.representativeCpf}
+            value={formData.representativeCpf ? formatCPF(formData.representativeCpf) : ''}
             onChange={(e) => handleChange('representativeCpf', e.target.value)}
             placeholder="000.000.000-00"
             maxLength={14}

@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
 import { MapPin, Plus, Pencil, ExternalLink, ChevronsUpDown, Check, Lightbulb } from 'lucide-react'
+import { maskRegistrationNumber, maskCAR } from '@/lib/utils/masks'
 
 export interface IbgeLocation {
   id: number
@@ -416,9 +417,10 @@ export function ProducerPropertyStep({
           <div className="space-y-2">
             <Label>Matrícula</Label>
             <Input 
-              value={formData.registrationNumber}
-              onChange={(e) => handleChange('registrationNumber', e.target.value)}
+              value={formData.registrationNumber ? maskRegistrationNumber(formData.registrationNumber) : ''}
+              onChange={(e) => handleChange('registrationNumber', maskRegistrationNumber(e.target.value))}
               placeholder="Número da Matrícula"
+              maxLength={8}
             />
           </div>
           <div className="space-y-2">
@@ -432,9 +434,11 @@ export function ProducerPropertyStep({
           <div className="space-y-2">
             <Label>Número do CAR</Label>
             <Input 
-              value={formData.car}
-              onChange={(e) => handleChange('car', e.target.value)}
-              placeholder="Ex: TO-1234..."
+              value={formData.car ? maskCAR(formData.car) : ''}
+              onChange={(e) => handleChange('car', maskCAR(e.target.value))}
+              placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
+              maxLength={50}
+              className="uppercase font-mono text-xs"
             />
           </div>
         </div>

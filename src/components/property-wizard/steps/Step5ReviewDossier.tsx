@@ -3,6 +3,9 @@
 import React, { useRef } from 'react'
 import { UseFormReturn, useFormContext } from 'react-hook-form'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { UniversalDocumentPreviewModal } from '@/components/documents/UniversalDocumentPreviewModal'
+import { printElementCleanly } from '@/lib/utils/clean-print'
 import {
   Printer,
   Save,
@@ -104,116 +107,27 @@ export function Step5ReviewDossier({
     if (curTotal !== totalAssets) activeForm.setValue('computedTotalAssets', totalAssets)
   }, [landTotal, machineriesTotal, improvementsTotal, livestockTotal, totalAssets, activeForm])
 
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = React.useState(false)
+  const [previewHtml, setPreviewHtml] = React.useState<string | null>(null)
+
   const handlePrint = () => {
     const element = document.getElementById('dossier-a4-document')
-    if (!element) {
+    if (element) {
+      setPreviewHtml(element.innerHTML)
+    }
+    setIsPreviewModalOpen(true)
+  }
+
+  const handleConfirmPrint = () => {
+    const element = document.getElementById('dossier-a4-document')
+    if (element) {
+      printElementCleanly(
+        element,
+        `Laudo_Tecnico_Vistoria_${activeForm.getValues('propertyName') || 'Fazenda'}`
+      )
+    } else {
       window.print()
-      return
     }
-
-    const existingIframe = document.getElementById('print-dossier-iframe')
-    if (existingIframe) {
-      existingIframe.remove()
-    }
-
-    const iframe = document.createElement('iframe')
-    iframe.id = 'print-dossier-iframe'
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = '0'
-
-    document.body.appendChild(iframe)
-
-    const doc = iframe.contentWindow?.document
-    if (!doc) {
-      window.print()
-      return
-    }
-
-    const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-      .map((el) => el.outerHTML)
-      .join('\n')
-
-    doc.open()
-    doc.write(`
-      <!DOCTYPE html>
-      <html lang="pt-BR">
-        <head>
-          <meta charset="utf-8" />
-          <title>Laudo Técnico de Vistoria e Avaliação Patrimonial Rural - AgroTech CRM</title>
-          ${styleLinks}
-          <style>
-            @page {
-              size: A4 portrait;
-              margin: 10mm 10mm 10mm 10mm;
-            }
-            html, body {
-              background: #ffffff !important;
-              color: #000000 !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              overflow: visible !important;
-              height: auto !important;
-              min-height: 0 !important;
-              font-family: Inter, system-ui, -apple-system, sans-serif !important;
-              -webkit-print-color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            #dossier-a4-document {
-              width: 100% !important;
-              max-width: 100% !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              border: none !important;
-              box-shadow: none !important;
-              min-height: auto !important;
-            }
-            .print\\:break-inside-avoid,
-            .break-inside-avoid {
-              break-inside: avoid !important;
-              page-break-inside: avoid !important;
-            }
-            table {
-              page-break-inside: auto;
-              width: 100%;
-            }
-            tr {
-              page-break-inside: avoid !important;
-              page-break-after: auto;
-            }
-            thead {
-              display: table-header-group;
-            }
-            tfoot {
-              display: table-footer-group;
-            }
-          </style>
-        </head>
-        <body>
-          <div id="dossier-a4-document" class="p-6 bg-white text-slate-900">
-            ${element.innerHTML}
-          </div>
-        </body>
-      </html>
-    `)
-    doc.close()
-
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.focus()
-        iframe.contentWindow?.print()
-      } catch (err) {
-        console.error('Falha na impressão isolada:', err)
-        window.print()
-      } finally {
-        setTimeout(() => {
-          iframe.remove()
-        }, 1500)
-      }
-    }, 350)
   }
 
   const resolvedProducerName = producerName || selectedProducer?.name || 'Não Selecionado'
@@ -843,6 +757,41 @@ export function Step5ReviewDossier({
           </div>
         </div>
       </div>
+
+      {isPreviewModalOpen && (
+        <UniversalDocumentPreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          title={`Pré-Visualização do Laudo Técnico & Dossiê Patrimonial — ${activeForm.getValues('propertyName') || 'Propriedade Rural'}`}
+          subtitle={resolvedProducerName}
+          badges={
+            <>
+              <Badge
+                variant="outline"
+                className="text-[10px] font-bold px-2 py-0 border bg-emerald-50 text-emerald-700 border-emerald-300"
+              >
+                Padrão SICOR / MCR
+              </Badge>
+              <Badge
+                variant="outline"
+                className="text-[10px] font-bold px-2 py-0 border bg-blue-50 text-blue-700 border-blue-300"
+              >
+                Patrimônio Total: R$ {totalAssets.toLocaleString('pt-BR')}
+              </Badge>
+            </>
+          }
+          html={previewHtml}
+          dpiInfo={
+            <>
+              Resolução Nativa <strong>336 DPI</strong> • Laudo Patrimonial Analítico • Padrão Operacional SICOR/MCR
+            </>
+          }
+          primaryActionLabel="Confirmar e Imprimir Laudo Oficial"
+          primaryActionIcon={<Printer className="w-4 h-4" />}
+          onConfirm={handleConfirmPrint}
+          showPrintAction={false}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import React from 'react'
-import { getDocumentTypeAndLabel, formatCPF } from '@/lib/utils/masks'
+import { getDocumentTypeAndLabel, formatCPF, formatPhone, maskRG, maskIssuerUF } from '@/lib/utils/masks'
 
 interface IdentificationBlockProps {
   producer: any
@@ -28,7 +28,7 @@ export const IdentificationBlock = React.memo(({ producer, property, options }: 
             <div><strong>Representante Legal:</strong> {repName}</div>
             <div style={{ whiteSpace: 'nowrap' }}><strong>CPF Representante:</strong> {repCpfFormatted || '-'}</div>
             <div><strong>Natureza:</strong> Pessoa Jurídica (PJ)</div>
-            <div style={{ whiteSpace: 'nowrap' }}><strong>Telefone:</strong> {producer.phone || '-'}</div>
+            <div style={{ whiteSpace: 'nowrap' }}><strong>Telefone:</strong> {producer.phone ? formatPhone(producer.phone) : '-'}</div>
           </>
         ) : (
           <>
@@ -36,7 +36,7 @@ export const IdentificationBlock = React.memo(({ producer, property, options }: 
             <div style={{ whiteSpace: 'nowrap' }}><strong>CPF Cônjuge:</strong> {spouseDocFormatted || '-'}</div>
             <div>
               <strong>Estado Civil:</strong> {producer.civilStatus || 'Solteiro(a)'}
-              {producer.spouseRg ? ` | RG Cônjuge: ${producer.spouseRg}${producer.spouseRgIssuer ? ` (${producer.spouseRgIssuer})` : ''}` : ''}
+              {producer.spouseRg ? ` | RG Cônjuge: ${maskRG(producer.spouseRg)}${producer.spouseRgIssuer ? ` (${maskIssuerUF(producer.spouseRgIssuer)})` : ''}` : ''}
             </div>
             <div style={{ whiteSpace: 'nowrap' }}>
               <strong>Regime de Bens:</strong> {
@@ -47,7 +47,7 @@ export const IdentificationBlock = React.memo(({ producer, property, options }: 
                 (producer.marriageRegime || 'Não informado / Não aplicável')
               }
             </div>
-            <div><strong>Telefone:</strong> {producer.phone || '-'}</div>
+            <div><strong>Telefone:</strong> {producer.phone ? formatPhone(producer.phone) : '-'}</div>
             {producer.spouseNationality ? <div><strong>Nacionalidade Cônjuge:</strong> {producer.spouseNationality}</div> : <div />}
           </>
         )}

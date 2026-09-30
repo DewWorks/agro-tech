@@ -8,6 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils'
 import { CustomOptions } from '../../types/wizard-types'
 import { RURAL_ACTIVITIES, normalizeTitleCase } from '@/lib/validations/property'
+import { maskRegistrationNumber, maskCAR } from '@/lib/utils/masks'
 
 interface PropertyDataFormProps {
   customOptions: CustomOptions
@@ -54,11 +55,11 @@ export function PropertyDataForm({ customOptions, setCustomOptions }: PropertyDa
         <div className="space-y-1">
           <Label className="text-[10.5px] text-gray-600">Matrícula / Registro *</Label>
           <Input
-            value={customOptions.propertyRegistrationNumber || ''}
+            value={maskRegistrationNumber(customOptions.propertyRegistrationNumber || '')}
             onChange={(e) => {
-              const numericValue = e.target.value.replace(/\D/g, '')
-              setCustomOptions(prev => ({ ...prev, propertyRegistrationNumber: numericValue }))
+              setCustomOptions(prev => ({ ...prev, propertyRegistrationNumber: maskRegistrationNumber(e.target.value) }))
             }}
+            maxLength={8}
             className={cn("h-8 text-xs", !customOptions.propertyRegistrationNumber?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
             placeholder="Ex: 12345"
           />
@@ -78,10 +79,11 @@ export function PropertyDataForm({ customOptions, setCustomOptions }: PropertyDa
         <div className="space-y-1">
           <Label className="text-[10.5px] text-gray-600">Nº do CAR (Recibo) *</Label>
           <Input
-            value={customOptions.propertyCar || ''}
-            onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: e.target.value.toUpperCase() }))}
+            value={maskCAR(customOptions.propertyCar || '')}
+            onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: maskCAR(e.target.value) }))}
+            maxLength={50}
             className={cn("h-8 text-xs uppercase", !customOptions.propertyCar?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
-            placeholder="Ex: TO-1700000-XXXXXXXX"
+            placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
           />
         </div>
         <div className="space-y-1">

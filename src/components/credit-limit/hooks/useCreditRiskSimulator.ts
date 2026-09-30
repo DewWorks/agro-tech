@@ -117,9 +117,6 @@ export function useCreditRiskSimulator({
     const cf = simulationData.cashFlow
     const col = simulationData.collateral
 
-    const baseAgro =
-      cf.projectedAgroRevenue > 0 ? cf.projectedAgroRevenue : cf.effectiveAgroRevenue
-
     const agroRevs =
       cf.customAgroRevenues && cf.customAgroRevenues.length > 0
         ? cf.customAgroRevenues.map((r: any) => ({
@@ -132,15 +129,44 @@ export function useCreditRiskSimulator({
             productionCostTotal: Number(r.productionCostTotal) || 0,
           }))
         : [
-            {
-              description: 'Receita Agropecuária Anual Consolidada',
-              activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
-              realizationType: 'PROJETADA_SAFRA' as RevenueRealizationType,
-              quantity: 1,
-              unit: 'un',
-              unitPrice: baseAgro,
-              productionCostTotal: cf.operationalExpenses,
-            },
+            ...(cf.effectiveAgroRevenue > 0
+              ? [
+                  {
+                    description: 'Receita Agropecuária Efetiva (Safra Anterior)',
+                    activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
+                    realizationType: 'EFETIVA_HISTORICA' as RevenueRealizationType,
+                    quantity: 1,
+                    unit: 'un',
+                    unitPrice: cf.effectiveAgroRevenue,
+                    productionCostTotal: 0,
+                  },
+                ]
+              : []),
+            ...(cf.projectedAgroRevenue > 0
+              ? [
+                  {
+                    description: 'Receita Agropecuária Projetada (Safra Vigente)',
+                    activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
+                    realizationType: 'PROJETADA_SAFRA' as RevenueRealizationType,
+                    quantity: 1,
+                    unit: 'un',
+                    unitPrice: cf.projectedAgroRevenue,
+                    productionCostTotal: cf.operationalExpenses,
+                  },
+                ]
+              : cf.effectiveAgroRevenue > 0 && cf.operationalExpenses > 0
+              ? [
+                  {
+                    description: 'Custos Operacionais & Insumos',
+                    activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
+                    realizationType: 'PROJETADA_SAFRA' as RevenueRealizationType,
+                    quantity: 1,
+                    unit: 'un',
+                    unitPrice: 0,
+                    productionCostTotal: cf.operationalExpenses,
+                  },
+                ]
+              : []),
           ]
 
     return calculateFullCreditRiskAnalysis({

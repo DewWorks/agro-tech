@@ -147,15 +147,44 @@ export function useFinancialSummaryCalculations(activeForm: UseFormReturn<any>) 
             productionCostTotal: Number(r.productionCostTotal) || 0,
           }))
         : [
-            {
-              description: 'Receita Operacional Consolidada',
-              activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
-              realizationType: 'PROJETADA_SAFRA' as RevenueRealizationType,
-              quantity: 1,
-              unit: 'un',
-              unitPrice: projectedAgroRevenue > 0 ? projectedAgroRevenue : effectiveAgroRevenue,
-              productionCostTotal: operationalExpenses,
-            },
+            ...(effectiveAgroRevenue > 0
+              ? [
+                  {
+                    description: 'Receita Agropecuária Efetiva (Safra Anterior)',
+                    activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
+                    realizationType: 'EFETIVA_HISTORICA' as RevenueRealizationType,
+                    quantity: 1,
+                    unit: 'un',
+                    unitPrice: effectiveAgroRevenue,
+                    productionCostTotal: 0,
+                  },
+                ]
+              : []),
+            ...(projectedAgroRevenue > 0
+              ? [
+                  {
+                    description: 'Receita Agropecuária Projetada (Safra Vigente)',
+                    activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
+                    realizationType: 'PROJETADA_SAFRA' as RevenueRealizationType,
+                    quantity: 1,
+                    unit: 'un',
+                    unitPrice: projectedAgroRevenue,
+                    productionCostTotal: operationalExpenses,
+                  },
+                ]
+              : effectiveAgroRevenue > 0 && operationalExpenses > 0
+              ? [
+                  {
+                    description: 'Custos Operacionais & Insumos',
+                    activityType: 'AGRICOLA_GRAOS' as AgroActivityType,
+                    realizationType: 'PROJETADA_SAFRA' as RevenueRealizationType,
+                    quantity: 1,
+                    unit: 'un',
+                    unitPrice: 0,
+                    productionCostTotal: operationalExpenses,
+                  },
+                ]
+              : []),
           ]
 
     const selectedLine = CREDIT_LINES_CATALOG.find((l) => l.code === creditLineCode)

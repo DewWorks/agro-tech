@@ -7,7 +7,8 @@ import {
   FileText,
   Loader2,
   AlertTriangle,
-  ArrowLeft
+  ArrowLeft,
+  Maximize2
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -126,10 +127,10 @@ export function StepPreviewEmission({
             type="button"
             onClick={handlePrintIsolated}
             className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs sm:text-sm font-bold h-10 px-5 rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
-            title="Imprimir documento oficial em página limpa"
+            title="Visualizar documento oficial com controle de zoom, páginas e impressão"
           >
             <Printer className="h-4 w-4" />
-            Imprimir Documento Oficial
+            Visualizar & Imprimir Oficial
           </Button>
         </div>
       </div>
@@ -181,9 +182,22 @@ export function StepPreviewEmission({
 
       {/* O PREVIEW OFICIAL A4 */}
       <div className="bg-slate-100 p-4 sm:p-8 rounded-2xl border border-slate-200 overflow-x-auto flex flex-col items-center justify-start print:p-0 print:border-0 print:bg-white shadow-inner">
-        <div className="text-xs text-gray-500 mb-3 font-medium flex items-center gap-1.5">
-          <FileText className="h-3.5 w-3.5 text-gray-400" />
-          Pré-visualização Oficial A4 (Padrão Banco do Brasil / SICOR)
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 w-full max-w-[820px] mb-3">
+          <div className="text-xs text-gray-500 font-medium flex items-center gap-1.5">
+            <FileText className="h-3.5 w-3.5 text-gray-400" />
+            Pré-visualização Oficial A4 (Padrão Banco do Brasil / SICOR)
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handlePrintIsolated}
+            className="h-7 text-xs text-[#1B4D3E] hover:text-[#13382D] hover:bg-emerald-50 gap-1.5 font-semibold cursor-pointer"
+            title="Abrir no Visualizador Oficial em Tela Cheia (Zoom, Ajustes e Impressão)"
+          >
+            <Maximize2 className="h-3.5 w-3.5" />
+            Visualizador Executivo (Zoom & Ajustes)
+          </Button>
         </div>
         
         {documentData ? (

@@ -1,5 +1,6 @@
 import {
   calculateAmortization,
+  calculatePaymentCapacity,
   calculatePaymentCapacityAndIcsd,
   calculateCollateralAndLtv,
   evaluateMcrCompliance,
@@ -12,6 +13,8 @@ import {
   UrbanPropertyType,
   VehicleType
 } from '@/lib/financial-engine'
+import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
+import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
 
 describe('Motor Financeiro e Risco Bancário (Aditivo 003)', () => {
   describe('1. Algoritmos de Amortização (PRICE e SAC)', () => {
@@ -313,6 +316,134 @@ describe('Motor Financeiro e Risco Bancário (Aditivo 003)', () => {
       expect(res.icsd.isApproved).toBe(true)
       expect(res.ltv.isApproved).toBe(true)
       expect(res.regulatoryNotes.some((n) => n.includes('RenovAgro'))).toBe(true)
+    })
+  })
+
+  describe('5. Unificação da Fórmula da Capacidade de Pagamento (Cláusula 2.2 do Aditivo 003)', () => {
+    it('calcula rigorosamente a CP sem dupla dedução de custos e somando receitas efetiva e projetada', () => {
+      // Cenário exato homologado da Fazenda do João (prints do CRM / Simulador):
+      // Receita Efetiva: 150.000,00
+      // Receita Projetada: 200.000,00
+      // Custos Operacionais: 10.000,00
+      // Outras Receitas: 7.000,00
+      // Custo de Vida Familiar: 4.500,00
+      // Dívidas Bancárias Vigentes: 2.000,00
+      const cp = calculatePaymentCapacity({
+        effectiveAgroRevenue: 150000,
+        projectedAgroRevenue: 200000,
+        operationalExpenses: 10000,
+        nonAgroRevenues: 7000,
+        familyLivingCosts: 4500,
+        existingDebtService: 2000,
+      })
+
+      // Receita Bruta Agro: 150k + 200k = 350k
+      expect(cp.grossAgroRevenue).toBe(350000)
+      // Receita Líquida Agro = 350k - 10k = 340k
+      expect(cp.netAgroRevenue).toBe(340000)
+      // Total Entradas Líquidas = 340k + 7k = 347k
+      expect(cp.totalNetInflows).toBe(347000)
+      // Total Encargos Familiares e Passivos = 4.5k + 2k = 6.5k
+      expect(cp.totalLivingAndDebtExpenses).toBe(6500)
+      // Despesas Totais (Operacionais + Familiares + Passivos) = 16.5k
+      expect(cp.totalExpenses).toBe(16500)
+      // CP = 347k - 6.5k = 340.500,00
+      expect(cp.paymentCapacity).toBe(340500)
+      expect(cp.isPositive).toBe(true)
+    })
+
+    it('reconcilia perfeitamente o resultado entre o motor puro e o orquestrador ICSD', () => {
+      const icsd = calculatePaymentCapacityAndIcsd(
+        [
+          {
+            description: 'Receita Safra Anterior',
+            quantity: 1,
+            unit: 'un',
+            unitPrice: 150000,
+            productionCostTotal: 0,
+            realizationType: RevenueRealizationType.EFETIVA_HISTORICA,
+            activityType: AgroActivityType.AGRICOLA_GRAOS,
+          },
+          {
+            description: 'Receita Safra Vigente',
+            quantity: 1,
+            unit: 'un',
+            unitPrice: 200000,
+            productionCostTotal: 10000,
+            realizationType: RevenueRealizationType.PROJETADA_SAFRA,
+            activityType: AgroActivityType.AGRICOLA_GRAOS,
+          },
+        ],
+        [{ description: 'Outras Rendas', annualAmount: 7000 }],
+        [
+          { category: ExpenseCategory.MANUTENCAO_FAMILIAR, description: 'Manutenção Familiar', annualAmount: 4500 },
+          { category: ExpenseCategory.PASSIVO_EXISTENTE_BANCARIO, description: 'Dívidas Bancárias', annualAmount: 2000 },
+        ],
+        100000 // Parcela anual de dívida
+      )
+
+      expect(icsd.paymentCapacity).toBe(340500)
+      expect(icsd.totalNetInflows).toBe(347000)
+      expect(icsd.totalExpenses).toBe(6500)
+      expect(icsd.icsdValue).toBe(3.41) // 340.500 / 100.000 = 3.405 -> 3.41
+      expect(icsd.isApproved).toBe(true)
+    })
+  })
+
+  describe('6. Sanitização de Rota de Acesso Duplicada (Folha 01 PDF)', () => {
+    it('elimina concatenações duplicadas com o mesmo texto repetido', () => {
+      const duplicated = 'Partindo de Palmas pela TO-050 por 45km. Partindo de Palmas pela TO-050 por 45km.'
+      const sanitized = sanitizeAccessRoute(duplicated)
+      expect(sanitized).toBe('Partindo de Palmas pela TO-050 por 45km.')
+    })
+
+    it('preserva rotas válidas e normais sem duplicação', () => {
+      const normal = 'Partindo de Palmas pela TO-050 por 45 km sentido Porto Nacional, virar à direita na Rodovia TO-255.'
+      expect(sanitizeAccessRoute(normal)).toBe(normal)
+    })
+
+    it('retorna texto padrão quando rota estiver vazia ou nula', () => {
+      expect(sanitizeAccessRoute('')).toBe('Acesso principal via rodovia estadual/municipal transitável o ano todo.')
+      expect(sanitizeAccessRoute(null)).toBe('Acesso principal via rodovia estadual/municipal transitável o ano todo.')
+    })
+  })
+
+  describe('7. Catálogo das 15 Linhas Oficiais do Plano Safra (Aditivo 003)', () => {
+    it('contém exatamente as 15 linhas regulamentadas com taxas e prazos de referência', () => {
+      expect(CREDIT_LINES_CATALOG.length).toBeGreaterThanOrEqual(15)
+
+      const requiredCodes = [
+        'PRONAMP_CUSTEIO',
+        'PRONAF_MAIS_ALIMENTOS_FIXO',
+        'PRONAF_MAIS_ALIMENTOS_SEMIFIXO',
+        'PRONAF_MULHER',
+        'PRONAF_JOVEM',
+        'PRONAF_B',
+        'PRONAF_AGROINDUSTRIA',
+        'PRONAF_AGROECOLOGIA',
+        'PRONAF_BIOECONOMIA',
+        'PRONAF_A_AC',
+        'RENOVAGRO',
+        'INOVAGRO',
+        'MODERFROTA',
+        'INVESTE_AGRO',
+        'PCA',
+      ]
+
+      for (const code of requiredCodes) {
+        const found = CREDIT_LINES_CATALOG.find((l) => l.code === code)
+        expect(found).toBeDefined()
+        expect(found?.defaultInterestRate).toBeGreaterThan(0)
+        expect(found?.defaultTermMonths).toBeGreaterThan(0)
+      }
+    })
+
+    it('valida o teto regulamentar de R$ 1.500.000 do PRONAMP Custeio', () => {
+      const compOver = evaluateMcrCompliance('PRONAMP_CUSTEIO', CreditLineAxis.CUSTEIO, 2000000, true, true)
+      expect(compOver.warnings.some((w) => w.includes('1.500.000'))).toBe(true)
+
+      const compUnder = evaluateMcrCompliance('PRONAMP_CUSTEIO', CreditLineAxis.CUSTEIO, 1200000, true, true)
+      expect(compUnder.warnings.some((w) => w.includes('1.500.000'))).toBe(false)
     })
   })
 })

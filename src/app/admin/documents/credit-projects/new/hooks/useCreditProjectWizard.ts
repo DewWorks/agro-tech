@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { getSavedCreditProjectData } from '@/actions/credit-projects'
+import { formatCPF, maskRegistrationNumber, maskCAR, maskCCIR, maskITR } from '@/lib/utils/masks'
 import { CreditProjectWizardProps, CustomOptions } from '../types/wizard-types'
 import { useCreditLineConfig } from './sub-hooks/useCreditLineConfig'
 import { useCreditProjectCalculations } from './sub-hooks/useCreditProjectCalculations'
@@ -37,7 +38,7 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       artNumber: '',
       targetBank: '',
       purpose: '',
-      representativeCpf: initRepCpf,
+      representativeCpf: formatCPF(initRepCpf),
       representativeName: initRepName,
 
       // Limite de Crédito BB
@@ -83,11 +84,11 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       custeioInterestRate: 0,
 
       // Dados Fundiários do Imóvel Beneficiado
-      propertyRegistrationNumber: initProp?.registrationNumber || '',
+      propertyRegistrationNumber: maskRegistrationNumber(initProp?.registrationNumber || ''),
       propertyRegistryOffice: initProp?.registryOffice || '',
-      propertyCar: initProp?.car || '',
-      propertyCcir: initProp?.ccir || '',
-      propertyItr: initProp?.itr || '',
+      propertyCar: maskCAR(initProp?.car || ''),
+      propertyCcir: maskCCIR(initProp?.ccir || ''),
+      propertyItr: maskITR(initProp?.itr || ''),
       propertyTotalArea: initProp?.totalArea ? Number(initProp.totalArea) : 0,
       propertyAccessRoute: initProp?.accessRoute || '',
       propertyActivity: initProp?.explorationActivity || 'Pecuária de Corte',
@@ -98,10 +99,12 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
         ...defaults,
         ...initialSavedData,
         representativeName: initialSavedData.representativeName || defaults.representativeName,
-        representativeCpf: initialSavedData.representativeCpf || defaults.representativeCpf,
+        representativeCpf: formatCPF(initialSavedData.representativeCpf || defaults.representativeCpf || ''),
         propertyRegistrationNumber:
-          initialSavedData.propertyRegistrationNumber || defaults.propertyRegistrationNumber,
-        propertyCar: initialSavedData.propertyCar || defaults.propertyCar,
+          maskRegistrationNumber(initialSavedData.propertyRegistrationNumber || defaults.propertyRegistrationNumber || ''),
+        propertyCar: maskCAR(initialSavedData.propertyCar || defaults.propertyCar || ''),
+        propertyCcir: maskCCIR(initialSavedData.propertyCcir || defaults.propertyCcir || ''),
+        propertyItr: maskITR(initialSavedData.propertyItr || defaults.propertyItr || ''),
         propertyActivity: initialSavedData.propertyActivity || defaults.propertyActivity,
         responsibleName: initialSavedData.responsibleName || defaultResponsibleName || '',
       }
@@ -156,14 +159,14 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
           ...prev,
           ...(saved || {}),
           representativeName: saved?.representativeName?.trim() || autoRepName || prev.representativeName || '',
-          representativeCpf: saved?.representativeCpf?.trim() || autoRepCpf || prev.representativeCpf || '',
+          representativeCpf: formatCPF(saved?.representativeCpf?.trim() || autoRepCpf || prev.representativeCpf || ''),
           propertyRegistrationNumber:
-            saved?.propertyRegistrationNumber?.trim() || autoRegNumber || prev.propertyRegistrationNumber || '',
+            maskRegistrationNumber(saved?.propertyRegistrationNumber?.trim() || autoRegNumber || prev.propertyRegistrationNumber || ''),
           propertyRegistryOffice:
             saved?.propertyRegistryOffice?.trim() || autoRegOffice || prev.propertyRegistryOffice || '',
-          propertyCar: saved?.propertyCar?.trim() || autoCar || prev.propertyCar || '',
-          propertyCcir: saved?.propertyCcir?.trim() || autoCcir || prev.propertyCcir || '',
-          propertyItr: saved?.propertyItr?.trim() || autoItr || prev.propertyItr || '',
+          propertyCar: maskCAR(saved?.propertyCar?.trim() || autoCar || prev.propertyCar || ''),
+          propertyCcir: maskCCIR(saved?.propertyCcir?.trim() || autoCcir || prev.propertyCcir || ''),
+          propertyItr: maskITR(saved?.propertyItr?.trim() || autoItr || prev.propertyItr || ''),
           propertyTotalArea:
             saved?.propertyTotalArea !== undefined && saved?.propertyTotalArea !== null && Number(saved.propertyTotalArea) > 0
               ? Number(saved.propertyTotalArea)
@@ -354,12 +357,12 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
     setCustomOptions((prev) => ({
       ...prev,
       representativeName: repName,
-      representativeCpf: repCpf,
-      propertyRegistrationNumber: prop?.registrationNumber || '',
+      representativeCpf: formatCPF(repCpf),
+      propertyRegistrationNumber: maskRegistrationNumber(prop?.registrationNumber || ''),
       propertyRegistryOffice: prop?.registryOffice || '',
-      propertyCar: prop?.car || '',
-      propertyCcir: prop?.ccir || '',
-      propertyItr: prop?.itr || '',
+      propertyCar: maskCAR(prop?.car || ''),
+      propertyCcir: maskCCIR(prop?.ccir || ''),
+      propertyItr: maskITR(prop?.itr || ''),
       propertyTotalArea: prop?.totalArea ? Number(prop.totalArea) : 0,
       propertyActivity: prop?.explorationActivity || 'Pecuária de Corte',
       propertyAccessRoute: prop?.accessRoute || '',
@@ -373,11 +376,11 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
     if (prop) {
       setCustomOptions((prev) => ({
         ...prev,
-        propertyRegistrationNumber: prop.registrationNumber || prev.propertyRegistrationNumber || '',
+        propertyRegistrationNumber: maskRegistrationNumber(prop.registrationNumber || prev.propertyRegistrationNumber || ''),
         propertyRegistryOffice: prop.registryOffice || prev.propertyRegistryOffice || '',
-        propertyCar: prop.car || prev.propertyCar || '',
-        propertyCcir: prop.ccir || prev.propertyCcir || '',
-        propertyItr: prop.itr || prev.propertyItr || '',
+        propertyCar: maskCAR(prop.car || prev.propertyCar || ''),
+        propertyCcir: maskCCIR(prop.ccir || prev.propertyCcir || ''),
+        propertyItr: maskITR(prop.itr || prev.propertyItr || ''),
         propertyTotalArea: prop.totalArea ? Number(prop.totalArea) : prev.propertyTotalArea || 0,
         propertyActivity: prop.explorationActivity || prev.propertyActivity || 'Pecuária de Corte',
         propertyAccessRoute: prop.accessRoute || prev.propertyAccessRoute || '',

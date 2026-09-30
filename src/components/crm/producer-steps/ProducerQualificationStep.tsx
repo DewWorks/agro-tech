@@ -112,7 +112,7 @@ export function ProducerQualificationStep({
           <div className="space-y-2">
             <Label>Agência (com dígito)</Label>
             <Input 
-              value={formData.bankAgency}
+              value={formData.bankAgency ? maskBankAgency(formData.bankAgency) : ''}
               onChange={(e) => handleChange('bankAgency', maskBankAgency(e.target.value))}
               placeholder="Ex: 1234-5"
               maxLength={7}
@@ -124,7 +124,7 @@ export function ProducerQualificationStep({
           <div className="space-y-2">
             <Label>Conta e Dígito</Label>
             <Input 
-              value={formData.bankAccount}
+              value={formData.bankAccount ? maskBankAccount(formData.bankAccount) : ''}
               onChange={(e) => handleChange('bankAccount', maskBankAccount(e.target.value))}
               placeholder="Ex: 98765-4"
               maxLength={14}

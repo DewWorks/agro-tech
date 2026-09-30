@@ -258,26 +258,66 @@ export function renderPage2CollateralAndCashFlow(params: Page2Params): string {
       </table>
     </div>
 
-    <!-- VI.3 Bens Secundários de Lastro (se houver) -->
+    <!-- VI.3 Bens Complementares de Lastro (Imóveis Urbanos & Frotas) -->
     ${(urbanProperties.length > 0 || vehicles.length > 0) ? `
-    <div style="border: 1px solid #93c5fd; border-radius: 4px; margin-bottom: 9px; background: #f8fafc;">
-      <div style="background: #1e40af; color: #ffffff; padding: 3px 8px; font-weight: bold; text-transform: uppercase; font-size: 8.5px; border-top-left-radius: 3px; border-top-right-radius: 3px;">
-        Bens Complementares de Lastro (Imóveis Urbanos & Frotas)
+    <div class="dossie-card" style="margin-bottom: 9px; page-break-inside: avoid; break-inside: avoid;">
+      <div class="dossie-card-header" style="background: #1e3a8a; color: #ffffff;">
+        VI.3 - Bens Complementares de Lastro (Imóveis Urbanos & Frotas - Ponderações MCR 50% / 40%)
       </div>
-      <div style="padding: 5px 8px; font-size: 8.5px;">
-        ${urbanProperties.map((u: any, idx: number) => `
-          <div style="display: flex; justify-content: space-between; padding: 2px 0;">
-            <span>Imóvel Urbano ${idx + 1}: ${u.description || 'Residencial'} (${u.city || ''}/${u.state || ''})</span>
-            <span>Valor: ${formatBRL(u.marketValue)} | Margem 50%: <strong>${formatBRL(u.hasLien ? 0 : Number(u.marketValue) * 0.50)}</strong></span>
-          </div>
-        `).join('')}
-        ${vehicles.map((v: any, idx: number) => `
-          <div style="display: flex; justify-content: space-between; padding: 2px 0;">
-            <span>Veículo ${idx + 1}: ${v.brand || ''} ${v.model || 'Utilitário'} ${v.licensePlate ? `(${v.licensePlate})` : ''}</span>
-            <span>Valor: ${formatBRL(v.declaredValue)} | Margem 40%: <strong>${formatBRL(v.hasLien ? 0 : Number(v.declaredValue) * 0.40)}</strong></span>
-          </div>
-        `).join('')}
-      </div>
+      <table class="dossie-table">
+        <thead>
+          <tr>
+            <th style="padding: 4.5px 8px;">Categoria / Discriminação</th>
+            <th style="padding: 4.5px 8px;">Identificação / Cidade / Placa</th>
+            <th style="padding: 4.5px 8px; text-align: center;">Gravame</th>
+            <th style="padding: 4.5px 8px; text-align: right;">Valor Declarado</th>
+            <th style="padding: 4.5px 8px; text-align: right;">Margem MCR</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${urbanProperties.map((u: any, idx: number) => `
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+              <td style="padding: 4.5px 8px; font-weight: 500;">Imóvel Urbano (${u.propertyType || 'Residencial'})</td>
+              <td style="padding: 4.5px 8px;">${u.description || `Imóvel Urbano ${idx + 1}`} • ${u.city || ''}/${u.state || ''}</td>
+              <td style="padding: 4.5px 8px; text-align: center; color: ${u.hasLien ? '#dc2626' : '#065f46'}; font-weight: bold;">
+                ${u.hasLien ? 'Alienado' : 'Livre de Ônus'}
+              </td>
+              <td style="padding: 4.5px 8px; text-align: right;">${formatBRL(Number(u.marketValue) || 0)}</td>
+              <td style="padding: 4.5px 8px; text-align: right; color: #065f46; font-weight: 600;">
+                ${formatBRL(u.hasLien ? 0 : (Number(u.marketValue) || 0) * 0.50)} (50%)
+              </td>
+            </tr>
+          `).join('')}
+          ${vehicles.map((v: any, idx: number) => `
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+              <td style="padding: 4.5px 8px; font-weight: 500;">Veículo Automotor (${v.vehicleType || 'Caminhonete'})</td>
+              <td style="padding: 4.5px 8px;">${v.brand || ''} ${v.model || `Veículo ${idx + 1}`}${v.licensePlate ? ` • Placa: ${v.licensePlate}` : ''}</td>
+              <td style="padding: 4.5px 8px; text-align: center; color: ${v.hasLien ? '#dc2626' : '#065f46'}; font-weight: bold;">
+                ${v.hasLien ? 'Alienado' : 'Livre de Ônus'}
+              </td>
+              <td style="padding: 4.5px 8px; text-align: right;">${formatBRL(Number(v.declaredValue) || 0)}</td>
+              <td style="padding: 4.5px 8px; text-align: right; color: #065f46; font-weight: 600;">
+                ${formatBRL(v.hasLien ? 0 : (Number(v.declaredValue) || 0) * 0.40)} (40%)
+              </td>
+            </tr>
+          `).join('')}
+          <tr class="dossie-total-row" style="background: #f1f5f9; font-weight: bold; border-top: 1px solid #cbd5e1;">
+            <td colspan="3" style="padding: 6px 8px; text-transform: uppercase; color: #1e3a8a;">Subtotal Bens Complementares</td>
+            <td style="padding: 6px 8px; text-align: right; color: #1e3a8a;">
+              ${formatBRL(
+                urbanProperties.reduce((acc: number, u: any) => acc + (Number(u.marketValue) || 0), 0) +
+                vehicles.reduce((acc: number, v: any) => acc + (Number(v.declaredValue) || 0), 0)
+              )}
+            </td>
+            <td style="padding: 6px 8px; text-align: right; color: #065f46;">
+              ${formatBRL(
+                urbanProperties.reduce((acc: number, u: any) => acc + (u.hasLien ? 0 : (Number(u.marketValue) || 0) * 0.50), 0) +
+                vehicles.reduce((acc: number, v: any) => acc + (v.hasLien ? 0 : (Number(v.declaredValue) || 0) * 0.40), 0)
+              )}
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
     ` : ''}
 

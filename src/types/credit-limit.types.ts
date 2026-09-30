@@ -112,6 +112,8 @@ export interface PropertySimulationData {
     spouseCpf?: string | null
     marriageRegime?: string | null
     profession?: string | null
+    representativeCpf?: string | null
+    representativeName?: string | null
     phone?: string | null
   }
   collateral: {

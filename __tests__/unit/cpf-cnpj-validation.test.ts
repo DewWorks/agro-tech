@@ -54,4 +54,17 @@ describe('Identificação Dinâmica CPF vs CNPJ e Validação de Representante L
       expect(validateCPF('123')).toBe(false)
     })
   })
+
+  describe('Formatação de Máscaras e Pontuações Cadastrais', () => {
+    it('deve aplicar máscara no CPF mesmo quando fornecido em dígitos puros', () => {
+      expect(formatCPF('03819571108')).toBe('038.195.711-08')
+      expect(formatCPF('52998224725')).toBe('529.982.247-25')
+      expect(formatCPF('038.195.711-08')).toBe('038.195.711-08')
+    })
+
+    it('deve formatar CNPJ corretamente', () => {
+      expect(formatCNPJ('54399111000141')).toBe('54.399.111/0001-41')
+      expect(formatCNPJ('54.399.111/0001-41')).toBe('54.399.111/0001-41')
+    })
+  })
 })

@@ -284,6 +284,7 @@ export function LandIdentificationCard({ control, branches, producers, setValue 
                         placeholder="000.000.000-00 ou 00.000.000/0000-00"
                         maxLength={18}
                         {...field}
+                        value={field.value ? (field.value.replace(/\D/g, '').length > 11 ? maskCNPJ(field.value) : maskCPF(field.value)) : ''}
                         onChange={(e) => {
                           const raw = e.target.value.replace(/\D/g, '').slice(0, 14)
                           const masked = raw.length > 11 ? maskCNPJ(raw) : maskCPF(raw)

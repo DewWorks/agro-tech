@@ -1,4 +1,4 @@
-import { formatBRL, formatMarriageRegime, getBankNameLabel } from '../formatters'
+import { formatBRL, formatMarriageRegime, getBankNameLabel, sanitizeAccessRoute } from '../formatters'
 import { renderPageHeader, renderPageFooter } from './HeaderSection'
 import { CreditLineDefinition } from '@/constants/credit-lines'
 
@@ -118,7 +118,7 @@ export function renderPage1EnquadramentoAndRealEstate(params: Page1Params): stri
           <div><strong>Cadastro Ambiental Rural (CAR):</strong> ${prop.car || 'Pendente'}</div>
           <div><strong>CCIR / INCRA:</strong> ${prop.ccir || 'Em emissão'} • <strong>ITR / NIRF:</strong> ${prop.itr || 'Regular'}</div>
           <div><strong>Localização / Município:</strong> ${prop.city || ''}/${prop.state || ''}</div>
-          <div><strong>Rota e Acesso:</strong> ${prop.accessRoute || 'Acesso principal via rodovia estadual/municipal transitável o ano todo.'}</div>
+          <div><strong>Rota e Acesso:</strong> ${sanitizeAccessRoute(prop.accessRoute)}</div>
         </div>
       </div>
     </div>
