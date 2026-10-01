@@ -388,6 +388,7 @@ export default function AdminSidebar({
   // Controle de menus retráteis expandidos sincronizado com a rota ativa
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
     'CRM de Produtores': isCrmGroupActive(pathname),
+    'Gestão de Documentos': isGedGroupActive(pathname),
     'GED Enterprise': isGedGroupActive(pathname),
     Configurações: isSettingsGroupActive(pathname),
   })
@@ -396,6 +397,7 @@ export default function AdminSidebar({
   useEffect(() => {
     setExpandedMenus({
       'CRM de Produtores': isCrmGroupActive(pathname),
+      'Gestão de Documentos': isGedGroupActive(pathname),
       'GED Enterprise': isGedGroupActive(pathname),
       Configurações: isSettingsGroupActive(pathname),
     })

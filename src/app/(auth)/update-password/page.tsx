@@ -34,47 +34,49 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <Card className="w-full max-w-md shadow-xl border-none">
-      <CardHeader className="space-y-2 text-center pb-8">
-        <CardTitle className="text-2xl font-bold text-[#1B4D3E]">Nova Senha</CardTitle>
-        <CardDescription>
-          Introduza a sua nova palavra-passe para aceder à plataforma.
-        </CardDescription>
-      </CardHeader>
-      <form action={handleSubmit}>
-        <CardContent className="space-y-4">
-          <FormAlert type="error" message={error || ''} />
-          <div className="space-y-2 text-left">
-            <Label htmlFor="password">Nova Senha</Label>
-            <Input 
-              id="password" 
-              name="password" 
-              type="password" 
-              required 
-              minLength={6}
-            />
-          </div>
-          <div className="space-y-2 text-left">
-            <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
-            <Input 
-              id="confirmPassword" 
-              name="confirmPassword" 
-              type="password" 
-              required 
-              minLength={6}
-            />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            type="submit" 
-            className="w-full bg-[#1B4D3E] hover:bg-[#13382D]"
-            disabled={isPending}
-          >
-            {isPending ? 'A atualizar...' : 'Atualizar Senha'}
-          </Button>
-        </CardFooter>
-      </form>
-    </Card>
+    <div className="min-h-screen bg-gradient-to-br from-[#091E16] via-[#113025] to-[#0D261E] flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl border-none">
+        <CardHeader className="space-y-2 text-center pb-8">
+          <CardTitle className="text-2xl font-bold text-[#1B4D3E]">Nova Senha</CardTitle>
+          <CardDescription>
+            Introduza a sua nova palavra-passe para aceder à plataforma.
+          </CardDescription>
+        </CardHeader>
+        <form action={handleSubmit}>
+          <CardContent className="space-y-4">
+            <FormAlert type="error" message={error || ''} />
+            <div className="space-y-2 text-left">
+              <Label htmlFor="password">Nova Senha</Label>
+              <Input 
+                id="password" 
+                name="password" 
+                type="password" 
+                required 
+                minLength={6}
+              />
+            </div>
+            <div className="space-y-2 text-left">
+              <Label htmlFor="confirmPassword">Confirmar Nova Senha</Label>
+              <Input 
+                id="confirmPassword" 
+                name="confirmPassword" 
+                type="password" 
+                required 
+                minLength={6}
+              />
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              type="submit" 
+              className="w-full bg-[#1B4D3E] hover:bg-[#13382D]"
+              disabled={isPending}
+            >
+              {isPending ? 'Atualizando...' : 'Atualizar Senha'}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
+    </div>
   )
 }
