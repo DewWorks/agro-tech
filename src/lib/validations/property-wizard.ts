@@ -79,14 +79,18 @@ export const step1LandBaseSchema = z.object({
   registryOffice: z.string().optional().or(z.literal('')).nullable(),
   comarca: z.string().optional().or(z.literal('')).nullable(),
   car: z
-    .string()
-    .regex(
-      /^([A-Z]{2}-\d{7}-[A-F0-9]{4}(\.[A-F0-9]{4}){7}|[A-Z]{2}-\d{7}-[A-F0-9]{8,32})$/i,
-      'Formato de CAR inválido. Padrão federal: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX'
-    )
-    .optional()
-    .or(z.literal(''))
-    .nullable(),
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.trim().replace(/\s+/g, '').toUpperCase() : val),
+      z
+        .string()
+        .regex(
+          /^([A-Z]{2}-\d{7}-[A-Z0-9]{4}(\.[A-Z0-9]{4}){7}|[A-Z]{2}-\d{7}-[A-Z0-9]{8,32})$/i,
+          'Formato de CAR inválido. Padrão federal: UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX'
+        )
+        .optional()
+        .or(z.literal(''))
+        .nullable()
+    ),
   ccir: z
     .string()
     .refine((val) => !val || val.replace(/\D/g, '').length === 13, {
@@ -301,7 +305,7 @@ export type LivestockItemValues = z.infer<typeof livestockItemSchema>
 export type Step3ImprovementsAndHerdValues = z.infer<typeof step3ImprovementsAndHerdSchema>
 
 // ============================================================================
-// STEP 4: RESUMO FINANCEIRO, FLUXO DE CAIXA E GARANTIAS (ADITIVO 003)
+// STEP 4: RESUMO FINANCEIRO, FLUXO DE CAIXA E GARANTIAS (MCR)
 // ============================================================================
 
 export const urbanPropertyItemSchema = z.object({
@@ -532,8 +536,90 @@ export const STEP_FIELDS_MAP: Record<number, (keyof PropertyWizardFormValues)[]>
     'creditLimitTargetBank',
     'creditLimitTermMonths',
     'creditLimitNotes',
+    'creditLineCode',
+    'amortizationSystem',
+    'interestRateAnnual',
+    'gracePeriodMonths',
+    'urbanProperties',
+    'vehicles',
+    'customAgroRevenues',
+    'customExpenses',
   ],
   5: [], // Step 5: Dossiê e Submissão Final
+}
+
+export const STEP_NAMES: Record<number, string> = {
+  1: 'Dados Fundiários (Etapa 1)',
+  2: 'Máquinas & Veículos (Etapa 2)',
+  3: 'Benfeitorias & Rebanho (Etapa 3)',
+  4: 'Resumo Financeiro (Etapa 4)',
+  5: 'Dossiê & Emissão (Etapa 5)',
+}
+
+export const FIELD_LABELS_MAP: Record<string, string> = {
+  name: 'Nome da Fazenda',
+  branchId: 'Filial / Agência',
+  producerId: 'Produtor Titular',
+  car: 'Código do CAR',
+  registrationNumber: 'Matrícula',
+  registryOffice: 'Cartório',
+  comarca: 'Comarca',
+  ccir: 'CCIR',
+  itr: 'CIB / ITR',
+  totalArea: 'Área Total',
+  exploredAreaHa: 'Área Explorada',
+  vtnPerHectare: 'VTN por Hectare',
+  city: 'Município',
+  state: 'UF',
+  accessRoute: 'Roteiro de Acesso',
+  machineries: 'Máquinas e Veículos',
+  improvements: 'Benfeitorias',
+  livestocks: 'Rebanho / Semoventes',
+  effectiveAgroRevenue: 'Receita Agropecuária Efetiva',
+  projectedAgroRevenue: 'Receita Agropecuária Projetada',
+  otherRevenues: 'Outras Receitas Comprovadas',
+  operationalExpenses: 'Custos Operacionais',
+  existingDebtService: 'Passivo / Dívidas Bancárias',
+  familyLivingCosts: 'Custo de Vida Familiar',
+  creditLimitRequested: 'Valor Pretendido',
+  creditLineCode: 'Linha de Financiamento',
+  amortizationSystem: 'Sistema de Amortização',
+  interestRateAnnual: 'Taxa de Juros',
+  gracePeriodMonths: 'Carência',
+}
+
+export function getStepForField(fieldName: string): number {
+  if (!fieldName) return 1
+  const baseField = fieldName.split('.')[0] as keyof PropertyWizardFormValues
+  for (const [stepStr, fields] of Object.entries(STEP_FIELDS_MAP)) {
+    const stepNum = Number(stepStr)
+    if (fields.includes(baseField) || fields.includes(fieldName as any)) {
+      return stepNum
+    }
+  }
+  return 1
+}
+
+export function focusAndScrollToField(fieldName: string) {
+  if (typeof window === 'undefined') return
+  setTimeout(() => {
+    const cleanName = fieldName.split('.')[0]
+    const el =
+      document.getElementById(`field-${fieldName}`) ||
+      document.getElementById(`field-${cleanName}`) ||
+      document.getElementById(fieldName) ||
+      document.getElementById(cleanName) ||
+      document.querySelector(`[name="${fieldName}"]`) ||
+      document.querySelector(`[name="${cleanName}"]`) ||
+      document.querySelector(`[name^="${cleanName}"]`)
+
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      if ('focus' in el && typeof (el as HTMLElement).focus === 'function') {
+        ;(el as HTMLElement).focus({ preventScroll: true })
+      }
+    }
+  }, 180)
 }
 
 // ============================================================================

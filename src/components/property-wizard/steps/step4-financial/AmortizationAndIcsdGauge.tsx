@@ -54,7 +54,7 @@ export function AmortizationAndIcsdGauge({
               Simulador Financeiro de Risco e Enquadramento MCR
             </CardTitle>
             <CardDescription className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-              Motor Financeiro do Aditivo 003: Amortização bancária (PRICE vs. SAC), teste de estresse do ICSD (trava ≥ 1,20) e LTV de garantias.
+              Motor Financeiro: Amortização bancária (PRICE vs. SAC), teste de estresse do ICSD (trava ≥ 1,20) e LTV de garantias.
             </CardDescription>
           </div>
           <Badge variant="outline" className="bg-emerald-100 text-[#1B4D3E] border-emerald-300 text-[11px] font-bold px-2.5 py-0.5">

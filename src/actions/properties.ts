@@ -13,7 +13,7 @@ import {
   denormalizePurposeBB,
 } from '@/lib/validations/livestock-mapper'
 import { propertyWizardSchema } from '@/lib/validations/property-wizard'
-import { sanitizePayload } from '@/lib/utils/masks'
+import { sanitizePayload, maskCAR } from '@/lib/utils/masks'
 
 function parseCoordinate(coordStr?: string | number | null): number | null {
   if (coordStr === undefined || coordStr === null || coordStr === '') return null
@@ -66,13 +66,23 @@ export async function createProperty(data: any) {
 
     console.log("=== PAYLOAD RECEBIDO EM createProperty ===", JSON.stringify(data, null, 2))
 
+    // Sanitização e formatação prévia do CAR
+    if (typeof data.car === 'string') {
+      const trimmedCar = data.car.trim()
+      data.car = trimmedCar === '' ? null : maskCAR(trimmedCar)
+    }
+
     const validation = propertyWizardSchema.safeParse(data)
     if (!validation.success) {
       console.error("=== ERROS DETALHADOS DO ZOD EM createProperty ===", validation.error.format())
       const detailedErrors = validation.error.issues.map(
         (issue) => `[Campo: ${issue.path.join('.')}] -> ${issue.message}`
       ).join(' | ')
-      return { success: false, error: detailedErrors || 'Dados da propriedade inválidos.' }
+      return { 
+        success: false, 
+        error: detailedErrors || 'Dados da propriedade inválidos.',
+        issues: validation.error.issues.map(i => ({ path: i.path.join('.'), message: i.message }))
+      }
     }
 
     const cleanData = sanitizePayload(data)
@@ -409,6 +419,12 @@ export async function updateProperty(id: string, data: any) {
       throw new Error('Propriedade não encontrada ou permissão negada.')
     }
 
+    // Sanitização e formatação prévia do CAR
+    if (typeof data.car === 'string') {
+      const trimmedCar = data.car.trim()
+      data.car = trimmedCar === '' ? null : maskCAR(trimmedCar)
+    }
+
     const validation = propertyWizardSchema.safeParse({
       ...data,
       name: data.name || data.propertyName || existing.name,
@@ -420,7 +436,11 @@ export async function updateProperty(id: string, data: any) {
       const detailedErrors = validation.error.issues.map(
         (issue) => `[Campo: ${issue.path.join('.')}] -> ${issue.message}`
       ).join(' | ')
-      return { success: false, error: detailedErrors || 'Dados da propriedade inválidos.' }
+      return { 
+        success: false, 
+        error: detailedErrors || 'Dados da propriedade inválidos.',
+        issues: validation.error.issues.map(i => ({ path: i.path.join('.'), message: i.message }))
+      }
     }
 
     const cleanData = sanitizePayload(data)
