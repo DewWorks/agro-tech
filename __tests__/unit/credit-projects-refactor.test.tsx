@@ -359,4 +359,74 @@ describe('Reestruturação da Esteira de Crédito Rural (LN Consultoria / Lindom
       u4()
     })
   })
+
+  describe('5. Unificação de Navegação do Stepper e Destaque Visual com Borda Amarela', () => {
+    it('deve renderizar o campo Área a Recuperar com borda e fundo amarelo quando vazio', () => {
+      const customOptions: CustomOptions = {
+        renovagroSubline: 'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)',
+        renovagroAreaHa: undefined as any,
+        creditLineId: 'RENOVAGRO',
+      }
+      const setCustomOptions = jest.fn()
+
+      const { container } = render(
+        <RenovagroParams customOptions={customOptions} setCustomOptions={setCustomOptions} />
+      )
+
+      const areaInput = container.querySelector('#field-renovagro-area')
+      expect(areaInput).toBeInTheDocument()
+      expect(areaInput).toHaveClass('border-amber-400')
+      expect(areaInput).toHaveClass('bg-amber-50/20')
+    })
+
+    it('deve remover a borda amarela de Área a Recuperar quando preenchido com valor válido', () => {
+      const customOptions: CustomOptions = {
+        renovagroSubline: 'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)',
+        renovagroAreaHa: 50,
+        renovagroCostPerHa: 3850,
+        renovagroTotalInvestment: 192500,
+        renovagroFinanced: 173250,
+        creditLineId: 'RENOVAGRO',
+      }
+      const setCustomOptions = jest.fn()
+
+      const { container } = render(
+        <RenovagroParams customOptions={customOptions} setCustomOptions={setCustomOptions} />
+      )
+
+      const areaInput = container.querySelector('#field-renovagro-area')
+      expect(areaInput).toBeInTheDocument()
+      expect(areaInput).not.toHaveClass('border-amber-400')
+      expect(areaInput).toHaveClass('bg-white')
+    })
+
+    it('deve exibir indicador de pendência e check de conclusão no StepperHeader', async () => {
+      const { CreditStepperHeader } = await import(
+        '@/app/admin/documents/credit-projects/new/components/form/steps/CreditStepperHeader'
+      )
+      const stepsMeta = [
+        { num: 1, title: '1. Imóvel & Terras', subtitle: 'Dados Fundiários', icon: () => null, pending: false },
+        { num: 2, title: '2. Parâmetros', subtitle: 'Dados Técnicos', icon: () => null, pending: true },
+      ]
+
+      const onStepClick = jest.fn()
+      render(
+        <CreditStepperHeader
+          currentStep={2}
+          totalSteps={4}
+          isFormValid={false}
+          validationErrors={['Área a Recuperar']}
+          stepsMeta={stepsMeta as any}
+          onStepClick={onStepClick}
+          isLimiteCredito={false}
+          hasParamsStep={true}
+        />
+      )
+
+      // Etapa 1 deve ter título de concluída
+      expect(screen.getByTitle('Etapa concluída')).toBeInTheDocument()
+      // Etapa 2 deve ter indicador de pendência
+      expect(screen.getByTitle('Pendências nesta etapa')).toBeInTheDocument()
+    })
+  })
 })
