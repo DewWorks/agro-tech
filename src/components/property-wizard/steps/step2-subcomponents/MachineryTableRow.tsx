@@ -4,6 +4,7 @@ import React from 'react'
 import { UseFormRegister, UseFormSetValue, UseFormWatch, useWatch, useFormContext, Control } from 'react-hook-form'
 import { TableCell, TableRow } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -47,6 +48,11 @@ export const MachineryTableRow = React.memo(function MachineryTableRow({
     control,
     name: `machineries.${index}.hasLien`,
     defaultValue: fieldItem.hasLien || false,
+  })
+  const currentValue = useWatch({
+    control,
+    name: `machineries.${index}.value`,
+    defaultValue: fieldItem.value || 0,
   })
 
   return (
@@ -120,12 +126,13 @@ export const MachineryTableRow = React.memo(function MachineryTableRow({
 
       {/* Valor de Mercado */}
       <TableCell className="p-2 align-middle">
-        <Input
-          type="number"
-          step="1000"
-          placeholder="R$ 0,00"
+        <CurrencyInput
+          value={currentValue}
+          onChangeValue={(val) =>
+            setValue(`machineries.${index}.value`, val, { shouldValidate: true, shouldDirty: true })
+          }
+          placeholder="0,00"
           className="h-9 text-xs font-semibold text-emerald-700 dark:text-emerald-400"
-          {...register(`machineries.${index}.value`, { valueAsNumber: true })}
         />
       </TableCell>
 

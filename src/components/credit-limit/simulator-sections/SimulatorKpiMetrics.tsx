@@ -18,7 +18,7 @@ export function SimulatorKpiMetrics({
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
           Parcela Anual do Serviço da Dívida
         </span>
-        <div className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
+        <div className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100">
           {formatBRL(amortization.annualDebtService)}
         </div>
         <span className="text-[10.5px] text-slate-500 mt-1 block">
@@ -51,7 +51,7 @@ export function SimulatorKpiMetrics({
           </Badge>
         </div>
         <div
-          className={`text-xl font-bold font-mono ${
+          className={`text-2xl font-black tracking-tight ${
             icsd.isApproved
               ? 'text-emerald-700 dark:text-emerald-400'
               : 'text-rose-700 dark:text-rose-400'
@@ -87,7 +87,7 @@ export function SimulatorKpiMetrics({
           </Badge>
         </div>
         <div
-          className={`text-xl font-bold font-mono ${
+          className={`text-2xl font-black tracking-tight ${
             ltv.isApproved
               ? 'text-emerald-700 dark:text-emerald-400'
               : 'text-rose-700 dark:text-rose-400'

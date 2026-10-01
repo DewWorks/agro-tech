@@ -13,6 +13,7 @@ import {
   FormDescription,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import { DollarSign, Layers, CheckCircle2, AlertCircle } from 'lucide-react'
 import { FinancialEngineResult } from '@/lib/financial-engine'
 
@@ -73,12 +74,14 @@ export function NonAgroAndExpensesSection({
                   Receita Agropecuária Efetiva (Safra Anterior)
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="1000"
-                    placeholder="R$ 0,00"
-                    className="font-mono text-sm"
-                    {...field}
+                  <CurrencyInput
+                    value={field.value}
+                    onChangeValue={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    placeholder="0,00"
+                    className="text-xs font-semibold text-slate-900 dark:text-slate-100"
                   />
                 </FormControl>
                 <FormDescription>Receita comprovada da última safra</FormDescription>
@@ -96,12 +99,14 @@ export function NonAgroAndExpensesSection({
                   Receita Agropecuária Projetada (Safra Atual)
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="1000"
-                    placeholder="R$ 0,00"
-                    className="font-mono text-sm"
-                    {...field}
+                  <CurrencyInput
+                    value={field.value}
+                    onChangeValue={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    placeholder="0,00"
+                    className="text-xs font-semibold text-slate-900 dark:text-slate-100"
                   />
                 </FormControl>
                 <FormDescription>Previsão para o ano vigente</FormDescription>
@@ -117,12 +122,14 @@ export function NonAgroAndExpensesSection({
               <FormItem>
                 <FormLabel>Outras Receitas Comprovadas</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="1000"
-                    placeholder="R$ 0,00"
-                    className="font-mono text-sm"
-                    {...field}
+                  <CurrencyInput
+                    value={field.value}
+                    onChangeValue={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    placeholder="0,00"
+                    className="text-xs font-semibold text-slate-900 dark:text-slate-100"
                   />
                 </FormControl>
                 <FormDescription>Rendas externas e complementares</FormDescription>
@@ -142,12 +149,14 @@ export function NonAgroAndExpensesSection({
                   Custos Operacionais & Produção (Anual)
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="1000"
-                    placeholder="R$ 0,00"
-                    className="font-mono text-sm"
-                    {...field}
+                  <CurrencyInput
+                    value={field.value}
+                    onChangeValue={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    placeholder="0,00"
+                    className="text-xs font-semibold text-slate-900 dark:text-slate-100"
                   />
                 </FormControl>
                 <FormDescription>Insumos, sementes, defensivos, diesel e colheita</FormDescription>
@@ -165,12 +174,14 @@ export function NonAgroAndExpensesSection({
                   Passivo / Dívidas Bancárias Vigentes
                 </FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="1000"
-                    placeholder="R$ 0,00"
-                    className="font-mono text-sm"
-                    {...field}
+                  <CurrencyInput
+                    value={field.value}
+                    onChangeValue={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    placeholder="0,00"
+                    className="text-xs font-semibold text-slate-900 dark:text-slate-100"
                   />
                 </FormControl>
                 <FormDescription>Parcelas anuais de bancos, Finame, CPRs</FormDescription>
@@ -186,12 +197,14 @@ export function NonAgroAndExpensesSection({
               <FormItem>
                 <FormLabel>Custo de Vida Familiar (Anual)</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    step="1000"
-                    placeholder="R$ 0,00"
-                    className="font-mono text-sm"
-                    {...field}
+                  <CurrencyInput
+                    value={field.value}
+                    onChangeValue={field.onChange}
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
+                    placeholder="0,00"
+                    className="text-xs font-semibold text-slate-900 dark:text-slate-100"
                   />
                 </FormControl>
                 <FormDescription>Manutenção do lar e pró-labore do produtor</FormDescription>

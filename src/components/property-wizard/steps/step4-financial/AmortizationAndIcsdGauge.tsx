@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
@@ -41,7 +42,7 @@ export function AmortizationAndIcsdGauge({
   riskAnalysis,
   formatBRL,
 }: AmortizationAndIcsdGaugeProps) {
-  const { control, setValue, register } = activeForm
+  const { control, setValue, register, watch } = activeForm
 
   return (
     <Card className="border-emerald-300 dark:border-emerald-800/80 shadow-md bg-gradient-to-b from-white via-slate-50/50 to-emerald-50/20 dark:from-slate-900 dark:to-emerald-950/20">
@@ -217,23 +218,36 @@ export function AmortizationAndIcsdGauge({
         {/* Grid de Parâmetros de Simulação */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
-            <Label className="text-[11px] font-semibold text-slate-700">Valor Pretendido (R$) *</Label>
-            <Input
-              type="number"
-              step="5000"
-              placeholder="R$ 0,00"
-              className="font-mono text-xs h-9 mt-1 bg-white font-semibold"
-              {...register('creditLimitRequested', { valueAsNumber: true })}
+            <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+              Valor Pretendido (R$) *
+            </Label>
+            <CurrencyInput
+              value={watch('creditLimitRequested')}
+              onChangeValue={(val) =>
+                setValue('creditLimitRequested', val, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
+              placeholder="0,00"
+              className="mt-1 font-semibold text-slate-900 dark:text-slate-100"
             />
           </div>
 
           <div>
-            <Label className="text-[11px] font-semibold text-slate-700">Sistema de Amortização</Label>
+            <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+              Sistema de Amortização
+            </Label>
             <Select
               value={amortizationSystem}
-              onValueChange={(val) => setValue('amortizationSystem', val)}
+              onValueChange={(val) =>
+                setValue('amortizationSystem', val, {
+                  shouldValidate: true,
+                  shouldDirty: true,
+                })
+              }
             >
-              <SelectTrigger className="h-9 text-xs mt-1 bg-white font-semibold">
+              <SelectTrigger className="h-9 text-xs mt-1 bg-white dark:bg-slate-900 font-semibold text-slate-900 dark:text-slate-100">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -244,33 +258,44 @@ export function AmortizationAndIcsdGauge({
           </div>
 
           <div>
-            <Label className="text-[11px] font-semibold text-slate-700">Prazo Total (Meses)</Label>
+            <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+              Prazo Total (Meses)
+            </Label>
             <Input
               type="number"
               min={1}
-              className="font-mono text-xs h-9 mt-1 bg-white"
+              className="text-xs h-9 mt-1 bg-white dark:bg-slate-900 font-semibold text-slate-900 dark:text-slate-100"
               {...register('creditLimitTermMonths', { valueAsNumber: true })}
             />
           </div>
 
           <div>
-            <Label className="text-[11px] font-semibold text-slate-700">Carência (Meses)</Label>
+            <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+              Carência (Meses)
+            </Label>
             <Input
               type="number"
               min={0}
-              className="font-mono text-xs h-9 mt-1 bg-white"
+              className="text-xs h-9 mt-1 bg-white dark:bg-slate-900 font-semibold text-slate-900 dark:text-slate-100"
               {...register('gracePeriodMonths', { valueAsNumber: true })}
             />
           </div>
 
           <div>
-            <Label className="text-[11px] font-semibold text-slate-700">Taxa de Juros (% a.a.)</Label>
-            <Input
-              type="number"
-              step="0.1"
-              className="font-mono text-xs h-9 mt-1 bg-white"
-              {...register('interestRateAnnual', { valueAsNumber: true })}
-            />
+            <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+              Taxa de Juros (% a.a.)
+            </Label>
+            <div className="relative flex items-center mt-1">
+              <Input
+                type="number"
+                step="0.1"
+                className="text-xs h-9 pr-7 bg-white dark:bg-slate-900 font-semibold text-slate-900 dark:text-slate-100"
+                {...register('interestRateAnnual', { valueAsNumber: true })}
+              />
+              <span className="absolute right-2.5 text-slate-400 dark:text-slate-500 font-semibold text-xs select-none pointer-events-none">
+                %
+              </span>
+            </div>
           </div>
         </div>
 

@@ -3,6 +3,7 @@
 import React from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   Select,
   SelectContent,
@@ -165,13 +166,10 @@ export function SimulatorParametersForm({
           <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             Valor Pretendido (R$) *
           </Label>
-          <Input
-            type="number"
-            min={0}
-            step={1000}
-            value={requestedAmount || ''}
-            onChange={(e) => onChangeRequestedAmount(Number(e.target.value) || 0)}
-            className="text-xs h-9 font-mono font-bold bg-white dark:bg-slate-900"
+          <CurrencyInput
+            value={requestedAmount}
+            onChangeValue={onChangeRequestedAmount}
+            placeholder="0,00"
           />
         </div>
 
@@ -209,7 +207,7 @@ export function SimulatorParametersForm({
             max={240}
             value={termMonths || ''}
             onChange={(e) => onChangeTermMonths(Number(e.target.value) || 12)}
-            className="text-xs h-9 font-mono bg-white dark:bg-slate-900"
+            className="text-xs h-9 font-semibold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900"
           />
         </div>
 
@@ -223,7 +221,7 @@ export function SimulatorParametersForm({
             max={60}
             value={graceMonths}
             onChange={(e) => onChangeGraceMonths(Number(e.target.value) || 0)}
-            className="text-xs h-9 font-mono bg-white dark:bg-slate-900"
+            className="text-xs h-9 font-semibold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900"
           />
         </div>
 
@@ -231,15 +229,20 @@ export function SimulatorParametersForm({
           <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
             Taxa de Juros (% a.a.)
           </Label>
-          <Input
-            type="number"
-            min={0}
-            max={30}
-            step={0.25}
-            value={interestRate}
-            onChange={(e) => onChangeInterestRate(Number(e.target.value) || 8.0)}
-            className="text-xs h-9 font-mono bg-white dark:bg-slate-900"
-          />
+          <div className="relative flex items-center">
+            <Input
+              type="number"
+              min={0}
+              max={30}
+              step={0.25}
+              value={interestRate}
+              onChange={(e) => onChangeInterestRate(Number(e.target.value) || 8.0)}
+              className="text-xs h-9 pr-7 font-semibold text-slate-900 dark:text-slate-100 bg-white dark:bg-slate-900"
+            />
+            <span className="absolute right-2.5 text-slate-400 dark:text-slate-500 font-semibold text-xs select-none pointer-events-none">
+              %
+            </span>
+          </div>
         </div>
       </div>
     </div>
