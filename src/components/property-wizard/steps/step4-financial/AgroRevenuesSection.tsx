@@ -112,13 +112,13 @@ export function AgroRevenuesSection({
                     <Input
                       type="number"
                       placeholder="Qtd"
-                      className="h-8 text-xs font-mono"
+                      className="h-8 text-xs font-semibold text-slate-900 dark:text-slate-100"
                       {...register(`customAgroRevenues.${idx}.quantity`, { valueAsNumber: true })}
                     />
                     <Input
                       type="number"
                       placeholder="Preço"
-                      className="h-8 text-xs font-mono"
+                      className="h-8 text-xs font-semibold text-slate-900 dark:text-slate-100"
                       {...register(`customAgroRevenues.${idx}.unitPrice`, { valueAsNumber: true })}
                     />
                   </div>
@@ -129,7 +129,7 @@ export function AgroRevenuesSection({
                   <Input
                     type="number"
                     placeholder="Custo"
-                    className="h-8 text-xs font-mono"
+                    className="h-8 text-xs font-semibold text-slate-900 dark:text-slate-100"
                     {...register(`customAgroRevenues.${idx}.productionCostTotal`, { valueAsNumber: true })}
                   />
                 </div>

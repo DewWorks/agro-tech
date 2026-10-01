@@ -88,7 +88,7 @@ export function QuickLimitSummary({
               </span>
               <span className="text-[10px] text-slate-400">Anual</span>
             </div>
-            <div className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
+            <div className="text-xl font-black tracking-tight text-slate-900 dark:text-slate-100">
               {formatBRL(netOperationalRevenue)}
             </div>
             <p className="text-[11px] text-slate-500 leading-tight">
@@ -107,7 +107,7 @@ export function QuickLimitSummary({
               </span>
               <span className="text-[10px] text-slate-400">Anual</span>
             </div>
-            <div className="text-xl font-bold font-mono text-amber-700 dark:text-amber-400">
+            <div className="text-xl font-black tracking-tight text-amber-700 dark:text-amber-400">
               {formatBRL(totalExpensesAndCharges)}
             </div>
             <p className="text-[11px] text-slate-500 leading-tight">
@@ -149,7 +149,7 @@ export function QuickLimitSummary({
               )}
             </div>
             <div
-              className={`text-xl font-bold font-mono ${
+              className={`text-xl font-black tracking-tight ${
                 isPositiveCp
                   ? 'text-emerald-700 dark:text-emerald-400'
                   : 'text-rose-700 dark:text-rose-400'

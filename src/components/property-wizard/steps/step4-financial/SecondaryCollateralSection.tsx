@@ -136,7 +136,7 @@ export function SecondaryCollateralSection({
                     <Input
                       type="number"
                       placeholder="0,00"
-                      className="h-8 text-xs font-mono"
+                      className="h-8 text-xs font-semibold text-slate-900 dark:text-slate-100"
                       {...register(`urbanProperties.${idx}.marketValue`, { valueAsNumber: true })}
                     />
                   </div>
@@ -249,7 +249,7 @@ export function SecondaryCollateralSection({
                     <Input
                       type="number"
                       placeholder="0,00"
-                      className="h-8 text-xs font-mono"
+                      className="h-8 text-xs font-semibold text-slate-900 dark:text-slate-100"
                       {...register(`vehicles.${idx}.declaredValue`, { valueAsNumber: true })}
                     />
                   </div>

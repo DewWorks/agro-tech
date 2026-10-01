@@ -341,7 +341,7 @@ export function CreditLimitPortfolioTable({
                       <TableCell className="text-right">
                         {prop.creditLimitRequested > 0 ? (
                           <div className="flex flex-col">
-                            <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
+                            <span className="font-bold text-slate-900 dark:text-slate-100">
                               {formatBRL(prop.creditLimitRequested)}
                             </span>
                             <span className="text-[10px] text-slate-400">
@@ -356,7 +356,7 @@ export function CreditLimitPortfolioTable({
                       {/* Coluna 5: Garantias Ofertáveis */}
                       <TableCell className="text-right">
                         <div className="flex flex-col">
-                          <span className="font-mono font-semibold text-slate-800 dark:text-slate-200">
+                          <span className="font-semibold text-slate-800 dark:text-slate-200">
                             {formatBRL(prop.totalCollateralLimit)}
                           </span>
                           <span className="text-[10px] text-slate-400">
@@ -369,7 +369,7 @@ export function CreditLimitPortfolioTable({
                       <TableCell className="text-right">
                         {prop.hasFinancialData ? (
                           <span
-                            className={`font-mono font-semibold ${
+                            className={`font-semibold ${
                               prop.netMargin >= 0
                                 ? 'text-emerald-600 dark:text-emerald-400'
                                 : 'text-rose-600 dark:text-rose-400'

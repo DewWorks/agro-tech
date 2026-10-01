@@ -175,7 +175,7 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
           min="0"
           placeholder="kg"
           {...register(`livestocks.${index}.avgWeightKg`, { valueAsNumber: true })}
-          className="h-9 text-xs text-center font-mono bg-white dark:bg-slate-900"
+          className="h-9 text-xs text-center font-semibold bg-white dark:bg-slate-900"
         />
       </TableCell>
 
@@ -185,13 +185,13 @@ export const LivestockTableRow = React.memo(function LivestockTableRow({
           type="number"
           step="any"
           {...register(`livestocks.${index}.unitValue`, { valueAsNumber: true })}
-          className="h-9 text-xs font-mono bg-white dark:bg-slate-900"
+          className="h-9 text-xs font-semibold bg-white dark:bg-slate-900"
         />
       </TableCell>
 
       {/* Total Calculado */}
       <TableCell className="p-2 align-middle">
-        <div className="h-9 flex items-center font-mono font-bold text-xs text-slate-800 dark:text-slate-200">
+        <div className="h-9 flex items-center font-bold text-xs text-slate-800 dark:text-slate-200">
           R$ {rowTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
         </div>
       </TableCell>

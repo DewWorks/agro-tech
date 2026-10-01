@@ -40,7 +40,7 @@ export function SimulatorAssetsAndCashFlowCards({
           </p>
         </div>
 
-        <div className="flex items-center gap-4 text-xs font-mono">
+        <div className="flex items-center gap-4 text-xs">
           <div className="text-right">
             <span className="text-[10px] text-emerald-200 uppercase block font-sans">
               Garantias MCR
@@ -96,7 +96,7 @@ export function SimulatorAssetsAndCashFlowCards({
                 <ShieldCheck className="w-4 h-4 text-emerald-600" />
                 Lastro de Ativos & Garantias Cadastradas
               </span>
-              <span className="text-[10px] text-slate-400 font-mono font-normal">
+              <span className="text-[10px] text-slate-400 font-normal">
                 Total: {formatBRL(simulationData.collateral.totalAssets)}
               </span>
             </CardTitle>
@@ -104,31 +104,31 @@ export function SimulatorAssetsAndCashFlowCards({
           <CardContent className="pt-3 space-y-2 text-xs">
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Terra Nua (VTN):</span>
-              <span className="font-mono font-semibold">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatBRL(simulationData.collateral.landValue)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Benfeitorias e Instalações:</span>
-              <span className="font-mono font-semibold">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatBRL(simulationData.collateral.improvementsValue)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Máquinas e Implementos:</span>
-              <span className="font-mono font-semibold">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatBRL(simulationData.collateral.machineryValue)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Rebanho Semovente:</span>
-              <span className="font-mono font-semibold">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatBRL(simulationData.collateral.livestockValue)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Imóveis Urbanos & Frotas:</span>
-              <span className="font-mono font-semibold">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatBRL(
                   simulationData.collateral.urbanTotal +
                     simulationData.collateral.vehiclesTotal
@@ -137,7 +137,7 @@ export function SimulatorAssetsAndCashFlowCards({
             </div>
             <div className="flex items-center justify-between pt-1 font-bold text-emerald-700 dark:text-emerald-400">
               <span>Limite de Garantia Ofertável (MCR):</span>
-              <span className="font-mono text-sm">
+              <span className="text-sm font-bold">
                 {formatBRL(simulationData.collateral.acceptableCollateral)}
               </span>
             </div>
@@ -152,7 +152,7 @@ export function SimulatorAssetsAndCashFlowCards({
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
                 Fluxo de Caixa Operacional Anual
               </span>
-              <span className="text-[10px] text-slate-400 font-mono font-normal">
+              <span className="text-[10px] text-slate-400 font-normal">
                 Margem Líquida: {formatBRL(simulationData.cashFlow.netMargin)}
               </span>
             </CardTitle>
@@ -160,38 +160,38 @@ export function SimulatorAssetsAndCashFlowCards({
           <CardContent className="pt-3 space-y-2 text-xs">
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Receita Agro (Efetiva/Histórica):</span>
-              <span className="font-mono font-semibold">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatBRL(simulationData.cashFlow.effectiveAgroRevenue)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Receita Agro (Projetada Safra):</span>
-              <span className="font-mono font-semibold">
+              <span className="font-semibold text-slate-900 dark:text-slate-100">
                 {formatBRL(simulationData.cashFlow.projectedAgroRevenue)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Custos Operacionais & Insumos:</span>
-              <span className="font-mono font-semibold text-rose-600">
+              <span className="font-semibold text-rose-600">
                 - {formatBRL(simulationData.cashFlow.operationalExpenses)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Manutenção Familiar:</span>
-              <span className="font-mono font-semibold text-rose-600">
+              <span className="font-semibold text-rose-600">
                 - {formatBRL(simulationData.cashFlow.familyLivingCosts)}
               </span>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-50 dark:border-slate-800/40">
               <span className="text-slate-600 dark:text-slate-400">Dívidas Bancárias Vigentes:</span>
-              <span className="font-mono font-semibold text-rose-600">
+              <span className="font-semibold text-rose-600">
                 - {formatBRL(simulationData.cashFlow.existingDebtService)}
               </span>
             </div>
             <div className="flex items-center justify-between pt-1 font-bold">
               <span>Capacidade de Pagamento Anual (CP):</span>
               <span
-                className={`font-mono text-sm ${
+                className={`text-sm font-bold ${
                   simulationData.cashFlow.paymentCapacity >= 0
                     ? 'text-emerald-700 dark:text-emerald-400'
                     : 'text-rose-700 dark:text-rose-400'
