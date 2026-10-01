@@ -362,11 +362,11 @@ describe('Reestruturação da Esteira de Crédito Rural (LN Consultoria / Lindom
 
   describe('5. Unificação de Navegação do Stepper e Destaque Visual com Borda Amarela', () => {
     it('deve renderizar o campo Área a Recuperar com borda e fundo amarelo quando vazio', () => {
-      const customOptions: CustomOptions = {
+      const customOptions = {
         renovagroSubline: 'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)',
         renovagroAreaHa: undefined as any,
         creditLineId: 'RENOVAGRO',
-      }
+      } as unknown as CustomOptions
       const setCustomOptions = jest.fn()
 
       const { container } = render(
@@ -380,14 +380,14 @@ describe('Reestruturação da Esteira de Crédito Rural (LN Consultoria / Lindom
     })
 
     it('deve remover a borda amarela de Área a Recuperar quando preenchido com valor válido', () => {
-      const customOptions: CustomOptions = {
+      const customOptions = {
         renovagroSubline: 'Recuperação de Pastagens Degradadas (MCR 11.7.1.c.I)',
         renovagroAreaHa: 50,
         renovagroCostPerHa: 3850,
         renovagroTotalInvestment: 192500,
         renovagroFinanced: 173250,
         creditLineId: 'RENOVAGRO',
-      }
+      } as unknown as CustomOptions
       const setCustomOptions = jest.fn()
 
       const { container } = render(
