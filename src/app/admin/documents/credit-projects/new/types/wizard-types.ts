@@ -93,6 +93,7 @@ export interface CreditProjectWizardProps {
   initialSavedData?: CustomOptions | null
   backUrl?: string
   pageTitle?: string
+  initialCategory?: string
 }
 
 export interface CustomOptions {

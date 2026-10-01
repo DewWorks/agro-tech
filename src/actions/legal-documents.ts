@@ -5,6 +5,7 @@ import { getUserContext } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
+import { CREDIT_TEMPLATES_REGISTRY } from '@/lib/document-templates'
 
 export async function getMinutasRepository() {
   const user = await getUserContext()
@@ -402,3 +403,95 @@ export async function saveGeneratedPdfMetadata(data: {
   revalidatePath('/admin/dashboard/owner')
   return result
 }
+
+export interface LegalDeclarationHistoryItem {
+  id: string
+  templateCode: string
+  templateName: string
+  category: 'COMPLIANCE' | 'AMBIENTAL' | 'SOCIAL_GARANTIAS'
+  categoryLabel: string
+  producerId: string
+  producerName: string
+  producerDocument: string
+  propertyId: string | null
+  propertyName: string
+  propertyCity?: string
+  propertyState?: string
+  createdAt: string
+  sha256Hash?: string | null
+  storagePdfPath?: string | null
+  payloadSnapshot: any
+}
+
+export async function getLegalDeclarationsHistory(): Promise<LegalDeclarationHistoryItem[]> {
+  const user = await getUserContext()
+  if (!user) return []
+
+  const whereClause: any = {}
+  if (user.branchId) {
+    whereClause.branchId = user.branchId
+  } else if (user.organizationId) {
+    whereClause.branch = { organizationId: user.organizationId }
+  }
+
+  const legalTemplateCodes = [
+    'AUTORIZACAO_SCR',
+    'AUTORIZACAO_SICOR',
+    'AUTORIZACAO_COMPARTILHAMENTO',
+    'DECLARACAO_POSSE_MANSA',
+    'DECLARACAO_REGULARIDADE_AMBIENTAL',
+    'DECLARACAO_FORA_BIOMA',
+    'ENQUADRAMENTO_CAF',
+    'IDENTIFICACAO_ANIMAIS'
+  ]
+
+  whereClause.templateCode = { in: legalTemplateCodes }
+
+  const forms = await prisma.generatedForm.findMany({
+    where: whereClause,
+    include: {
+      producer: { select: { id: true, name: true, document: true } },
+      property: {
+        select: { id: true, name: true, propertyName: true, city: true, state: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100
+  })
+
+  return forms.map(f => {
+    const payload = (f.payloadSnapshot as any) || {}
+    let category: 'COMPLIANCE' | 'AMBIENTAL' | 'SOCIAL_GARANTIAS' = 'COMPLIANCE'
+    let categoryLabel = 'Autorizações Bancárias'
+
+    if (['DECLARACAO_POSSE_MANSA', 'DECLARACAO_REGULARIDADE_AMBIENTAL', 'DECLARACAO_FORA_BIOMA'].includes(f.templateCode)) {
+      category = 'AMBIENTAL'
+      categoryLabel = 'Regularidade Ambiental & Fundiária'
+    } else if (['ENQUADRAMENTO_CAF', 'IDENTIFICACAO_ANIMAIS'].includes(f.templateCode)) {
+      category = 'SOCIAL_GARANTIAS'
+      categoryLabel = 'Enquadramento & Garantias'
+    }
+
+    const tmplMeta = CREDIT_TEMPLATES_REGISTRY.find(t => t.code === f.templateCode)
+
+    return {
+      id: f.id,
+      templateCode: f.templateCode,
+      templateName: tmplMeta?.title || f.templateCode,
+      category,
+      categoryLabel,
+      producerId: f.producerId,
+      producerName: f.producer?.name || 'Produtor',
+      producerDocument: f.producer?.document || '',
+      propertyId: f.propertyId,
+      propertyName: f.property?.propertyName || f.property?.name || 'Imóvel Rural',
+      propertyCity: f.property?.city || undefined,
+      propertyState: f.property?.state || undefined,
+      createdAt: f.createdAt.toISOString(),
+      sha256Hash: f.sha256Hash,
+      storagePdfPath: f.storagePdfPath,
+      payloadSnapshot: payload,
+    }
+  })
+}
+

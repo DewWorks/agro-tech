@@ -205,7 +205,7 @@ function getNavigationGroups(
   const gedStatus = checkModule('GED')
   if (gedStatus.show) {
     docCreditItems.push({
-      title: 'GED Enterprise',
+      title: 'Gestão de Documentos',
       icon: FolderArchive,
       badge: gedStatus.badge,
       subItems: [
@@ -222,7 +222,7 @@ function getNavigationGroups(
     })
 
     docCreditItems.push({
-      title: 'Minutas & Declarações',
+      title: 'Declarações legais',
       icon: FileSignature,
       badge: gedStatus.badge,
       href: '/admin/documents/declarations',

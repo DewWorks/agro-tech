@@ -15,6 +15,35 @@ import {
   CreditLimitPortfolioKPIs,
   CreditLimitPropertyItem,
 } from '@/actions/credit-limit'
+import { WorkflowStepsGuideCard } from '@/components/documents'
+
+const CREDIT_LIMIT_WORKFLOW_STEPS = [
+  {
+    step: 1,
+    title: 'Cadastro Patrimonial',
+    description:
+      'Dados de terras, benfeitorias, rebanho e máquinas cadastrados no CRM compõem automaticamente o lastro de garantias.',
+  },
+  {
+    step: 2,
+    title: 'Simulador MCR',
+    description:
+      'Calibre montante, prazos, amortização SAC/PRICE e apure instantaneamente a Capacidade de Pagamento e o ICSD.',
+  },
+  {
+    step: 3,
+    title: 'Inteligência Consultiva',
+    description:
+      'O sistema diagnostica a elegibilidade perante as normas do BACEN e prescreve ações de viabilização do crédito.',
+  },
+  {
+    step: 4,
+    title: 'Dossiê Técnico',
+    description:
+      'Pré-visualize em alta nitidez (336 DPI) e emita o laudo oficial no padrão Banco do Brasil e cooperativas.',
+  },
+]
+
 
 interface CreditLimitContainerProps {
   kpis: CreditLimitPortfolioKPIs
@@ -152,6 +181,12 @@ export function CreditLimitContainer({
           />
         </div>
       )}
+
+      {/* Guia Didático da Esteira de Limite de Crédito Rural */}
+      <WorkflowStepsGuideCard
+        title="COMO FUNCIONA A ESTEIRA DE LIMITE DE CRÉDITO RURAL"
+        steps={CREDIT_LIMIT_WORKFLOW_STEPS}
+      />
 
       {/* Modal para Novo Levantamento de Crédito */}
       <NewCreditAnalysisModal

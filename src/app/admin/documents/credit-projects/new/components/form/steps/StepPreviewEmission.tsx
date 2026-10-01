@@ -35,6 +35,8 @@ interface StepPreviewEmissionProps {
   handlePrintIsolated: () => void
   setIsConfirmModalOpen: (open: boolean) => void
   onBack: () => void
+  isDeclarations?: boolean
+  setIsUniversalPreviewOpen?: (open: boolean) => void
 }
 
 export function StepPreviewEmission({
@@ -56,7 +58,9 @@ export function StepPreviewEmission({
   handleDownloadOriginalTemplate,
   handlePrintIsolated,
   setIsConfirmModalOpen,
-  onBack
+  onBack,
+  isDeclarations = false,
+  setIsUniversalPreviewOpen
 }: StepPreviewEmissionProps) {
   const deferredDocumentData = React.useDeferredValue(documentData)
   return (
@@ -65,10 +69,12 @@ export function StepPreviewEmission({
         <div>
           <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-[#1B4D3E]" />
-            Conferência Final e Emissão do Documento Oficial
+            {isDeclarations ? 'Conferência e Emissão da Declaração Legal' : 'Conferência Final e Emissão do Documento Oficial'}
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Revise a Ficha Cadastral no modelo oficial do Banco do Brasil abaixo antes de imprimir ou gerar o arquivo PDF.
+            {isDeclarations
+              ? 'Revise os dados preenchidos no modelo oficial abaixo antes de confirmar a emissão e baixar o PDF.'
+              : 'Revise a Ficha Cadastral no modelo oficial do Banco do Brasil abaixo antes de imprimir ou gerar o arquivo PDF.'}
           </p>
         </div>
 
@@ -108,7 +114,11 @@ export function StepPreviewEmission({
                 toast.error(`Atenção: ${validationErrors[0] || 'Existem campos obrigatórios pendentes.'}`)
                 return
               }
-              setIsConfirmModalOpen(true)
+              if (isDeclarations && setIsUniversalPreviewOpen) {
+                setIsUniversalPreviewOpen(true)
+              } else {
+                setIsConfirmModalOpen(true)
+              }
             }}
             disabled={!isFormValid || validationErrors.length > 0 || isGeneratingPdf}
             className={cn(
@@ -120,17 +130,23 @@ export function StepPreviewEmission({
             title={(!isFormValid || validationErrors.length > 0) ? `Pendências: ${validationErrors.length}` : 'Conferir e validar dados antes da emissão'}
           >
             {isGeneratingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />}
-            {isGeneratingPdf ? 'Gerando...' : 'Conferir Dados'}
+            {isGeneratingPdf ? 'Gerando...' : isDeclarations ? 'Conferir e Emitir' : 'Conferir Dados'}
           </Button>
 
           <Button
             type="button"
-            onClick={handlePrintIsolated}
+            onClick={() => {
+              if (setIsUniversalPreviewOpen) {
+                setIsUniversalPreviewOpen(true)
+              } else {
+                handlePrintIsolated()
+              }
+            }}
             className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs sm:text-sm font-bold h-10 px-5 rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
             title="Visualizar documento oficial com controle de zoom, páginas e impressão"
           >
-            <Printer className="h-4 w-4" />
-            Visualizar & Imprimir Oficial
+            {isDeclarations ? <ShieldCheck className="h-4 w-4" /> : <Printer className="h-4 w-4" />}
+            {isDeclarations ? 'Emitir Declaração (Preview)' : 'Visualizar & Imprimir Oficial'}
           </Button>
         </div>
       </div>

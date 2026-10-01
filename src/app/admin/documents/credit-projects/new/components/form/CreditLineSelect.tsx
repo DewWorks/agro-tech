@@ -28,6 +28,7 @@ import {
   OfficialCreditLine,
   findOfficialCreditLine,
   CreditLineAxis,
+  getCreditLineBadgeClass,
 } from '@/lib/constants/credit-lines-catalog'
 import { CustomOptions } from '../../types/wizard-types'
 import { cn } from '@/lib/utils'
@@ -233,7 +234,7 @@ export function CreditLineSelect({
                 className={cn(
                   'text-[10px] py-1 rounded-md font-semibold transition-all cursor-pointer',
                   axisFilter === 'INVESTIMENTO'
-                    ? 'bg-blue-700 text-white shadow-2xs'
+                    ? 'bg-slate-800 text-white shadow-2xs'
                     : 'text-gray-600 hover:text-gray-900'
                 )}
               >
@@ -293,7 +294,10 @@ export function CreditLineSelect({
                         </span>
                         <Badge
                           variant="outline"
-                          className={cn('text-[9px] font-bold px-1.5 py-0 shrink-0', line.badgeColor)}
+                          className={cn(
+                            'text-[9px] font-semibold px-2 py-0.5 rounded-md border shrink-0',
+                            getCreditLineBadgeClass(line.axis)
+                          )}
                         >
                           {line.axis === 'AMBOS' ? 'Custeio / Invest.' : line.axis}
                         </Badge>
@@ -305,16 +309,16 @@ export function CreditLineSelect({
 
                       <div className="flex items-center gap-3 text-[10px] text-gray-600 font-medium">
                         <span className="flex items-center gap-1 text-emerald-700 font-bold">
-                          <Percent className="w-3 h-3" />
+                          <Percent className="w-3 h-3 text-emerald-600" />
                           {line.defaultInterestRate}% a.a.
                         </span>
-                        <span className="flex items-center gap-1">
+                        <span className="flex items-center gap-1 text-emerald-700 font-medium">
+                          <Clock className="w-3 h-3 text-emerald-600" />
+                          Carência até {line.maxGraceMonths}m
+                        </span>
+                        <span className="flex items-center gap-1 text-gray-500">
                           <Calendar className="w-3 h-3 text-gray-400" />
                           Até {line.maxTermYears} anos
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-gray-400" />
-                          Carência até {line.maxGraceMonths}m
                         </span>
                       </div>
                     </div>

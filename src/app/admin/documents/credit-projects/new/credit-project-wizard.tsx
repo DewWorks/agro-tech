@@ -19,6 +19,7 @@ import { ProducerSelect } from './components/form/ProducerSelect';
 import { PropertySelect } from './components/form/PropertySelect';
 import { CreditLineSelect } from './components/form/CreditLineSelect';
 import { TemplateSelect } from './components/form/TemplateSelect';
+import { DeclarationTemplateSelect } from './components/form/DeclarationTemplateSelect';
 import { CreditProjectStepper } from './components/form/CreditProjectStepper';
 import { A4DocumentPreview } from './components/preview/A4DocumentPreview';
 import dynamic from 'next/dynamic';
@@ -51,7 +52,8 @@ export default function CreditProjectWizard({
   initialTemplateCode,
   initialSavedData,
   backUrl,
-  pageTitle
+  pageTitle,
+  initialCategory,
 }: CreditProjectWizardProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -241,7 +243,7 @@ export default function CreditProjectWizard({
 
   const isDeclarations = pathname ? pathname.includes('/declarations') : (currentTemplate?.type === 'LEGAL')
   const resolvedBackUrl = backUrl || (isDeclarations ? '/admin/documents/declarations' : '/admin/documents/credit-projects')
-  const resolvedTitle = pageTitle || (isDeclarations ? 'Gerador de Declarações & Autorizações BB' : 'Gerador de Documentos & Projetos BB')
+  const resolvedTitle = pageTitle || (isDeclarations ? 'Documento e Declarações legais' : 'Gerador de Documentos & Projetos BB')
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -249,9 +251,9 @@ export default function CreditProjectWizard({
       {/* Top Header com Identidade Padronizada */}
       <PageHeaderBanner
         className="print:hidden"
-        badge={isDeclarations ? "GED Enterprise • Declarações & Autorizações BB" : "GED Enterprise • Documentos & Projetos BB"}
+        badge={isDeclarations ? "GED Enterprise • Documento e Declarações legais" : "GED Enterprise • Documentos & Projetos BB"}
         badgeIcon={<Sparkles className="h-4 w-4 shrink-0 text-emerald-300" />}
-        title={isDeclarations ? 'Gerador de Declarações & Autorizações BB' : 'Gerador de Documentos & Projetos BB'}
+        title={resolvedTitle}
         description={
           currentTemplate 
             ? `${currentTemplate.title} (${currentTemplate.bank || 'Banco do Brasil'})`
@@ -318,7 +320,11 @@ export default function CreditProjectWizard({
                       toast.error(`Atenção: ${validationErrors[0] || 'Existem campos obrigatórios pendentes.'}`)
                       return
                     }
-                    setIsConfirmModalOpen(true)
+                    if (isDeclarations) {
+                      setIsUniversalPreviewOpen(true)
+                    } else {
+                      setIsConfirmModalOpen(true)
+                    }
                   }}
                   disabled={isGeneratingPdf || isLoadingSavedData || !isFormValid || validationErrors.length > 0}
                   className={cn(
@@ -330,17 +336,17 @@ export default function CreditProjectWizard({
                   title={isLoadingSavedData ? "Carregando dados..." : (!isFormValid || validationErrors.length > 0) ? `Preencha todos os campos obrigatórios (${validationErrors.length} pendente(s))` : 'Conferir e validar dados antes da emissão'}
                 >
                   {isGeneratingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />}
-                  {isGeneratingPdf ? 'Gerando...' : 'Conferir Dados'}
+                  {isGeneratingPdf ? 'Gerando...' : isDeclarations ? 'Conferir e Emitir' : 'Conferir Dados'}
                 </Button>
 
                 <Button
                   type="button"
                   onClick={handlePrintIsolated}
                   className="bg-white text-[#1B4D3E] hover:bg-emerald-50 text-xs sm:text-sm font-bold h-9 px-4 rounded-xl flex items-center gap-2 shadow-xs hover:shadow-md transition-all cursor-pointer"
-                  title="Imprimir documento oficial em página limpa"
+                  title={isDeclarations ? "Visualizar declaração oficial com controle de zoom e download de PDF" : "Imprimir documento oficial em página limpa"}
                 >
-                  <Printer className="h-4 w-4" />
-                  Imprimir Oficial
+                  {isDeclarations ? <ShieldCheck className="h-4 w-4" /> : <Printer className="h-4 w-4" />}
+                  {isDeclarations ? 'Visualizar Declaração' : 'Imprimir Oficial'}
                 </Button>
               </>
             )}
@@ -348,52 +354,83 @@ export default function CreditProjectWizard({
         }
       />
 
-      {/* Top Selectors Bar: Produtor, Propriedade, Linha Oficial e Modelo Oficial (4 colunas) */}
+      {/* Top Selectors Bar: Produtor, Propriedade, Linha Oficial e Modelo Oficial */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs space-y-4 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-gray-100 pb-3">
           <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
             <Settings2 className="h-4 w-4 text-[#1B4D3E]" />
-            Parâmetros de Geração do Projeto
+            {isDeclarations ? 'Parâmetros da Declaração Legal' : 'Parâmetros de Geração do Projeto'}
           </h2>
           <span className="text-[11px] text-muted-foreground">
-            Selecione o proponente, o imóvel beneficiado, a linha oficial de financiamento e o modelo bancário
+            {isDeclarations
+              ? 'Selecione o proponente, o imóvel rural e o modelo oficial da declaração'
+              : 'Selecione o proponente, o imóvel beneficiado, a linha oficial de financiamento e o modelo bancário'}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-          {/* 1. Seleção do Produtor */}
-          <ProducerSelect
-            activeProducers={activeProducers}
-            selectedProducerId={selectedProducerId}
-            setSelectedProducerId={setSelectedProducerId}
-            currentProducer={currentProducer}
-          />
+        {isDeclarations ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+            {/* 1. Seleção do Produtor */}
+            <ProducerSelect
+              activeProducers={activeProducers}
+              selectedProducerId={selectedProducerId}
+              setSelectedProducerId={setSelectedProducerId}
+              currentProducer={currentProducer}
+            />
 
-          {/* 2. Seleção da Propriedade */}
-          <PropertySelect
-            availableProperties={availableProperties}
-            selectedPropertyId={selectedPropertyId}
-            setSelectedPropertyId={setSelectedPropertyId}
-            currentProperty={currentProperty}
-          />
+            {/* 2. Seleção da Propriedade */}
+            <PropertySelect
+              availableProperties={availableProperties}
+              selectedPropertyId={selectedPropertyId}
+              setSelectedPropertyId={setSelectedPropertyId}
+              currentProperty={currentProperty}
+            />
 
-          {/* 3. Seleção da Linha Oficial de Financiamento */}
-          <CreditLineSelect
-            customOptions={customOptions}
-            setCustomOptions={setCustomOptions}
-            operationalAxis={operationalAxis}
-            selectedTemplateCode={selectedTemplateCode}
-            setSelectedTemplateCode={setSelectedTemplateCode}
-          />
+            {/* 3. Seleção do Modelo de Declaração com Seletor Dinâmico */}
+            <DeclarationTemplateSelect
+              templates={templates}
+              selectedTemplateCode={selectedTemplateCode}
+              setSelectedTemplateCode={setSelectedTemplateCode}
+              currentTemplate={currentTemplate}
+              initialCategory={initialCategory || (searchParams ? searchParams.get('category') || undefined : undefined)}
+            />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
+            {/* 1. Seleção do Produtor */}
+            <ProducerSelect
+              activeProducers={activeProducers}
+              selectedProducerId={selectedProducerId}
+              setSelectedProducerId={setSelectedProducerId}
+              currentProducer={currentProducer}
+            />
 
-          {/* 4. Seleção do Modelo */}
-          <TemplateSelect
-            templates={templates}
-            selectedTemplateCode={selectedTemplateCode}
-            setSelectedTemplateCode={setSelectedTemplateCode}
-            currentTemplate={currentTemplate}
-          />
-        </div>
+            {/* 2. Seleção da Propriedade */}
+            <PropertySelect
+              availableProperties={availableProperties}
+              selectedPropertyId={selectedPropertyId}
+              setSelectedPropertyId={setSelectedPropertyId}
+              currentProperty={currentProperty}
+            />
+
+            {/* 3. Seleção da Linha Oficial de Financiamento */}
+            <CreditLineSelect
+              customOptions={customOptions}
+              setCustomOptions={setCustomOptions}
+              operationalAxis={operationalAxis}
+              selectedTemplateCode={selectedTemplateCode}
+              setSelectedTemplateCode={setSelectedTemplateCode}
+            />
+
+            {/* 4. Seleção do Modelo */}
+            <TemplateSelect
+              templates={templates}
+              selectedTemplateCode={selectedTemplateCode}
+              setSelectedTemplateCode={setSelectedTemplateCode}
+              currentTemplate={currentTemplate}
+            />
+          </div>
+        )}
       </div>
 
       {/* Stepper Multi-Passos ou Skeleton de Carregamento */}
@@ -436,6 +473,8 @@ export default function CreditProjectWizard({
           isSavingDraft={isSavingDraft}
           handleOpenSaveModal={handleOpenSaveModal}
           setIsConfirmModalOpen={setIsConfirmModalOpen}
+          setIsUniversalPreviewOpen={setIsUniversalPreviewOpen}
+          isDeclarations={isDeclarations}
           documentData={documentData}
           contentRef={contentRef}
           handlePrintIsolated={handlePrintIsolated}
@@ -528,15 +567,25 @@ export default function CreditProjectWizard({
         <UniversalDocumentPreviewModal
           isOpen={isUniversalPreviewOpen}
           onClose={() => setIsUniversalPreviewOpen(false)}
-          title={`Pré-Visualização — ${documentData?.template?.title || 'Ficha Cadastral Oficial'} — ${documentData?.property?.name || 'Imóvel Rural'}`}
+          title={`Pré-Visualização — ${documentData?.template?.title || (isDeclarations ? 'Declaração Oficial' : 'Ficha Cadastral Oficial')} — ${documentData?.property?.name || 'Imóvel Rural'}`}
           subtitle={documentData?.producer?.name}
           badges={
-            <Badge
-              variant="outline"
-              className="text-[10px] font-bold px-2 py-0 border bg-emerald-50 text-emerald-700 border-emerald-300"
-            >
-              Padrão Banco do Brasil
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge
+                variant="outline"
+                className="text-[10px] font-bold px-2 py-0 border bg-emerald-50 text-emerald-700 border-emerald-300"
+              >
+                Padrão Banco do Brasil
+              </Badge>
+              {isDeclarations && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-semibold px-2 py-0 border bg-slate-50 text-slate-700 border-slate-300"
+                >
+                  Declaração Legal
+                </Badge>
+              )}
+            </div>
           }
           children={
             <div className="p-4 sm:p-6 bg-white w-full">
@@ -545,7 +594,7 @@ export default function CreditProjectWizard({
           }
           dpiInfo={
             <>
-              Resolução Nativa <strong>336 DPI</strong> • Padrão Banco do Brasil / SICOR • Conformidade Regulatória
+              Resolução Nativa <strong>336 DPI</strong> • Padrão Banco do Brasil / BACEN • Conformidade Legal
             </>
           }
           primaryActionLabel="Confirmar e Baixar Documento Oficial (PDF)"
