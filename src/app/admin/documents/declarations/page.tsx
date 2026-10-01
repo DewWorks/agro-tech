@@ -15,6 +15,35 @@ import { Badge } from '@/components/ui/badge'
 import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 import { getLegalDeclarationsHistory } from '@/actions/legal-documents'
 import { LegalDeclarationsHistoryTable } from './components/LegalDeclarationsHistoryTable'
+import { WorkflowStepsGuideCard } from '@/components/documents'
+
+const DECLARATION_WORKFLOW_STEPS = [
+  {
+    step: 1,
+    title: 'Escolha a Categoria',
+    description:
+      'Acesse qualquer um dos 3 grupos mestres e escolha o modelo desejado diretamente no seletor suspenso.',
+  },
+  {
+    step: 2,
+    title: 'Dados Preservados',
+    description:
+      'Ao alternar entre modelos, os dados cadastrais do produtor e do imóvel selecionados continuam vinculados.',
+  },
+  {
+    step: 3,
+    title: 'Preview Universal 336 DPI',
+    description:
+      'Pré-visualize a folha A4 com alta nitidez, controle de zoom e formatação oficial do Banco do Brasil.',
+  },
+  {
+    step: 4,
+    title: 'Emissão e Registro',
+    description:
+      'Download direto do PDF e registro automático no histórico documental da organização rural.',
+  },
+]
+
 
 export default async function DeclarationsHubPage() {
   const user = await getUserContext()
@@ -260,30 +289,10 @@ export default async function DeclarationsHubPage() {
       {/* =================================================================== */}
       {/* 3. COMO FUNCIONA A ESTEIRA OPERACIONAL */}
       {/* =================================================================== */}
-      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
-        <h3 className="text-sm font-bold text-slate-800 mb-3 uppercase tracking-wider flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 text-[#1B4D3E]" />
-          Como funciona a esteira de declarações & minutas legais
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs text-slate-600">
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="font-bold text-[#1B4D3E] block mb-1">1. Escolha a Categoria</span>
-            Acesse qualquer um dos 3 grupos mestres e escolha o modelo desejado diretamente no seletor suspenso.
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="font-bold text-[#1B4D3E] block mb-1">2. Dados Preservados</span>
-            Ao alternar entre modelos, os dados cadastrais do produtor e do imóvel selecionados continuam vinculados.
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="font-bold text-[#1B4D3E] block mb-1">3. Preview Universal 336 DPI</span>
-            Pré-visualize a folha A4 com alta nitidez, controle de zoom e formatação oficial do Banco do Brasil.
-          </div>
-          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="font-bold text-[#1B4D3E] block mb-1">4. Emissão e Registro</span>
-            Download direto do PDF e registro automático no histórico documental da organização rural.
-          </div>
-        </div>
-      </div>
+      <WorkflowStepsGuideCard
+        title="COMO FUNCIONA A ESTEIRA DE DECLARAÇÕES & MINUTAS LEGAIS"
+        steps={DECLARATION_WORKFLOW_STEPS}
+      />
 
     </div>
   )

@@ -60,7 +60,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Aquisição de Tratores e Implementos',
       'Aquisição de Matrizes e Reprodutores'
     ],
-    badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 2) PRONAF Mais Alimentos - Investimento Fixo
@@ -87,7 +87,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Açudagem e Reservatórios de Água',
       'Barracão e Galpão de Alvenaria'
     ],
-    badgeColor: 'bg-blue-100 text-blue-800 border-blue-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 3) PRONAF Mais Alimentos - Investimento Semi-Fixo
@@ -114,7 +114,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Plantadeira e Semeadeira de Precisão',
       'Veículo Utilitário de Carga'
     ],
-    badgeColor: 'bg-blue-100 text-blue-800 border-blue-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 4) PRONAF Mulher
@@ -141,7 +141,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Avicultura Colonial e Postura',
       'Processamento e Agroindústria Caseira'
     ],
-    badgeColor: 'bg-pink-100 text-pink-800 border-pink-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 5) PRONAF Jovem
@@ -168,7 +168,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Kits de Agricultura Tecnológica e Drones',
       'Equipamentos de Manejo Sustentável'
     ],
-    badgeColor: 'bg-purple-100 text-purple-800 border-purple-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 6) PRONAF B (Microcrédito)
@@ -195,7 +195,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Ferramental e Pequenas Reformas',
       'Sementes Selecionadas e Cercas'
     ],
-    badgeColor: 'bg-teal-100 text-teal-800 border-teal-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 7) PRONAF Agroindústria
@@ -222,7 +222,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Moendas, Despolpadoras e Secadores',
       'Equipamentos de Envase e Rótulos'
     ],
-    badgeColor: 'bg-amber-100 text-amber-800 border-amber-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 8) PRONAF Agroecologia
@@ -249,7 +249,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Proteção de Nascentes e Corredores Ecológicos',
       'Quebra-Ventos e Cobertura Verde'
     ],
-    badgeColor: 'bg-lime-100 text-lime-800 border-lime-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 9) PRONAF Bioeconomia
@@ -276,7 +276,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Sistemas de Captação de Água de Chuva',
       'Reflorestamento de Espécies Nativas'
     ],
-    badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 10) PRONAF A e A/C
@@ -303,7 +303,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Aquisição de Rebanho Bovino Inicial',
       'Ferramentas e Correção do Solo'
     ],
-    badgeColor: 'bg-indigo-100 text-indigo-800 border-indigo-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 11) Programa RENOVAGRO (Recuperação de Pastagens e Baixo Carbono)
@@ -332,7 +332,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Aquisição de Matrizes e Reprodutores',
       'Máquinas de Baixo Carbono'
     ],
-    badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 12) Programa INOVAGRO (Inovação e Tecnologia Agropecuária)
@@ -359,7 +359,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Sistema de Irrigação Automatizado (Pivô Central)',
       'Estação Meteorológica e Sensores de Solo'
     ],
-    badgeColor: 'bg-amber-100 text-amber-800 border-amber-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 13) Programa MODERFROTA (Tratores e Colheitadeiras)
@@ -386,7 +386,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Pulverizador Automotriz Autonivelante',
       'Plataforma de Corte de Soja / Milho'
     ],
-    badgeColor: 'bg-orange-100 text-orange-800 border-orange-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 14) Investe Agro
@@ -413,7 +413,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Equipamentos de Ordenha e Silagem',
       'Veículos e Caminhões de Transporte Rural'
     ],
-    badgeColor: 'bg-slate-100 text-slate-800 border-slate-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   },
 
   // 15) PCA (Construção e Ampliação de Armazéns e Silos)
@@ -440,7 +440,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
       'Balança Rodoviária 80 Toneladas',
       'Moega e Elevadores de Canecas'
     ],
-    badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-300'
+    badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
   }
 ]
 
@@ -463,3 +463,16 @@ export function findOfficialCreditLine(idOrCode?: string): OfficialCreditLine | 
   const query = idOrCode.toUpperCase().trim()
   return OFFICIAL_CREDIT_LINES.find(l => l.id.toUpperCase() === query || l.code.toUpperCase() === query)
 }
+
+/**
+ * Retorna as classes de estilo padronizadas da badge conforme o eixo da linha de crédito.
+ * - CUSTEIO: Verde institucional suave
+ * - INVESTIMENTO / AMBOS: Cinza/ardósia neutro corporativo
+ */
+export function getCreditLineBadgeClass(axis: CreditLineAxis): string {
+  if (axis === 'CUSTEIO') {
+    return 'bg-emerald-50 text-emerald-800 border-emerald-200'
+  }
+  return 'bg-slate-100 text-slate-700 border-slate-200'
+}
+

@@ -20,6 +20,35 @@ import { Badge } from '@/components/ui/badge'
 import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 import { listCreditProjects } from '@/actions/credit-projects'
 import { CreditProjectsHistoryTable } from './components/CreditProjectsHistoryTable'
+import { WorkflowStepsGuideCard } from '@/components/documents'
+
+const CREDIT_PROJECTS_WORKFLOW_STEPS = [
+  {
+    step: 1,
+    title: 'Eixo Operacional',
+    description:
+      'Selecione entre Projetos de Custeio (ciclo produtivo anual) ou Investimento (bens duráveis e infraestrutura).',
+  },
+  {
+    step: 2,
+    title: 'Herança de Dados',
+    description:
+      'Selecione o produtor e a propriedade para herdar automaticamente as informações cadastrais sem redigitação.',
+  },
+  {
+    step: 3,
+    title: 'Linhas & Parâmetros',
+    description:
+      'Escolha entre as 15 linhas oficiais com termos adaptativos para solo, pastagem, máquinas ou animais.',
+  },
+  {
+    step: 4,
+    title: 'Conferência & Emissão',
+    description:
+      'Valide os dados na pré-visualização universal e exporte o projeto oficial pronto para protocolo bancário.',
+  },
+]
+
 
 export default async function CreditProjectsHubPage() {
   const user = await getUserContext()
@@ -227,6 +256,14 @@ export default async function CreditProjectsHubPage() {
       {/* 3. TABELA HISTÓRICA DE PROJETOS ELABORADOS */}
       {/* =================================================================== */}
       <CreditProjectsHistoryTable initialProjects={historyProjects} />
+
+      {/* =================================================================== */}
+      {/* 4. GUIA DIDÁTICO DA ESTEIRA */}
+      {/* =================================================================== */}
+      <WorkflowStepsGuideCard
+        title="COMO FUNCIONA A ESTEIRA DE PROJETOS TÉCNICOS"
+        steps={CREDIT_PROJECTS_WORKFLOW_STEPS}
+      />
     </div>
   )
 }
