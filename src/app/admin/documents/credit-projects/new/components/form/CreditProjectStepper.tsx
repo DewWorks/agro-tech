@@ -14,6 +14,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomOptions, PropertyData, ProducerData } from '../../types/wizard-types'
 import { TemplateParamsForm } from './TemplateParamsForm'
+import { CreditLineSelect } from './CreditLineSelect'
 import { CreditStepperHeader } from './steps/CreditStepperHeader'
 import { Step1CreditIdentification } from './steps/Step1CreditIdentification'
 import { Step2CreditMachinery } from './steps/Step2CreditMachinery'
@@ -24,6 +25,8 @@ import { validateCPF } from '@/lib/utils/masks'
 
 interface CreditProjectStepperProps {
   selectedTemplateCode: string
+  setSelectedTemplateCode?: (code: string) => void
+  operationalAxis?: 'custeio' | 'investimento'
   currentProducer: ProducerData | undefined
   currentProperty: PropertyData | undefined
   currentTemplate: { code: string; title: string; subtitle?: string; category?: string; bank?: string; type?: string } | undefined
@@ -51,8 +54,43 @@ const TEMPLATES_WITH_PARAMS = [
   'CHECKLIST_PROFISSIONAL'
 ]
 
+// Mapping of pending field labels to DOM element IDs for smooth scroll and auto-focus
+const PENDING_FIELD_MAP: Record<string, string> = {
+  // Passo 1: Fundiário & Proponente
+  'CPF do Representante Legal': 'field-representative-cpf',
+  'CPF do Representante Legal (Válido)': 'field-representative-cpf',
+  'CPF do Proponente Válido': 'field-producer-document',
+  'Matrícula do Imóvel': 'field-property-registration',
+  'Nº do CAR': 'field-property-car',
+  'Área Total (ha)': 'field-property-total-area',
+  'Atividade Principal': 'field-property-activity',
+  'Roteiro de Acesso': 'field-property-access-route',
+
+  // Passo 2: RenovAgro / Investimento
+  'Sublinha do Programa': 'field-renovagro-subline',
+  'Área a Recuperar': 'field-renovagro-area',
+  'Investimento Total': 'field-renovagro-total',
+
+  // Passo 2: InovAgro
+  'Equipamento / Objeto': 'field-inovagro-equipment',
+
+  // Passo 2: Custeio
+  'Ano Safra': 'field-custeio-year',
+  'Cultura / Atividade': 'field-custeio-crop',
+  'Quantidade de Animais': 'field-custeio-qty',
+  'Área de Plantio': 'field-custeio-qty',
+
+  // RT & Condições Financeiras
+  'Responsável Técnico': 'field-responsible-name',
+  'Nº do CREA': 'field-crea-number',
+  'Nº da ART/TRT': 'field-art-number',
+  'Valor da Terra ou Receita': 'field-annual-revenue',
+}
+
 export function CreditProjectStepper({
   selectedTemplateCode,
+  setSelectedTemplateCode,
+  operationalAxis,
   currentProducer,
   currentProperty,
   currentTemplate,
@@ -140,13 +178,24 @@ export function CreditProjectStepper({
     const p: string[] = []
     if (selectedTemplateCode === 'PROJETO_INOVAGRO') {
       if (!customOptions.inovagroEquipment?.trim()) p.push('Equipamento / Objeto')
-      if (!customOptions.inovagroTotalInvestment) p.push('Investimento Total')
+      if (!customOptions.inovagroTotalInvestment || Number(customOptions.inovagroTotalInvestment) <= 0) p.push('Investimento Total')
     } else if (selectedTemplateCode === 'PROJETO_RENOVAGRO') {
       if (!customOptions.renovagroSubline?.trim()) p.push('Sublinha do Programa')
-      if (!customOptions.renovagroAreaHa) p.push('Área a Recuperar')
+      if (!customOptions.renovagroAreaHa || Number(customOptions.renovagroAreaHa) <= 0) p.push('Área a Recuperar')
+      if (customOptions.renovagroAreaHa && (!customOptions.renovagroTotalInvestment || Number(customOptions.renovagroTotalInvestment) <= 0)) {
+        p.push('Investimento Total')
+      }
     } else if (selectedTemplateCode === 'PROJETO_CUSTEIO_SAFRA') {
       if (!customOptions.custeioSafraYear?.trim()) p.push('Ano Safra')
       if (!customOptions.custeioCropName?.trim()) p.push('Cultura / Atividade')
+      const isPec =
+        customOptions.custeioActivityType === 'PECUARIA' ||
+        customOptions.custeioCropName?.toLowerCase().includes('bovino') ||
+        customOptions.custeioCropName?.toLowerCase().includes('pecu') ||
+        customOptions.custeioCropName?.toLowerCase().includes('gado') ||
+        customOptions.custeioCropName?.toLowerCase().includes('recria')
+      const qty = isPec ? (customOptions.custeioQuantity || customOptions.custeioAreaHa) : customOptions.custeioAreaHa
+      if (!qty || Number(qty) <= 0) p.push(isPec ? 'Quantidade de Animais' : 'Área de Plantio')
     }
     return p
   }, [customOptions, isLimiteCredito, selectedTemplateCode])
@@ -173,21 +222,51 @@ export function CreditProjectStepper({
     return p
   }, [customOptions, isLimiteCredito, isCreaRequired])
 
+  const focusAndScrollToField = (elementId: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(elementId)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.focus({ preventScroll: true })
+      }
+    }, 80)
+  }
+
   const validateAndAdvance = (targetStep: number) => {
-    if (targetStep > currentStep) {
-      if (step1Pending.length > 0) {
-        toast.error(`Atenção: Preencha os campos obrigatórios do Passo 1: ${step1Pending.join(', ')}`)
-        return
-      }
-      if (hasParamsStep && targetStep > 2 && step2Pending.length > 0) {
-        toast.error(`Atenção: Preencha os campos obrigatórios do Passo 2 (Parâmetros): ${step2Pending.join(', ')}`)
-        return
-      }
-      if (targetStep === totalSteps && stepRTPending.length > 0) {
-        toast.error(`Atenção: Preencha os campos obrigatórios do Responsável Técnico: ${stepRTPending.join(', ')}`)
-        return
-      }
+    // 1. Retorno para etapas anteriores é sempre permitido livremente
+    if (targetStep <= currentStep) {
+      setCurrentStep(targetStep)
+      window.scrollTo({ top: 180, behavior: 'smooth' })
+      return
     }
+
+    // 2. Validação unificada para avanço de etapas (botão Avançar ou clique na aba)
+    if (step1Pending.length > 0) {
+      if (currentStep !== 1) setCurrentStep(1)
+      toast.error(`Atenção: Preencha os campos obrigatórios do Passo 1: ${step1Pending.join(', ')}`)
+      const first = step1Pending[0]
+      focusAndScrollToField(PENDING_FIELD_MAP[first] || 'field-property-registration')
+      return
+    }
+
+    if (hasParamsStep && targetStep > 2 && step2Pending.length > 0) {
+      if (currentStep !== 2) setCurrentStep(2)
+      toast.error(`Atenção: Preencha os campos obrigatórios do Passo 2 (Parâmetros): ${step2Pending.join(', ')}`)
+      const first = step2Pending[0]
+      focusAndScrollToField(PENDING_FIELD_MAP[first] || 'field-renovagro-area')
+      return
+    }
+
+    if (targetStep === totalSteps && stepRTPending.length > 0) {
+      const rtStep = isLimiteCredito ? 4 : (hasParamsStep ? 3 : 2)
+      if (currentStep !== rtStep) setCurrentStep(rtStep)
+      toast.error(`Atenção: Preencha os campos obrigatórios do Responsável Técnico: ${stepRTPending.join(', ')}`)
+      const first = stepRTPending[0]
+      focusAndScrollToField(PENDING_FIELD_MAP[first] || 'field-responsible-name')
+      return
+    }
+
+    // Todas as validações aprovadas: avança
     setCurrentStep(targetStep)
     window.scrollTo({ top: 180, behavior: 'smooth' })
   }
@@ -248,7 +327,7 @@ export function CreditProjectStepper({
             customOptions={customOptions}
             setCustomOptions={setCustomOptions}
             onBack={() => setCurrentStep(1)}
-            onAdvance={() => setCurrentStep(3)}
+            onAdvance={() => validateAndAdvance(3)}
           />
         )}
 
@@ -276,6 +355,16 @@ export function CreditProjectStepper({
               )}
             </div>
 
+            <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200/80">
+              <CreditLineSelect
+                customOptions={customOptions}
+                setCustomOptions={setCustomOptions}
+                operationalAxis={operationalAxis}
+                selectedTemplateCode={selectedTemplateCode}
+                setSelectedTemplateCode={setSelectedTemplateCode}
+              />
+            </div>
+
             <TemplateParamsForm
               selectedTemplateCode={selectedTemplateCode}
               customOptions={customOptions}
@@ -293,7 +382,7 @@ export function CreditProjectStepper({
               </Button>
               <Button
                 type="button"
-                onClick={() => setCurrentStep(3)}
+                onClick={() => validateAndAdvance(3)}
                 className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs font-semibold h-10 px-6 rounded-xl shadow-xs"
               >
                 Avançar: Responsável Técnico & Condições
@@ -309,7 +398,7 @@ export function CreditProjectStepper({
             customOptions={customOptions}
             setCustomOptions={setCustomOptions}
             onBack={() => setCurrentStep(2)}
-            onAdvance={() => setCurrentStep(4)}
+            onAdvance={() => validateAndAdvance(4)}
             totalPatrimony={totalPatrimony}
           />
         )}
@@ -320,7 +409,7 @@ export function CreditProjectStepper({
             customOptions={customOptions}
             setCustomOptions={setCustomOptions}
             onBack={() => setCurrentStep(hasParamsStep ? 2 : 1)}
-            onAdvance={() => setCurrentStep(hasParamsStep ? 4 : 3)}
+            onAdvance={() => validateAndAdvance(hasParamsStep ? 4 : 3)}
             isLimiteCredito={false}
             hasParamsStep={hasParamsStep}
             stepRTPending={stepRTPending}
@@ -334,7 +423,7 @@ export function CreditProjectStepper({
             customOptions={customOptions}
             setCustomOptions={setCustomOptions}
             onBack={() => setCurrentStep(3)}
-            onAdvance={() => setCurrentStep(5)}
+            onAdvance={() => validateAndAdvance(5)}
             isLimiteCredito={true}
             hasParamsStep={true}
             stepRTPending={stepRTPending}

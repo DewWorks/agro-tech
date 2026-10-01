@@ -118,27 +118,35 @@ export function StepFinanceAndResponsible({
             <div className="space-y-1.5">
               <Label className="text-xs text-gray-700 font-medium">Nome do Responsável Técnico *</Label>
               <Input
+                id="field-responsible-name"
                 value={customOptions.responsibleName || ''}
                 onChange={(e) => setCustomOptions(prev => ({ ...prev, responsibleName: e.target.value }))}
-                className={cn("h-10 text-xs bg-white", !customOptions.responsibleName?.trim() && "border-amber-400")}
+                className={cn(
+                  "h-10 text-xs transition-colors",
+                  !customOptions.responsibleName?.trim()
+                    ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                    : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+                )}
                 placeholder="Nome do Responsável Técnico"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-gray-700 font-medium">Nº do CREA / Região (Opcional)</Label>
               <Input
+                id="field-crea-number"
                 value={customOptions.creaNumber || ''}
                 onChange={(e) => setCustomOptions(prev => ({ ...prev, creaNumber: e.target.value }))}
-                className="h-10 text-xs bg-white"
+                className="h-10 text-xs bg-white border-gray-200 focus-visible:ring-emerald-500"
                 placeholder="Opcional: Ex: CREA/TO 12345-D"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-gray-700 font-medium">Nº da ART / TRT (Opcional)</Label>
               <Input
+                id="field-art-number"
                 value={customOptions.artNumber || ''}
                 onChange={(e) => setCustomOptions(prev => ({ ...prev, artNumber: e.target.value }))}
-                className="h-10 text-xs bg-white"
+                className="h-10 text-xs bg-white border-gray-200 focus-visible:ring-emerald-500"
                 placeholder="Opcional: Ex: ART 2026/0987654"
               />
             </div>

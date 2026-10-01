@@ -17,6 +17,9 @@ const INOVAGRO_EQUIPMENTS = [
 ]
 
 export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps) {
+  const isEquipPending = !customOptions.inovagroEquipment?.trim()
+  const isTotalPending = !customOptions.inovagroTotalInvestment || Number(customOptions.inovagroTotalInvestment) <= 0
+
   return (
     <div className="space-y-3 pt-3 border-t border-gray-100">
       <div className="flex items-center justify-between">
@@ -32,18 +35,24 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
         <div className="flex items-center justify-between">
           <Label className="text-[10.5px] text-gray-700 font-medium">Equipamento / Objeto *</Label>
           <span className={cn(
-            "text-[9.5px] font-medium px-1.5 py-0.2 rounded border",
-            customOptions.inovagroEquipment?.trim()
+            "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+            !isEquipPending
               ? "text-emerald-700 bg-emerald-50 border-emerald-200"
               : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
           )}>
-            {customOptions.inovagroEquipment?.trim() ? 'Preenchido' : 'Obrigatório'}
+            {!isEquipPending ? 'Preenchido' : 'Obrigatório'}
           </span>
         </div>
         <Input
+          id="field-inovagro-equipment"
           value={customOptions.inovagroEquipment}
           onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroEquipment: e.target.value }))}
-          className={cn("h-8 text-xs", !customOptions.inovagroEquipment?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+          className={cn(
+            "h-8 text-xs transition-colors",
+            isEquipPending
+              ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+              : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+          )}
           placeholder="Selecione abaixo ou digite..."
         />
         <div className="flex flex-wrap gap-1 pt-0.5">
@@ -106,8 +115,21 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-[10.5px] font-semibold text-gray-800">Investimento Total (R$)</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10.5px] font-semibold text-gray-800">Investimento Total (R$) *</Label>
+            <span
+              className={cn(
+                "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                !isTotalPending
+                  ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                  : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+              )}
+            >
+              {!isTotalPending ? 'Preenchido' : 'Obrigatório'}
+            </span>
+          </div>
           <Input
+            id="field-inovagro-total"
             type="number"
             value={customOptions.inovagroTotalInvestment || ''}
             onChange={(e) => {
@@ -119,7 +141,12 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
                 inovagroOwnResources: Math.round(val * 0.1)
               }))
             }}
-            className="h-8 text-xs font-semibold"
+            className={cn(
+              "h-8 text-xs font-semibold transition-colors",
+              isTotalPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder="0,00"
           />
         </div>

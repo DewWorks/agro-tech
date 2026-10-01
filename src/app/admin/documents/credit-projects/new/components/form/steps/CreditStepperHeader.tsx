@@ -97,7 +97,8 @@ export function CreditStepperHeader({
         {stepsMeta.map((s) => {
           const Icon = s.icon
           const isActive = currentStep === s.num
-          const isCompleted = currentStep > s.num && !s.pending && s.num !== stepsMeta[stepsMeta.length - 1].num
+          const hasPending = s.pending
+          const isCompleted = !s.pending
           return (
             <button
               key={s.num}
@@ -115,13 +116,15 @@ export function CreditStepperHeader({
               <div className={cn(
                 "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 transition-colors",
                 isActive 
-                  ? "bg-white/20 text-white" 
+                  ? isCompleted
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/40"
+                    : "bg-white/20 text-white" 
                   : isCompleted 
                     ? "bg-emerald-200/70 text-emerald-800" 
                     : "bg-gray-100 text-gray-500"
               )}>
-                {isCompleted && !isActive ? (
-                  <Check className="h-4 w-4 text-emerald-700" />
+                {isCompleted ? (
+                  <Check className={cn("h-4 w-4 stroke-[2.5]", isActive ? "text-emerald-300" : "text-emerald-700")} />
                 ) : (
                   <Icon className="h-4 w-4" />
                 )}
@@ -137,8 +140,22 @@ export function CreditStepperHeader({
                   {s.subtitle}
                 </div>
               </div>
-              {s.pending && !isActive && (
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-500" title="Pendências nesta etapa" />
+              {hasPending ? (
+                <span
+                  className={cn(
+                    "absolute top-2 right-2 h-2.5 w-2.5 rounded-full transition-all",
+                    isActive ? "bg-amber-400 ring-2 ring-[#1B4D3E] animate-pulse" : "bg-amber-500 ring-2 ring-white"
+                  )}
+                  title="Pendências nesta etapa"
+                />
+              ) : (
+                <span
+                  className={cn(
+                    "absolute top-2 right-2 h-2 w-2 rounded-full",
+                    isActive ? "bg-emerald-400 ring-2 ring-[#1B4D3E]" : "bg-emerald-500 ring-2 ring-white"
+                  )}
+                  title="Etapa concluída"
+                />
               )}
             </button>
           )
