@@ -143,11 +143,14 @@ describe('Refatoração da Sidebar e Identidade Visual (Diretriz 2)', () => {
     const creditProjectsLink = screen.getByText('Projetos de Crédito').closest('a')
     expect(creditProjectsLink).toHaveClass('border-emerald-400')
 
-    // O botão de GED Enterprise NÃO deve estar ativo
-    const gedButton = screen.getByText('GED Enterprise').closest('button')
+    // O botão de Gestão de Documentos NÃO deve estar ativo
+    const gedButton = (
+      screen.queryByText('Gestão de Documentos') ||
+      screen.queryByText('GED Enterprise')
+    )?.closest('button')
     expect(gedButton).not.toHaveClass('border-emerald-400')
 
-    // Os subitens do GED não devem estar visíveis pois GED Enterprise não deve estar expandido
+    // Os subitens do GED não devem estar visíveis pois o menu não deve estar expandido
     expect(screen.queryByText('Explorador de Arquivos')).not.toBeInTheDocument()
   })
 
