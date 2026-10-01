@@ -779,3 +779,132 @@ export async function recordDocumentEmission({
   return { success: true, id: emission.id, sha256Hash: emission.sha256Hash }
 }
 
+export interface CreditProjectHistoryItem {
+  id: string
+  templateCode: string
+  templateName: string
+  axis: 'CUSTEIO' | 'INVESTIMENTO' | 'PATRIMONIAL' | 'CHECKLIST'
+  producerName: string
+  producerDocument: string
+  propertyName: string
+  propertyCity?: string
+  propertyState?: string
+  createdAt: string
+  sha256Hash?: string | null
+  storagePdfPath?: string | null
+  payloadSnapshot?: any
+  totalAmount?: number
+  financedAmount?: number
+  creditLineName?: string
+}
+
+/**
+ * Lista o histórico de projetos de crédito emitidos ou salvos com suporte a filtros e busca.
+ */
+export async function listCreditProjects(filters: {
+  search?: string
+  axis?: 'todos' | 'custeio' | 'investimento'
+  templateCode?: string
+} = {}): Promise<CreditProjectHistoryItem[]> {
+  const user = await getUserContext()
+  if (!user) return []
+
+  const whereClause: any = {}
+  if (user.branchId && user.role !== 'SUPER_ADMIN') {
+    whereClause.branchId = user.branchId
+  } else if (user.organizationId && user.role !== 'SUPER_ADMIN') {
+    whereClause.branch = { organizationId: user.organizationId }
+  }
+
+  // Apenas templates de crédito (ignora minutas puramente jurídicas)
+  whereClause.templateCode = {
+    in: [
+      'PROJETO_CUSTEIO_SAFRA',
+      'PROJETO_RENOVAGRO',
+      'PROJETO_INOVAGRO',
+      'LIMITE_CREDITO_BB',
+      'CHECKLIST_PROFISSIONAL',
+    ]
+  }
+
+  if (filters.templateCode) {
+    whereClause.templateCode = filters.templateCode
+  }
+
+  const forms = await prisma.generatedForm.findMany({
+    where: whereClause,
+    include: {
+      producer: {
+        select: { id: true, name: true, document: true }
+      },
+      property: {
+        select: { id: true, name: true, propertyName: true, city: true, state: true }
+      }
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 100
+  })
+
+  const results: CreditProjectHistoryItem[] = forms.map(f => {
+    const payload = (f.payloadSnapshot as any) || {}
+    let axis: 'CUSTEIO' | 'INVESTIMENTO' | 'PATRIMONIAL' | 'CHECKLIST' = 'INVESTIMENTO'
+    if (f.templateCode === 'PROJETO_CUSTEIO_SAFRA') axis = 'CUSTEIO'
+    else if (f.templateCode === 'LIMITE_CREDITO_BB') axis = 'PATRIMONIAL'
+    else if (f.templateCode === 'CHECKLIST_PROFISSIONAL') axis = 'CHECKLIST'
+
+    const tmplMeta = CREDIT_TEMPLATES_REGISTRY.find(t => t.code === f.templateCode)
+    const totalAmount = Number(
+      payload.totalInvestment ||
+      payload.renovagroTotalInvestment ||
+      payload.inovagroTotalInvestment ||
+      (payload.cropAreaHa && payload.costPerHa ? payload.cropAreaHa * payload.costPerHa : 0) ||
+      0
+    )
+    const financedAmount = Number(
+      payload.financedAmount ||
+      payload.renovagroFinanced ||
+      payload.inovagroFinanced ||
+      0
+    )
+    const creditLineName = payload.creditLineName || payload.renovagroSubline || payload.inovagroEquipment || undefined
+
+    return {
+      id: f.id,
+      templateCode: f.templateCode,
+      templateName: tmplMeta?.title || f.templateCode,
+      axis,
+      producerName: f.producer?.name || 'Produtor',
+      producerDocument: f.producer?.document || '',
+      propertyName: f.property?.propertyName || f.property?.name || 'Imóvel Rural',
+      propertyCity: f.property?.city || undefined,
+      propertyState: f.property?.state || undefined,
+      createdAt: f.createdAt.toISOString(),
+      sha256Hash: f.sha256Hash,
+      storagePdfPath: f.storagePdfPath,
+      payloadSnapshot: payload,
+      totalAmount,
+      financedAmount,
+      creditLineName
+    }
+  })
+
+  // Filtros locais de busca e eixo
+  let filtered = results
+  if (filters.axis && filters.axis !== 'todos') {
+    const target = filters.axis.toUpperCase()
+    filtered = filtered.filter(item => item.axis === target)
+  }
+
+  if (filters.search) {
+    const q = filters.search.toLowerCase()
+    filtered = filtered.filter(item =>
+      item.producerName.toLowerCase().includes(q) ||
+      item.propertyName.toLowerCase().includes(q) ||
+      item.templateName.toLowerCase().includes(q) ||
+      (item.creditLineName && item.creditLineName.toLowerCase().includes(q))
+    )
+  }
+
+  return filtered
+}
+

@@ -125,16 +125,20 @@ export function Step1CreditIdentification({
                 ) : null}
               </div>
               <Input
+                id="field-representative-cpf"
                 value={formatCPF(customOptions.representativeCpf || currentProducer.representativeCpf || '')}
                 onChange={(e) => {
                   const masked = formatCPF(e.target.value)
                   setCustomOptions(prev => ({ ...prev, representativeCpf: masked }))
                 }}
                 className={cn(
-                  "h-10 text-xs bg-white",
+                  "h-10 text-xs transition-colors",
                   (customOptions.representativeCpf || currentProducer.representativeCpf) &&
-                    !validateCPF(customOptions.representativeCpf || currentProducer.representativeCpf || '') &&
-                    "border-red-500 focus-visible:ring-red-400"
+                    !validateCPF(customOptions.representativeCpf || currentProducer.representativeCpf || '')
+                    ? "border-red-500 bg-red-50/20 focus-visible:ring-red-400"
+                    : !(customOptions.representativeCpf || currentProducer.representativeCpf)?.trim()
+                      ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400"
+                      : "border-gray-200 bg-white"
                 )}
                 placeholder="000.000.000-00"
                 maxLength={14}
@@ -152,12 +156,18 @@ export function Step1CreditIdentification({
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-gray-700">Matrícula / Registro do Imóvel *</Label>
           <Input
+            id="field-property-registration"
             value={maskRegistrationNumber(customOptions.propertyRegistrationNumber || '')}
             onChange={(e) => {
               setCustomOptions(prev => ({ ...prev, propertyRegistrationNumber: maskRegistrationNumber(e.target.value) }))
             }}
             maxLength={8}
-            className={cn("h-10 text-xs", !customOptions.propertyRegistrationNumber?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+            className={cn(
+              "h-10 text-xs transition-colors",
+              !customOptions.propertyRegistrationNumber?.trim()
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder="Ex: 12345 (Apenas números)"
           />
         </div>
@@ -175,10 +185,16 @@ export function Step1CreditIdentification({
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold text-gray-700">Nº do Recibo do CAR *</Label>
           <Input
+            id="field-property-car"
             value={maskCAR(customOptions.propertyCar || '')}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyCar: maskCAR(e.target.value) }))}
             maxLength={50}
-            className={cn("h-10 text-xs uppercase font-medium", !customOptions.propertyCar?.trim() && "border-amber-400 focus-visible:ring-amber-400")}
+            className={cn(
+              "h-10 text-xs uppercase font-medium transition-colors",
+              !customOptions.propertyCar?.trim()
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
           />
         </div>
@@ -233,10 +249,16 @@ export function Step1CreditIdentification({
               <div className="space-y-1">
                 <Label className="text-[11px] text-gray-600 font-semibold">Área Total (ha) *</Label>
                 <Input
+                  id="field-property-total-area"
                   type="number"
                   value={customOptions.propertyTotalArea || ''}
                   onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyTotalArea: Number(e.target.value) }))}
-                  className={cn("h-9 text-xs font-bold bg-white", (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0) && "border-amber-400")}
+                  className={cn(
+                    "h-9 text-xs font-bold transition-colors",
+                    (!customOptions.propertyTotalArea || Number(customOptions.propertyTotalArea) <= 0)
+                      ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                      : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+                  )}
                   placeholder="0,00"
                 />
               </div>
@@ -316,12 +338,15 @@ export function Step1CreditIdentification({
               <span className="text-[10px] text-muted-foreground">Exigência para Vistorias e Perícias do Banco</span>
             </div>
             <textarea
+              id="field-property-access-route"
               rows={3}
               value={customOptions.propertyAccessRoute || ''}
               onChange={(e) => setCustomOptions(prev => ({ ...prev, propertyAccessRoute: e.target.value }))}
               className={cn(
-                "w-full rounded-xl border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none",
-                !customOptions.propertyAccessRoute?.trim() && "border-amber-400"
+                "w-full rounded-xl border border-input bg-transparent px-3 py-2 text-xs shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none transition-colors",
+                !customOptions.propertyAccessRoute?.trim()
+                  ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                  : "border-gray-200 bg-white focus-visible:ring-emerald-500"
               )}
               placeholder="Ex: Partindo de Palmas pela TO-050 por 45 km sentido Porto Nacional, virar à direita na Rodovia TO-255 por mais 18 km de estrada vicinal cascalhada até a porteira principal da Fazenda."
             />

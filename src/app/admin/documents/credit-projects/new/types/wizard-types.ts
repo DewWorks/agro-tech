@@ -102,6 +102,13 @@ export interface CustomOptions {
   targetBank: string
   purpose: string
 
+  // Linhas Oficiais de Crédito Rural (15 Linhas)
+  creditLineId?: string
+  creditLineName?: string
+  creditLineShortName?: string
+  creditLineAxis?: 'CUSTEIO' | 'INVESTIMENTO' | 'AMBOS'
+  operationalAxis?: 'custeio' | 'investimento'
+
   // Representante Legal (para PJ ou exigência de CPF)
   representativeCpf?: string
   representativeName?: string

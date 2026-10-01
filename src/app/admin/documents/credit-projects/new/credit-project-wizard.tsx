@@ -9,31 +9,16 @@ import {
   Download, 
   ArrowLeft, 
   Loader2, 
-  User, 
-  MapPin, 
-  Landmark, 
-  CheckCircle2, 
   Sparkles,
   Settings2,
-  RefreshCw,
-  Check,
-  ChevronsUpDown,
   AlertTriangle,
-  Building2,
-  Coins,
   ShieldCheck,
-  Calendar,
-  Save,
-  Database,
-  ArrowRight,
-  Lock
+  Save
 } from 'lucide-react'
 import { ProducerSelect } from './components/form/ProducerSelect';
 import { PropertySelect } from './components/form/PropertySelect';
-import { PropertyDataForm } from './components/form/PropertyDataForm';
+import { CreditLineSelect } from './components/form/CreditLineSelect';
 import { TemplateSelect } from './components/form/TemplateSelect';
-import { TemplateParamsForm } from './components/form/TemplateParamsForm';
-import { TechnicalResponsibleForm } from './components/form/TechnicalResponsibleForm';
 import { CreditProjectStepper } from './components/form/CreditProjectStepper';
 import { A4DocumentPreview } from './components/preview/A4DocumentPreview';
 import dynamic from 'next/dynamic';
@@ -105,6 +90,11 @@ export default function CreditProjectWizard({
     isFormValid,
     documentData
   } = state
+
+  const axisParam = searchParams.get('axis') as 'custeio' | 'investimento' | null
+  const operationalAxis: 'custeio' | 'investimento' =
+    axisParam ||
+    (selectedTemplateCode === 'PROJETO_CUSTEIO_SAFRA' ? 'custeio' : 'investimento')
 
   const {
     setSelectedProducerId,
@@ -358,7 +348,7 @@ export default function CreditProjectWizard({
         }
       />
 
-      {/* Top Selectors Bar: Produtor, Propriedade e Modelo Oficial (3 colunas) */}
+      {/* Top Selectors Bar: Produtor, Propriedade, Linha Oficial e Modelo Oficial (4 colunas) */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs space-y-4 print:hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-b border-gray-100 pb-3">
           <h2 className="text-xs font-bold text-gray-900 uppercase tracking-wide flex items-center gap-2">
@@ -366,11 +356,11 @@ export default function CreditProjectWizard({
             Parâmetros de Geração do Projeto
           </h2>
           <span className="text-[11px] text-muted-foreground">
-            Selecione o proponente, o imóvel beneficiado e o modelo bancário
+            Selecione o proponente, o imóvel beneficiado, a linha oficial de financiamento e o modelo bancário
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
           {/* 1. Seleção do Produtor */}
           <ProducerSelect
             activeProducers={activeProducers}
@@ -387,7 +377,16 @@ export default function CreditProjectWizard({
             currentProperty={currentProperty}
           />
 
-          {/* 3. Seleção do Modelo */}
+          {/* 3. Seleção da Linha Oficial de Financiamento */}
+          <CreditLineSelect
+            customOptions={customOptions}
+            setCustomOptions={setCustomOptions}
+            operationalAxis={operationalAxis}
+            selectedTemplateCode={selectedTemplateCode}
+            setSelectedTemplateCode={setSelectedTemplateCode}
+          />
+
+          {/* 4. Seleção do Modelo */}
           <TemplateSelect
             templates={templates}
             selectedTemplateCode={selectedTemplateCode}
@@ -425,6 +424,8 @@ export default function CreditProjectWizard({
       ) : selectedPropertyId ? (
         <CreditProjectStepper
           selectedTemplateCode={selectedTemplateCode}
+          setSelectedTemplateCode={setSelectedTemplateCode}
+          operationalAxis={operationalAxis}
           currentProducer={currentProducer}
           currentProperty={currentProperty}
           currentTemplate={currentTemplate}

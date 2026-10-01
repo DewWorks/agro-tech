@@ -19,14 +19,14 @@ export function PropertySelect({ availableProperties, selectedPropertyId, setSel
   const hasProperties = availableProperties.length > 0
 
   return (
-    <div className="space-y-1.5 flex flex-col">
-      <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between min-h-[24px]">
-        <span className="flex items-center gap-1.5 truncate">
+    <div className="space-y-1.5 flex flex-col justify-start w-full">
+      <Label className="text-xs font-semibold text-gray-700 flex items-center justify-between h-[26px] min-h-[26px] w-full">
+        <span className="flex items-center gap-1.5 truncate min-w-0 mr-2">
           <MapPin className="h-3.5 w-3.5 text-[#1B4D3E] shrink-0" />
           <span className="truncate">2. Propriedade / Imóvel Beneficiado *</span>
         </span>
         <span className={cn(
-          "text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0",
+          "text-[10px] font-medium px-2 py-0.5 rounded-full border shrink-0 whitespace-nowrap",
           hasProperties
             ? "text-emerald-700 bg-emerald-50 border-emerald-200"
             : "text-amber-700 bg-amber-50 border-amber-200"
@@ -38,12 +38,13 @@ export function PropertySelect({ availableProperties, selectedPropertyId, setSel
         <PopoverTrigger
           render={
             <Button
+              type="button"
               variant="outline"
               role="combobox"
               aria-expanded={open}
               disabled={!hasProperties}
               className={cn(
-                "w-full justify-between font-medium text-left text-xs h-10 px-3.5 bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 rounded-xl shadow-2xs transition-all",
+                "w-full justify-between font-medium text-left text-xs h-10 px-3.5 bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50/80 rounded-xl shadow-2xs transition-all flex items-center",
                 !hasProperties ? "opacity-60 bg-gray-50 cursor-not-allowed" : "cursor-pointer"
               )}
             />

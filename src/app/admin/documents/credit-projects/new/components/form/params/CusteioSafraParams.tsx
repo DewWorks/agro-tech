@@ -36,6 +36,14 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
 
   const netMargin = Math.round((totalGrossRevenue - totalFinanced) * 100) / 100
 
+  const isSafraPending = !customOptions.custeioSafraYear?.trim()
+  const isCropPending = !customOptions.custeioCropName?.trim()
+  const isQtyPending = !areaOrQty || areaOrQty <= 0
+  const isCostPending = !costOrPrice || costOrPrice <= 0
+  const isYieldPending = !yieldOrWeight || yieldOrWeight <= 0
+  const isSellingPricePending = !unitSellingPrice || unitSellingPrice <= 0
+  const isInterestPending = !customOptions.custeioInterestRate || Number(customOptions.custeioInterestRate) <= 0
+
   return (
     <div className="space-y-3 pt-3 border-t border-gray-100">
       <div className="flex items-center justify-between">
@@ -141,11 +149,29 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
       {/* Ano Safra e Cultura */}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-[10.5px] text-gray-600">Ano Safra / Ciclo *</Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10.5px] text-gray-600">Ano Safra / Ciclo *</Label>
+            <span
+              className={cn(
+                "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                !isSafraPending
+                  ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                  : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+              )}
+            >
+              {!isSafraPending ? 'Preenchido' : 'Obrigatório'}
+            </span>
+          </div>
           <Input
+            id="field-custeio-year"
             value={customOptions.custeioSafraYear}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioSafraYear: e.target.value }))}
-            className="h-8 text-xs"
+            className={cn(
+              "h-8 text-xs transition-colors",
+              isSafraPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder="Ex: 2026/2027"
           />
           <div className="flex gap-1 pt-0.5">
@@ -162,13 +188,31 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-[10.5px] text-gray-600">
-            {isPecuaria ? 'Finalidade / Categoria Animal *' : 'Cultura / Atividade *'}
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className="text-[10.5px] text-gray-600">
+              {isPecuaria ? 'Finalidade / Categoria Animal *' : 'Cultura / Atividade *'}
+            </Label>
+            <span
+              className={cn(
+                "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                !isCropPending
+                  ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                  : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+              )}
+            >
+              {!isCropPending ? 'Preenchido' : 'Obrigatório'}
+            </span>
+          </div>
           <Input
+            id="field-custeio-crop"
             value={customOptions.custeioCropName}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioCropName: e.target.value }))}
-            className="h-8 text-xs"
+            className={cn(
+              "h-8 text-xs transition-colors",
+              isCropPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder={isPecuaria ? 'Ex: Bovinocultura de Corte' : 'Ex: Soja Grão, Milho'}
           />
           <div className="flex flex-wrap gap-1 pt-0.5">
@@ -186,18 +230,50 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
         </div>
       </div>
 
+      {/* Linha Oficial Ativa */}
+      {customOptions.creditLineName && (
+        <div className="flex items-center justify-between bg-emerald-50/70 border border-emerald-200/80 px-2.5 py-1.5 rounded-lg text-xs">
+          <span className="text-gray-600 font-medium text-[11px]">Linha Oficial Vinculada:</span>
+          <span className="font-bold text-emerald-800 text-[11px] flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            {customOptions.creditLineName} ({customOptions.custeioInterestRate || 8}% a.a.)
+          </span>
+        </div>
+      )}
+
       {/* Inputs com Terminologia Alternada Dinamicamente */}
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <Label className="text-[10.5px] text-gray-600">
-              {isPecuaria ? 'Quantidade de Animais (cab) *' : 'Área de Plantio (ha) *'}
+            <Label className="text-[10.5px] text-gray-700 font-semibold">
+              {isPecuaria
+                ? pecuariaModality === 'AQUISICAO_ANIMAIS'
+                  ? 'Quantidade de Cabeças para Aquisição (cab) *'
+                  : 'Rebanho em Manejo / Nutrição (cab) *'
+                : 'Área de Plantio / Explorada (ha) *'}
             </Label>
-            <span className="text-[9px] text-gray-400 font-normal">
-              {isPecuaria ? 'Cabeças' : 'Hectares (ha)'}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                  !isQtyPending
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+                )}
+              >
+                {!isQtyPending ? 'Preenchido' : 'Obrigatório'}
+              </span>
+              <span className="text-[9px] text-gray-400 font-normal">
+                {isPecuaria
+                  ? pecuariaModality === 'AQUISICAO_ANIMAIS'
+                    ? 'Recria / Engorda'
+                    : 'Manejo / Nutrição'
+                  : 'Hectares (ha)'}
+              </span>
+            </div>
           </div>
           <Input
+            id="field-custeio-qty"
             type="number"
             value={areaOrQty || ''}
             onChange={(e) => {
@@ -208,20 +284,42 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
                 custeioQuantity: val
               }))
             }}
-            className="h-8 text-xs"
-            placeholder={isPecuaria ? "Ex: 150" : "Ex: 100"}
+            className={cn(
+              "h-8 text-xs font-semibold transition-colors",
+              isQtyPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
+            placeholder={isPecuaria ? (pecuariaModality === 'AQUISICAO_ANIMAIS' ? "Ex: 150" : "Ex: 200") : "Ex: 100"}
           />
         </div>
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <Label className="text-[10.5px] text-gray-600">
-              {isPecuaria ? 'Valor Unitário Financiado (R$) *' : 'Custo / ha Financiado (R$) *'}
+            <Label className="text-[10.5px] text-gray-700 font-semibold">
+              {isPecuaria
+                ? pecuariaModality === 'AQUISICAO_ANIMAIS'
+                  ? 'Valor Médio por Cabeça (R$/cab) *'
+                  : 'Custo de Manejo / Cabeça (R$/cab) *'
+                : 'Custo por Hectare Financiado (R$/ha) *'}
             </Label>
-            <span className="text-[9px] text-gray-400 font-normal">
-              {isPecuaria ? 'R$ por cabeça' : 'R$ por hectare'}
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={cn(
+                  "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                  !isCostPending
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+                )}
+              >
+                {!isCostPending ? 'Preenchido' : 'Obrigatório'}
+              </span>
+              <span className="text-[9px] text-gray-400 font-normal">
+                {isPecuaria ? 'R$ por cabeça' : 'R$ por hectare'}
+              </span>
+            </div>
           </div>
           <Input
+            id="field-custeio-cost"
             type="number"
             value={costOrPrice || ''}
             onChange={(e) => {
@@ -232,8 +330,13 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
                 custeioUnitPrice: val
               }))
             }}
-            className="h-8 text-xs"
-            placeholder={isPecuaria ? "Ex: 2800" : "Ex: 3850"}
+            className={cn(
+              "h-8 text-xs font-semibold transition-colors",
+              isCostPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
+            placeholder={isPecuaria ? (pecuariaModality === 'AQUISICAO_ANIMAIS' ? "Ex: 2800" : "Ex: 650") : "Ex: 3850"}
           />
         </div>
       </div>
@@ -245,10 +348,16 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
             {isPecuaria ? 'Fator Produtivo (Unidade) *' : 'Produtividade (sc/ha) *'}
           </Label>
           <Input
+            id="field-custeio-yield"
             type="number"
             value={yieldOrWeight || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioExpectedYield: Number(e.target.value) }))}
-            className="h-8 text-xs"
+            className={cn(
+              "h-8 text-xs transition-colors",
+              isYieldPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder={isPecuaria ? "Ex: 1" : "Ex: 62"}
           />
         </div>
@@ -257,21 +366,33 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
             {isPecuaria ? 'Preço Venda Final (R$/cab) *' : 'Preço / Saca (R$) *'}
           </Label>
           <Input
+            id="field-custeio-selling-price"
             type="number"
             value={unitSellingPrice || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioPricePerUnit: Number(e.target.value) }))}
-            className="h-8 text-xs"
+            className={cn(
+              "h-8 text-xs transition-colors",
+              isSellingPricePending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder={isPecuaria ? "Ex: 3600" : "Ex: 128"}
           />
         </div>
         <div className="space-y-1">
           <Label className="text-[10px] text-gray-600">Juros (% a.a.) *</Label>
           <Input
+            id="field-custeio-interest"
             type="number"
             step="0.1"
             value={customOptions.custeioInterestRate || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioInterestRate: Number(e.target.value) }))}
-            className="h-8 text-xs"
+            className={cn(
+              "h-8 text-xs transition-colors",
+              isInterestPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder="Ex: 8.0"
           />
         </div>

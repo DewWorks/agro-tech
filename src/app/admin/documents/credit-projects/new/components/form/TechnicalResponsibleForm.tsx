@@ -45,37 +45,95 @@ export function TechnicalResponsibleForm({
       )}
 
       <div className="space-y-1">
-        <Label className={cn("text-[11px]", isRTNamePending ? "text-amber-700 font-bold" : "text-gray-600")}>
-          Responsável Técnico (Owner da Organização) *
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label className={cn("text-[11px]", isRTNamePending ? "text-amber-700 font-bold" : "text-gray-600")}>
+            Responsável Técnico (Owner da Organização) *
+          </Label>
+          <span
+            className={cn(
+              "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+              !isRTNamePending
+                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+            )}
+          >
+            {!isRTNamePending ? 'Preenchido' : 'Obrigatório'}
+          </span>
+        </div>
         <Input
+          id="field-responsible-name"
           value={customOptions.responsibleName || ''}
           onChange={(e) => setCustomOptions(prev => ({ ...prev, responsibleName: e.target.value }))}
-          className={cn("h-8 text-xs", isRTNamePending && "border-amber-400 focus-visible:ring-amber-400")}
+          className={cn(
+            "h-8 text-xs transition-colors",
+            isRTNamePending
+              ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+              : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+          )}
           placeholder="Nome do Responsável Técnico"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className={cn("text-[11px]", isCreaPending ? "text-amber-700 font-bold" : "text-gray-600")}>
-            Nº do CREA {isCreaRequired ? '*' : '(Opcional)'}
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className={cn("text-[11px]", isCreaPending ? "text-amber-700 font-bold" : "text-gray-600")}>
+              Nº do CREA {isCreaRequired ? '*' : '(Opcional)'}
+            </Label>
+            {isCreaRequired && (
+              <span
+                className={cn(
+                  "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                  !isCreaPending
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+                )}
+              >
+                {!isCreaPending ? 'Preenchido' : 'Obrigatório'}
+              </span>
+            )}
+          </div>
           <Input
+            id="field-crea-number"
             value={customOptions.creaNumber || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, creaNumber: e.target.value }))}
-            className={cn("h-8 text-xs", isCreaPending && "border-amber-400 focus-visible:ring-amber-400")}
+            className={cn(
+              "h-8 text-xs transition-colors",
+              isCreaPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder={isCreaRequired ? "Obrigatório: CREA/TO 12345-D" : "Opcional: Ex: CREA/TO 12345-D"}
           />
         </div>
         <div className="space-y-1">
-          <Label className={cn("text-[11px]", isArtPending ? "text-amber-700 font-bold" : "text-gray-600")}>
-            Nº da ART/TRT {isCreaRequired ? '*' : '(Opcional)'}
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label className={cn("text-[11px]", isArtPending ? "text-amber-700 font-bold" : "text-gray-600")}>
+              Nº da ART/TRT {isCreaRequired ? '*' : '(Opcional)'}
+            </Label>
+            {isCreaRequired && (
+              <span
+                className={cn(
+                  "text-[9.5px] font-medium px-1.5 py-0.2 rounded border transition-colors",
+                  !isArtPending
+                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    : "text-amber-700 bg-amber-50 border-amber-200 font-bold"
+                )}
+              >
+                {!isArtPending ? 'Preenchido' : 'Obrigatório'}
+              </span>
+            )}
+          </div>
           <Input
+            id="field-art-number"
             value={customOptions.artNumber || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, artNumber: e.target.value }))}
-            className={cn("h-8 text-xs", isArtPending && "border-amber-400 focus-visible:ring-amber-400")}
+            className={cn(
+              "h-8 text-xs transition-colors",
+              isArtPending
+                ? "border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500"
+                : "border-gray-200 bg-white focus-visible:ring-emerald-500"
+            )}
             placeholder={isCreaRequired ? "Obrigatório: ART 2026/0987654" : "Opcional: Ex: ART 2026/0987654"}
           />
         </div>
