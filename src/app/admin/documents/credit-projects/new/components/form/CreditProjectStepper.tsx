@@ -43,6 +43,8 @@ interface CreditProjectStepperProps {
   handleDownloadOriginalTemplate: () => void
   handleDownloadPdf: () => Promise<any>
   isGeneratingPdf: boolean
+  isDeclarations?: boolean
+  setIsUniversalPreviewOpen?: (open: boolean) => void
 }
 
 // Templates that have dedicated parameter forms in Step 2
@@ -107,6 +109,8 @@ export function CreditProjectStepper({
   handleDownloadOriginalTemplate,
   handleDownloadPdf,
   isGeneratingPdf,
+  isDeclarations = false,
+  setIsUniversalPreviewOpen,
 }: CreditProjectStepperProps) {
   const isLimiteCredito = selectedTemplateCode === 'LIMITE_CREDITO_BB'
   const [currentStep, setCurrentStep] = useState(1)
@@ -452,6 +456,8 @@ export function CreditProjectStepper({
             handleDownloadOriginalTemplate={handleDownloadOriginalTemplate}
             handlePrintIsolated={handlePrintIsolated}
             setIsConfirmModalOpen={setIsConfirmModalOpen}
+            isDeclarations={isDeclarations}
+            setIsUniversalPreviewOpen={setIsUniversalPreviewOpen}
             onBack={() => setCurrentStep(isLimiteCredito ? 4 : (hasParamsStep ? 3 : 2))}
           />
         )}

@@ -222,7 +222,7 @@ function getNavigationGroups(
     })
 
     docCreditItems.push({
-      title: 'Minutas & Declarações',
+      title: 'Documento e Declarações legais',
       icon: FileSignature,
       badge: gedStatus.badge,
       href: '/admin/documents/declarations',

@@ -217,7 +217,7 @@ export default async function CreditProjectsHubPage() {
           <Link href="/admin/documents/declarations">
             <Button variant="outline" size="sm" className="text-xs h-8 bg-white border-slate-300 text-slate-800 hover:bg-slate-100">
               <ClipboardList className="w-3.5 h-3.5 mr-1 text-[#1B4D3E]" />
-              Minutas & Declarações
+              Documento e Declarações legais
             </Button>
           </Link>
         </div>
