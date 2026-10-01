@@ -37,6 +37,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
               <FormLabel>Matrícula (Apenas Números) *</FormLabel>
               <FormControl>
                 <Input
+                  id="field-registrationNumber"
                   placeholder="Ex: 2718"
                   maxLength={8}
                   {...field}
@@ -59,7 +60,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
             <FormItem>
               <FormLabel>Cartório de Registro (CRI) *</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: 1º Ofício de Registro de Imóveis" {...field} />
+                <Input id="field-registryOffice" placeholder="Ex: 1º Ofício de Registro de Imóveis" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -73,7 +74,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
             <FormItem>
               <FormLabel>Comarca do Cartório *</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: Taguatinga" {...field} />
+                <Input id="field-comarca" placeholder="Ex: Taguatinga" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -88,6 +89,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
               <FormLabel>Código do CAR (Cadastro Ambiental Rural) *</FormLabel>
               <FormControl>
                 <Input
+                  id="field-car"
                   placeholder="UF-1234567-XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX.XXXX"
                   className="font-mono uppercase text-xs"
                   maxLength={50}
@@ -112,6 +114,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
               <FormLabel>CCIR (Código INCRA - 13 dígitos)</FormLabel>
               <FormControl>
                 <Input
+                  id="field-ccir"
                   placeholder="Ex: 000.000.000.000-0"
                   maxLength={17}
                   className="font-mono"
@@ -136,6 +139,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
               <FormLabel>CIB / NIRF / ITR (Receita Federal)</FormLabel>
               <FormControl>
                 <Input
+                  id="field-itr"
                   placeholder="Ex: XEHVEZ5-T ou 1234567-8"
                   maxLength={12}
                   className="font-mono uppercase"
@@ -159,7 +163,7 @@ export function LandDocumentationCard({ control }: LandDocumentationCardProps) {
             <FormItem>
               <FormLabel>Módulos Fiscais / Rurais</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" placeholder="Ex: 2.5" {...field} />
+                <Input id="field-ruralModules" type="number" step="0.01" placeholder="Ex: 2.5" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

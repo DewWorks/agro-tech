@@ -272,9 +272,6 @@ export function QuickLimitSummary({
           <div className="space-y-1">
             <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               Central Autônoma de Limite de Crédito Rural (MCR)
-              <Badge variant="outline" className="bg-emerald-100 text-[#1B4D3E] border-emerald-300 text-[9px] font-bold uppercase">
-                Aditivo 003
-              </Badge>
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
               Os dados patrimoniais e de fluxo de caixa acima alimentam automaticamente o motor de crédito rural. Para simular taxas, amortização (Price/SAC), índice ICSD e emitir o Dossiê Técnico do Banco do Brasil/Sicredi, utilize o Módulo de Limite de Crédito.

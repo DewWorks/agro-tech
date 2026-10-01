@@ -38,7 +38,7 @@ export function Step4FinancialSummary({
   const activeForm: UseFormReturn<any> = (form || context) as any
   const { control } = activeForm
 
-  // Field arrays para itens dinâmicos do Aditivo 003
+  // Field arrays para itens dinâmicos do MCR
   const {
     fields: urbanFields,
     append: appendUrban,
@@ -109,7 +109,7 @@ export function Step4FinancialSummary({
         setShowSecondaryAssets={setShowSecondaryAssets}
       />
 
-      {/* SEÇÃO EXPANSÍVEL: BENS SECUNDÁRIOS DE GARANTIA (ADITIVO 003) */}
+      {/* SEÇÃO EXPANSÍVEL: BENS SECUNDÁRIOS DE GARANTIA (MCR) */}
       {showSecondaryAssets && (
         <SecondaryCollateralSection
           activeForm={activeForm}
@@ -141,7 +141,7 @@ export function Step4FinancialSummary({
         />
       </NonAgroAndExpensesSection>
 
-      {/* 3. RESUMO OPERACIONAL & ENCAMINHAMENTO PARA O MÓDULO DE LIMITES (ADITIVO 003) */}
+      {/* 3. RESUMO OPERACIONAL & ENCAMINHAMENTO PARA O MÓDULO DE LIMITES (MCR) */}
       <QuickLimitSummary
         activeForm={activeForm}
         propertyId={propertyId}

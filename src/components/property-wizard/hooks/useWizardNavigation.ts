@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import {
   PropertyWizardFormValues,
   STEP_FIELDS_MAP,
+  focusAndScrollToField,
 } from '@/lib/validations/property-wizard'
 
 export interface UseWizardNavigationOptions {
@@ -37,7 +38,14 @@ export function useWizardNavigation({
       if (fieldsToValidate.length > 0) {
         const isStepValid = await form.trigger(fieldsToValidate)
         if (!isStepValid) {
-          toast.error('Por favor, preencha os campos obrigatórios destacados em vermelho.')
+          const errors = form.formState.errors
+          const firstInvalidField = fieldsToValidate.find(
+            (field) => errors[field as keyof PropertyWizardFormValues]
+          )
+          if (firstInvalidField) {
+            focusAndScrollToField(firstInvalidField)
+          }
+          toast.error('Por favor, verifique os campos com pendência destacados em amarelo de atenção.')
           return
         }
       }
@@ -78,7 +86,14 @@ export function useWizardNavigation({
     if (fieldsToValidate.length > 0) {
       const isStepValid = await form.trigger(fieldsToValidate)
       if (!isStepValid) {
-        toast.error('Preencha os campos obrigatórios antes de avançar.')
+        const errors = form.formState.errors
+        const firstInvalidField = fieldsToValidate.find(
+          (field) => errors[field as keyof PropertyWizardFormValues]
+        )
+        if (firstInvalidField) {
+          focusAndScrollToField(firstInvalidField)
+        }
+        toast.error('Preencha ou corrija os campos destacados em amarelo antes de avançar.')
         return
       }
     }

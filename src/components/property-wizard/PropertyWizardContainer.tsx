@@ -14,7 +14,13 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
-import { PropertyWizardFormValues } from '@/lib/validations/property-wizard'
+import {
+  PropertyWizardFormValues,
+  STEP_NAMES,
+  FIELD_LABELS_MAP,
+  getStepForField,
+  focusAndScrollToField,
+} from '@/lib/validations/property-wizard'
 import { createProperty, updateProperty } from '@/actions/properties'
 import { saveCreditAnalysis } from '@/actions/credit-analysis'
 import { WizardStepperHeader } from './WizardStepperHeader'
@@ -65,6 +71,7 @@ export function PropertyWizardContainer({
   // Hook isolado para navegação e Feature Flags
   const {
     currentStep,
+    setCurrentStep,
     highestVisitedStep,
     handleNextStep,
     handlePrevStep,
@@ -200,7 +207,7 @@ export function PropertyWizardContainer({
         creditLimitTermMonths: Number(values.creditLimitTermMonths) || 12,
         creditLimitNotes: values.creditLimitNotes || '',
 
-        // Motor Financeiro Aditivo 003
+        // Parâmetros do Motor Financeiro
         creditLineCode: values.creditLineCode || 'PRONAMP_CUSTEIO',
         amortizationSystem: values.amortizationSystem || 'PRICE',
         interestRateAnnual: Number(values.interestRateAnnual) || 8.0,
@@ -218,9 +225,51 @@ export function PropertyWizardContainer({
         res = await createProperty(payload)
       }
 
-      if (res?.error) {
-        toast.error(typeof res.error === 'string' ? res.error : 'Erro ao salvar propriedade.')
-        return
+      if (!res || res.error || res.success === false) {
+        const errorMsg = typeof res?.error === 'string' ? res.error : 'Erro ao salvar propriedade.'
+
+        // 1. Tratamento de pendências estruturadas retornadas pela Server Action
+        if (res?.issues && Array.isArray(res.issues) && res.issues.length > 0) {
+          res.issues.forEach((issue: { path: string; message: string }) => {
+            form.setError(issue.path as any, {
+              type: 'manual',
+              message: issue.message,
+            })
+          })
+
+          const firstIssue = res.issues[0]
+          const targetStep = getStepForField(firstIssue.path)
+          const fieldLabel = FIELD_LABELS_MAP[firstIssue.path] || firstIssue.path
+          const stepName = STEP_NAMES[targetStep] || `Etapa ${targetStep}`
+
+          if (targetStep !== currentStep) {
+            setCurrentStep(targetStep)
+          }
+
+          toast.error(`Corrija os dados pendentes em ${stepName}: [${fieldLabel}] -> ${firstIssue.message}`)
+          focusAndScrollToField(firstIssue.path)
+        } else {
+          // 2. Extração caso o erro venha formatado como "[Campo: nome] -> mensagem"
+          const match = errorMsg.match(/\[Campo:\s*([a-zA-Z0-9_.]+)\]\s*->\s*(.*)/)
+          if (match) {
+            const fieldPath = match[1]
+            const msg = match[2]
+            form.setError(fieldPath as any, { type: 'manual', message: msg })
+            const targetStep = getStepForField(fieldPath)
+            const fieldLabel = FIELD_LABELS_MAP[fieldPath] || fieldPath
+            const stepName = STEP_NAMES[targetStep] || `Etapa ${targetStep}`
+
+            if (targetStep !== currentStep) {
+              setCurrentStep(targetStep)
+            }
+            toast.error(`Corrija os dados pendentes em ${stepName}: [${fieldLabel}] -> ${msg}`)
+            focusAndScrollToField(fieldPath)
+          } else {
+            toast.error(errorMsg)
+          }
+        }
+
+        return { success: false, error: errorMsg }
       }
 
       // Sincronização atômica da Análise de Crédito no Banco de Dados
@@ -286,6 +335,8 @@ export function PropertyWizardContainer({
           : 'Propriedade e Dossiê cadastrados com sucesso!'
       )
 
+      const savedId = res?.data?.id || propertyId
+
       if (stayOnPage) {
         router.refresh()
       } else {
@@ -293,11 +344,11 @@ export function PropertyWizardContainer({
         router.refresh()
       }
 
-      return res?.data?.id || propertyId
+      return { success: true, id: savedId }
     } catch (err: any) {
       console.error(err)
       toast.error('Erro inesperado ao salvar. Verifique sua conexão.')
-      return null
+      return { success: false, error: err?.message || 'Erro inesperado' }
     } finally {
       setIsSubmitting(false)
     }
@@ -310,6 +361,9 @@ export function PropertyWizardContainer({
 
       if (!values.name || values.name.trim().length < 2) {
         toast.error('O nome da fazenda é obrigatório (mínimo 2 caracteres).')
+        form.setError('name', { type: 'manual', message: 'O nome da fazenda é obrigatório.' })
+        if (currentStep !== 1) setCurrentStep(1)
+        focusAndScrollToField('name')
         return
       }
 
@@ -326,10 +380,22 @@ export function PropertyWizardContainer({
       const values = form.getValues()
       if (!values.name || values.name.trim().length < 2) {
         toast.error('O nome da fazenda é obrigatório (mínimo 2 caracteres).')
+        form.setError('name', { type: 'manual', message: 'O nome da fazenda é obrigatório.' })
+        if (currentStep !== 1) setCurrentStep(1)
+        focusAndScrollToField('name')
         return
       }
-      const savedId = await executeSave(values, true)
-      const targetId = savedId || propertyId || initialData?.id
+
+      const saveResult = await executeSave(values, true)
+
+      // TRAVA RÍGIDA DE NAVEGAÇÃO:
+      // Se não houver sucesso comprovado (result.success !== true), a navegação é estritamente bloqueada!
+      if (!saveResult || !saveResult.success) {
+        console.warn('[PropertyWizardContainer] Navegação abortada: operação de salvamento falhou ou foi rejeitada.', saveResult)
+        return
+      }
+
+      const targetId = saveResult.id || propertyId || initialData?.id
       if (targetId) {
         router.push(`/admin/credit-limit?propertyId=${targetId}&tab=simulator`)
       } else {
@@ -345,9 +411,19 @@ export function PropertyWizardContainer({
     console.error('Validation errors:', errors)
     const errorKeys = Object.keys(errors)
     if (errorKeys.length > 0) {
-      const firstError = errors[errorKeys[0]]
-      const msg = firstError?.message || `Existem campos com pendências: ${errorKeys.join(', ')}`
-      toast.error(msg)
+      const firstField = errorKeys[0]
+      const firstError = errors[firstField]
+      const targetStep = getStepForField(firstField)
+      const fieldLabel = FIELD_LABELS_MAP[firstField] || firstField
+      const stepName = STEP_NAMES[targetStep] || `Etapa ${targetStep}`
+      const msg = firstError?.message || `Campo com pendência: ${fieldLabel}`
+
+      if (targetStep !== currentStep) {
+        setCurrentStep(targetStep)
+      }
+
+      toast.error(`Corrija os dados pendentes em ${stepName}: [${fieldLabel}] -> ${msg}`)
+      focusAndScrollToField(firstField)
     }
   }
 
