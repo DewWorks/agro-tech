@@ -48,6 +48,14 @@ const TABS: TabItem[] = [
   },
 ]
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
 export default function FinancialNavTabs({
   currentBranchId,
   branches,
@@ -110,22 +118,24 @@ export default function FinancialNavTabs({
 
       {/* Seletor de Filiais Exclusivo para Diretoria Executiva */}
       {isExecutive && branches && branches.length > 0 && (
-        <div className="flex items-center gap-2.5">
-          <span className="text-xs font-medium text-slate-500">Filial:</span>
-          <select
-            value={branchParam}
-            onChange={(e) => handleBranchChange(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-xs focus:border-emerald-600 focus:outline-hidden focus:ring-1 focus:ring-emerald-600"
-          >
-            <option value="ALL">🏢 Grupo LN (Consolidado)</option>
-            {branches.map((b) => (
-              <option key={b.id} value={b.id}>
-                📍 {b.name} ({b.city})
-              </option>
-            ))}
-          </select>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Filial:</span>
+          <Select value={branchParam} onValueChange={(val) => handleBranchChange(val || 'ALL')}>
+            <SelectTrigger className="h-8 w-[240px] rounded-lg border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-xs focus:ring-1 focus:ring-emerald-600">
+              <SelectValue placeholder="Selecione a filial" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">🏢 Grupo LN (Consolidado)</SelectItem>
+              {branches.map((b) => (
+                <SelectItem key={b.id} value={b.id}>
+                  📍 {b.name} ({b.city})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       )}
     </div>
   )
 }
+

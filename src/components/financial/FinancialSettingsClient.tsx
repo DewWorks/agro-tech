@@ -13,7 +13,7 @@ import {
   ShieldCheck,
   TrendingUp,
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, maskBankAgency, maskBankAccount } from '@/lib/utils'
 import {
   updateFinancialSettings,
   updateBranchFinancialSettings,
@@ -32,6 +32,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface FinancialSettingsClientProps {
   globalSettings: any
@@ -388,17 +395,21 @@ export default function FinancialSettingsClient({
           <form onSubmit={handleSaveBranch} className="space-y-4 text-xs">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">Selecionar Filial:</Label>
-              <select
+              <Select
                 value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800"
+                onValueChange={(val) => setSelectedBranchId(val || '')}
               >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    📍 {b.name} ({b.city})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Selecione a filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      📍 {b.name} ({b.city})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -578,30 +589,38 @@ export default function FinancialSettingsClient({
           <form onSubmit={handleCreateAccount} className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Filial:</Label>
-              <select
+              <Select
                 value={accountBranchId}
-                onChange={(e) => setAccountBranchId(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800"
+                onValueChange={(val) => setAccountBranchId(val || '')}
               >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    📍 {b.name} ({b.city})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Selecione a filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      📍 {b.name} ({b.city})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Tipo de Recurso:</Label>
-              <select
+              <Select
                 value={accountType}
-                onChange={(e) => setAccountType(e.target.value as any)}
-                className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 font-semibold"
+                onValueChange={(val: any) => setAccountType(val)}
               >
-                <option value="CORRENTE">Conta Corrente Bancária</option>
-                <option value="CAIXA_ESPECIE">Caixa Físico da Filial (Espécie)</option>
-                <option value="POUPANCA">Poupança</option>
-              </select>
+                <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Tipo de recurso" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="CORRENTE">Conta Corrente Bancária</SelectItem>
+                  <SelectItem value="CAIXA_ESPECIE">Caixa Físico da Filial (Espécie)</SelectItem>
+                  <SelectItem value="POUPANCA">Poupança</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">
@@ -620,9 +639,10 @@ export default function FinancialSettingsClient({
                   <Label className="text-xs font-semibold">Agência (com dígito):</Label>
                   <Input
                     value={agency}
-                    onChange={(e) => setAgency(e.target.value)}
+                    onChange={(e) => setAgency(maskBankAgency(e.target.value))}
                     placeholder="1234-5"
-                    className="text-xs"
+                    maxLength={7}
+                    className="text-xs font-mono"
                   />
                 </div>
 
@@ -630,9 +650,10 @@ export default function FinancialSettingsClient({
                   <Label className="text-xs font-semibold">Conta (com dígito):</Label>
                   <Input
                     value={accountNumber}
-                    onChange={(e) => setAccountNumber(e.target.value)}
+                    onChange={(e) => setAccountNumber(maskBankAccount(e.target.value))}
                     placeholder="12345-6"
-                    className="text-xs"
+                    maxLength={14}
+                    className="text-xs font-mono"
                   />
                 </div>
               </div>
@@ -694,32 +715,40 @@ export default function FinancialSettingsClient({
 
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Conta de Origem (Débito):</Label>
-              <select
+              <Select
                 value={sourceAccountId}
-                onChange={(e) => setSourceAccountId(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 font-semibold"
+                onValueChange={(val) => setSourceAccountId(val || '')}
               >
-                {bankAccounts.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.bankName} (Saldo: {formatCurrency(Number(b.currentBalance))})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Selecione a conta de origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.bankName} (Saldo: {formatCurrency(Number(b.currentBalance))})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Conta de Destino (Crédito):</Label>
-              <select
+              <Select
                 value={destAccountId}
-                onChange={(e) => setDestAccountId(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 font-semibold"
+                onValueChange={(val) => setDestAccountId(val || '')}
               >
-                {bankAccounts.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.bankName} (Saldo: {formatCurrency(Number(b.currentBalance))})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Selecione a conta de destino" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bankAccounts.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      {b.bankName} (Saldo: {formatCurrency(Number(b.currentBalance))})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">

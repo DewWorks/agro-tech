@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { validateCPF, validateCNPJ } from '@/lib/utils/masks'
+import { validateCPF, validateCNPJ, validatePixKey } from '@/lib/utils/masks'
 
 /**
  * Validador para CPF ou CNPJ limpo
@@ -64,19 +64,30 @@ export type TransferBetweenAccountsInput = z.infer<typeof transferBetweenAccount
 // 3. PARCEIROS COMERCIAIS
 // ==========================================
 
-export const commercialPartnerSchema = z.object({
-  branchId: z.string().uuid(),
-  name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
-  document: z.string().refine(isValidDocument, {
-    message: 'CPF ou CNPJ inválido',
-  }),
-  phone: z.string().optional().nullable(),
-  email: z.string().email('E-mail inválido').optional().nullable(),
-  pixKey: z.string().min(3, 'Chave PIX obrigatória'),
-  pixKeyType: z.enum(['CPF', 'CNPJ', 'EMAIL', 'TELEFONE', 'ALEATORIA']),
-  bankInfo: z.record(z.string(), z.any()).optional().nullable(),
-  defaultCommissionRate: z.number().min(0).max(100).default(20.0),
-})
+export const commercialPartnerSchema = z
+  .object({
+    branchId: z.string().uuid(),
+    name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
+    document: z.string().refine(isValidDocument, {
+      message: 'CPF ou CNPJ inválido',
+    }),
+    phone: z.string().optional().nullable(),
+    email: z.string().email('E-mail inválido').optional().nullable(),
+    pixKey: z.string().min(3, 'Chave PIX obrigatória'),
+    pixKeyType: z.enum(['CPF', 'CNPJ', 'EMAIL', 'TELEFONE', 'ALEATORIA']),
+    bankInfo: z.record(z.string(), z.any()).optional().nullable(),
+    defaultCommissionRate: z.number().min(0).max(100).default(20.0),
+  })
+  .superRefine((data, ctx) => {
+    const check = validatePixKey(data.pixKey, data.pixKeyType)
+    if (!check.isValid) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: check.error || 'Chave PIX inválida para o tipo informado',
+        path: ['pixKey'],
+      })
+    }
+  })
 
 export type CommercialPartnerInput = z.infer<typeof commercialPartnerSchema>
 

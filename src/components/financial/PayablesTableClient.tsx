@@ -31,6 +31,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface PayablesTableClientProps {
   payables: any[]
@@ -327,29 +334,31 @@ export default function PayablesTableClient({
           </div>
 
           {/* Filtro Status */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs focus:border-emerald-600 focus:outline-hidden"
-          >
-            <option value="ALL">Status: Todos</option>
-            <option value="PENDENTE">🟡 Pendentes</option>
-            <option value="PARCIALMENTE_PAGO">🔵 Parcialmente Pagos</option>
-            <option value="PAGO">🟢 Pagos</option>
-            <option value="EM_ATRASO">🔴 Em Atraso</option>
-          </select>
+          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'ALL')}>
+            <SelectTrigger className="h-9 w-[190px] text-xs font-semibold bg-white border-slate-200">
+              <SelectValue placeholder="Status: Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Status: Todos</SelectItem>
+              <SelectItem value="PENDENTE">🟡 Pendentes</SelectItem>
+              <SelectItem value="PARCIALMENTE_PAGO">🔵 Parcialmente Pagos</SelectItem>
+              <SelectItem value="PAGO">🟢 Pagos</SelectItem>
+              <SelectItem value="EM_ATRASO">🔴 Em Atraso</SelectItem>
+            </SelectContent>
+          </Select>
 
           {/* Filtro Tipo */}
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs focus:border-emerald-600 focus:outline-hidden"
-          >
-            <option value="ALL">Tipo: Todos</option>
-            <option value="CUSTO_DIRETO_PROPOSTA">🚜 Custo Direto (Projetos)</option>
-            <option value="DESPESA_FIXA_FILIAL">🏢 Despesa Fixa (Filial)</option>
-            <option value="COMISSAO_PARCEIRO">🤝 Comissões</option>
-          </select>
+          <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val || 'ALL')}>
+            <SelectTrigger className="h-9 w-[220px] text-xs font-semibold bg-white border-slate-200">
+              <SelectValue placeholder="Tipo: Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Tipo: Todos</SelectItem>
+              <SelectItem value="CUSTO_DIRETO_PROPOSTA">🚜 Custo Direto (Projetos)</SelectItem>
+              <SelectItem value="DESPESA_FIXA_FILIAL">🏢 Despesa Fixa (Filial)</SelectItem>
+              <SelectItem value="COMISSAO_PARCEIRO">🤝 Comissões</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Botão Nova Obrigação */}
@@ -605,32 +614,34 @@ export default function PayablesTableClient({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Filial:</Label>
-                <select
-                  value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800"
-                >
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      📍 {b.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={branchId} onValueChange={(val) => setBranchId(val || '')}>
+                  <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione a filial" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        📍 {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Categoria Financeira:</Label>
-                <select
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      [{c.code}] {c.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || '')}>
+                  <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        [{c.code}] {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1">
@@ -655,18 +666,22 @@ export default function PayablesTableClient({
 
               <div className="space-y-1">
                 <Label className="text-xs font-semibold">Centro de Custo / Proposta (Opcional):</Label>
-                <select
-                  value={demandId}
-                  onChange={(e) => setDemandId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800"
+                <Select
+                  value={demandId || 'NONE'}
+                  onValueChange={(val) => setDemandId(val === 'NONE' || !val ? '' : val)}
                 >
-                  <option value="">Despesa Geral da Filial</option>
-                  {demands.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      🚜 {d.producer?.name} ({d.serviceType})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full text-xs font-medium bg-white border-slate-200">
+                    <SelectValue placeholder="Despesa Geral da Filial" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">Despesa Geral da Filial</SelectItem>
+                    {demands.map((d) => (
+                      <SelectItem key={d.id} value={d.id}>
+                        🚜 {d.producer?.name} ({d.serviceType})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1">
@@ -706,19 +721,23 @@ export default function PayablesTableClient({
                 <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-200">
                   <div className="space-y-1">
                     <Label className="text-xs font-semibold">Quantidade de Parcelas:</Label>
-                    <select
-                      value={numInstallments}
-                      onChange={(e) => setNumInstallments(parseInt(e.target.value, 10))}
-                      className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800"
+                    <Select
+                      value={String(numInstallments)}
+                      onValueChange={(val) => setNumInstallments(parseInt(val || '2', 10))}
                     >
-                      <option value={2}>2x</option>
-                      <option value={3}>3x</option>
-                      <option value={4}>4x</option>
-                      <option value={5}>5x</option>
-                      <option value={6}>6x</option>
-                      <option value={10}>10x</option>
-                      <option value={12}>12x</option>
-                    </select>
+                      <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                        <SelectValue placeholder="Parcelas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="2">2x</SelectItem>
+                        <SelectItem value="3">3x</SelectItem>
+                        <SelectItem value="4">4x</SelectItem>
+                        <SelectItem value="5">5x</SelectItem>
+                        <SelectItem value="6">6x</SelectItem>
+                        <SelectItem value="10">10x</SelectItem>
+                        <SelectItem value="12">12x</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-1">
@@ -829,17 +848,21 @@ export default function PayablesTableClient({
               {/* Conta Bancária de Débito */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">Conta Bancária de Saída / Débito:</Label>
-                <select
+                <Select
                   value={settleBankAccountId}
-                  onChange={(e) => setSettleBankAccountId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800"
+                  onValueChange={(val) => setSettleBankAccountId(val || '')}
                 >
-                  {bankAccounts.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      🏦 {b.bankName} (Saldo: {formatCurrency(Number(b.currentBalance))})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione a conta de saída" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        🏦 {b.bankName} (Saldo: {formatCurrency(Number(b.currentBalance))})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

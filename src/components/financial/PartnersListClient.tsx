@@ -16,7 +16,16 @@ import {
   CreditCard,
   Building,
 } from 'lucide-react'
-import { formatCurrency, formatCPF, formatCNPJ } from '@/lib/utils'
+import {
+  formatCurrency,
+  formatCPF,
+  formatCNPJ,
+  maskDocument,
+  maskPixKey,
+  validatePixKey,
+  maskPhone,
+} from '@/lib/utils'
+import { validateCPF, validateCNPJ } from '@/lib/utils/masks'
 import { createCommercialPartner, toggleCommercialPartnerStatus } from '@/actions/financial/partners'
 import { toast } from 'sonner'
 import {
@@ -29,6 +38,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface PartnersListClientProps {
   partners: any[]
@@ -67,11 +83,39 @@ export default function PartnersListClient({
     setTimeout(() => setCopiedId(null), 2500)
   }
 
+  // Alteração dinâmica do tipo de chave PIX com limpeza/ajuste da máscara
+  const handlePixKeyTypeChange = (newType: 'CPF' | 'CNPJ' | 'EMAIL' | 'TELEFONE' | 'ALEATORIA') => {
+    setPixKeyType(newType)
+    setPixKey((prev) => maskPixKey(prev, newType))
+  }
+
+  const pixValidation = pixKey ? validatePixKey(pixKey, pixKeyType) : null
+
   // Cadastrar parceiro
   const handleCreatePartner = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!branchId || !name || !document || !pixKey) {
+    if (!branchId || !name.trim() || !document.trim() || !pixKey.trim()) {
       toast.error('Preencha os campos obrigatórios (Nome, CPF/CNPJ, Chave PIX).')
+      return
+    }
+
+    const cleanDoc = document.replace(/\D/g, '')
+    if (cleanDoc.length === 11 && !validateCPF(cleanDoc)) {
+      toast.error('CPF do parceiro inválido. Verifique os dígitos informados.')
+      return
+    }
+    if (cleanDoc.length === 14 && !validateCNPJ(cleanDoc)) {
+      toast.error('CNPJ do parceiro inválido. Verifique os dígitos informados.')
+      return
+    }
+    if (cleanDoc.length !== 11 && cleanDoc.length !== 14) {
+      toast.error('Documento deve ter 11 dígitos (CPF) ou 14 dígitos (CNPJ).')
+      return
+    }
+
+    const pixCheck = validatePixKey(pixKey, pixKeyType)
+    if (!pixCheck.isValid) {
+      toast.error(pixCheck.error || 'Chave PIX inválida para o tipo selecionado.')
       return
     }
 
@@ -82,8 +126,8 @@ export default function PartnersListClient({
       const res = await createCommercialPartner({
         branchId,
         name: name.trim(),
-        document: document.trim(),
-        phone: phone.trim() || undefined,
+        document: cleanDoc,
+        phone: phone.trim() ? phone.replace(/\D/g, '') : undefined,
         email: email.trim() || undefined,
         pixKey: pixKey.trim(),
         pixKeyType,
@@ -239,17 +283,18 @@ export default function PartnersListClient({
           <form onSubmit={handleCreatePartner} className="space-y-3 py-2 text-xs">
             <div className="space-y-1">
               <Label className="text-xs font-semibold">Filial:</Label>
-              <select
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                className="w-full rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-800"
-              >
-                {branches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    📍 {b.name} ({b.city})
-                  </option>
-                ))}
-              </select>
+              <Select value={branchId} onValueChange={(val) => setBranchId(val || '')}>
+                <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                  <SelectValue placeholder="Selecione a filial" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id}>
+                      📍 {b.name} ({b.city})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1">
@@ -267,8 +312,9 @@ export default function PartnersListClient({
                 <Label className="text-xs font-semibold">CPF ou CNPJ:</Label>
                 <Input
                   value={document}
-                  onChange={(e) => setDocument(e.target.value)}
+                  onChange={(e) => setDocument(maskDocument(e.target.value))}
                   placeholder="000.000.000-00"
+                  maxLength={18}
                   className="text-xs font-mono"
                 />
               </div>
@@ -277,8 +323,9 @@ export default function PartnersListClient({
                 <Label className="text-xs font-semibold">Telefone / WhatsApp:</Label>
                 <Input
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(maskPhone(e.target.value))}
                   placeholder="(63) 99999-0000"
+                  maxLength={15}
                   className="text-xs"
                 />
               </div>
@@ -295,7 +342,7 @@ export default function PartnersListClient({
               />
             </div>
 
-            {/* Configuração da Chave PIX */}
+            {/* Configuração da Chave PIX com Máscaras e Validação Rigorosa */}
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
               <span className="text-[10px] font-bold uppercase text-slate-500">
                 Dados Bancários para Repasse (PIX):
@@ -304,27 +351,68 @@ export default function PartnersListClient({
               <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <Label className="text-[11px] font-semibold">Tipo de Chave:</Label>
-                  <select
+                  <Select
                     value={pixKeyType}
-                    onChange={(e) => setPixKeyType(e.target.value as any)}
-                    className="w-full rounded-md border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800"
+                    onValueChange={(val: any) => handlePixKeyTypeChange(val)}
                   >
-                    <option value="CPF">CPF</option>
-                    <option value="CNPJ">CNPJ</option>
-                    <option value="TELEFONE">Telefone</option>
-                    <option value="EMAIL">E-mail</option>
-                    <option value="ALEATORIA">Aleatória</option>
-                  </select>
+                    <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                      <SelectValue placeholder="Tipo de Chave" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CPF">CPF</SelectItem>
+                      <SelectItem value="CNPJ">CNPJ</SelectItem>
+                      <SelectItem value="TELEFONE">Telefone</SelectItem>
+                      <SelectItem value="EMAIL">E-mail</SelectItem>
+                      <SelectItem value="ALEATORIA">Aleatória (EVP)</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="col-span-2 space-y-1">
                   <Label className="text-[11px] font-semibold">Chave PIX:</Label>
                   <Input
                     value={pixKey}
-                    onChange={(e) => setPixKey(e.target.value)}
-                    placeholder="Chave para pagamento"
-                    className="text-xs font-mono font-bold"
+                    onChange={(e) => setPixKey(maskPixKey(e.target.value, pixKeyType))}
+                    placeholder={
+                      pixKeyType === 'CPF'
+                        ? '000.000.000-00'
+                        : pixKeyType === 'CNPJ'
+                        ? '00.000.000/0000-00'
+                        : pixKeyType === 'TELEFONE'
+                        ? '(63) 99999-0000'
+                        : pixKeyType === 'EMAIL'
+                        ? 'financeiro@parceiro.com'
+                        : 'Chave aleatória EVP (32+ caracteres)'
+                    }
+                    maxLength={
+                      pixKeyType === 'CPF'
+                        ? 14
+                        : pixKeyType === 'CNPJ'
+                        ? 18
+                        : pixKeyType === 'TELEFONE'
+                        ? 15
+                        : pixKeyType === 'EMAIL'
+                        ? 80
+                        : 36
+                    }
+                    className={`text-xs font-mono font-bold ${
+                      pixValidation
+                        ? pixValidation.isValid
+                          ? 'border-emerald-500 focus-visible:ring-emerald-500'
+                          : 'border-rose-400 focus-visible:ring-rose-400'
+                        : ''
+                    }`}
                   />
+                  {pixValidation && !pixValidation.isValid && (
+                    <span className="block text-[10px] text-rose-600 font-medium">
+                      ⚠️ {pixValidation.error}
+                    </span>
+                  )}
+                  {pixValidation && pixValidation.isValid && (
+                    <span className="block text-[10px] text-emerald-600 font-medium">
+                      ✓ Chave PIX com formato e checksum válidos
+                    </span>
+                  )}
                 </div>
               </div>
 

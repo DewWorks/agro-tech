@@ -14,6 +14,14 @@ import {
   buildFinancialBranchWhere,
   FinancialAuthContext,
 } from '@/lib/financial/auth-guard'
+import {
+  maskDocument,
+  maskPixKey,
+  validatePixKey,
+  maskBankAgency,
+  maskBankAccount,
+  maskCropYear,
+} from '@/lib/utils'
 
 describe('Módulo Financeiro ERP (Aditivo 004) — Validações & Regras de Negócio', () => {
   // UUIDs válidos compatíveis com Zod (RFC 4122 v4)
@@ -84,11 +92,44 @@ describe('Módulo Financeiro ERP (Aditivo 004) — Validações & Regras de Neg�
         branchId: validUUID,
         name: 'Parceiro Fake',
         document: '11111111111', // CPF com dígitos repetidos inválido
-        pixKey: '11111111111',
+        pixKey: 'carlos@corretor.com',
+        pixKeyType: 'EMAIL',
+        defaultCommissionRate: 20,
+      })
+      expect(res.success).toBe(false)
+    })
+
+    it('rejeita chave PIX do tipo CPF com texto aleatório (ex: "asdasd")', () => {
+      const validCPF = '52998224725'
+      const res = commercialPartnerSchema.safeParse({
+        branchId: validUUID,
+        name: 'Carlos Corretor',
+        document: validCPF,
+        pixKey: 'asdasd', // Texto inválido para CPF
         pixKeyType: 'CPF',
         defaultCommissionRate: 20,
       })
       expect(res.success).toBe(false)
+      if (!res.success) {
+        expect(res.error.issues[0].message).toContain('CPF deve conter exatamente 11 dígitos')
+      }
+    })
+
+    it('valida corretamente máscaras e funções de formatação bancária', () => {
+      // Máscara dinâmica de documento CPF vs CNPJ
+      expect(maskDocument('52998224725')).toBe('529.982.247-25')
+      expect(maskDocument('11222333000181')).toBe('11.222.333/0001-81')
+
+      // Máscara e validação de Chave PIX
+      expect(maskPixKey('52998224725', 'CPF')).toBe('529.982.247-25')
+      expect(maskPixKey('asdasd', 'CPF')).toBe('') // Remove letras
+      expect(validatePixKey('asdasd', 'CPF').isValid).toBe(false)
+      expect(validatePixKey('52998224725', 'CPF').isValid).toBe(true)
+
+      // Máscaras de agência e conta bancária
+      expect(maskBankAgency('12345')).toBe('1234-5')
+      expect(maskBankAccount('123456')).toBe('12345-6')
+      expect(maskCropYear('20252026')).toBe('2025/2026')
     })
   })
 

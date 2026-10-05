@@ -36,6 +36,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface ReceivablesTableClientProps {
   titles: any[]
@@ -326,17 +333,18 @@ export default function ReceivablesTableClient({
           </div>
 
           {/* Filtro por Status */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs focus:border-emerald-600 focus:outline-hidden"
-          >
-            <option value="ALL">Status: Todos</option>
-            <option value="PENDENTE">🟡 Pendentes</option>
-            <option value="PARCIALMENTE_RECEBIDO">🔵 Parcialmente Recebidos</option>
-            <option value="QUITADO">🟢 Quitados</option>
-            <option value="EM_ATRASO">🔴 Em Atraso</option>
-          </select>
+          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'ALL')}>
+            <SelectTrigger className="h-9 w-[210px] text-xs font-semibold bg-white border-slate-200">
+              <SelectValue placeholder="Status: Todos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Status: Todos</SelectItem>
+              <SelectItem value="PENDENTE">🟡 Pendentes</SelectItem>
+              <SelectItem value="PARCIALMENTE_RECEBIDO">🔵 Parcialmente Recebidos</SelectItem>
+              <SelectItem value="QUITADO">🟢 Quitados</SelectItem>
+              <SelectItem value="EM_ATRASO">🔴 Em Atraso</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Botão de Novo Faturamento Avulso */}
@@ -630,18 +638,21 @@ export default function ReceivablesTableClient({
                 <Label htmlFor="bankAccount" className="text-xs font-semibold">
                   Conta Bancária de Crédito:
                 </Label>
-                <select
-                  id="bankAccount"
+                <Select
                   value={settleBankAccountId}
-                  onChange={(e) => setSettleBankAccountId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:outline-hidden"
+                  onValueChange={(val) => setSettleBankAccountId(val || '')}
                 >
-                  {bankAccounts.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      🏦 {b.bankName} (Ag. {b.agency || 'S/A'} - CC {b.accountNumber || 'S/N'})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="bankAccount" className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione a conta de crédito" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {bankAccounts.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        🏦 {b.bankName} (Ag. {b.agency || 'S/A'} - CC {b.accountNumber || 'S/N'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Valor da Baixa */}

@@ -11,7 +11,7 @@ import {
   Users2,
   CheckCircle2,
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, maskCropYear } from '@/lib/utils'
 import { createDirectReceivableTitle } from '@/actions/financial/receivables'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -19,6 +19,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 interface NewReceivableFormProps {
   branches: Array<{ id: string; name: string; city: string }>
@@ -253,18 +260,18 @@ export default function NewReceivableClientForm({
                 <Label htmlFor="branch" className="text-xs font-semibold">
                   Filial Responsável:
                 </Label>
-                <select
-                  id="branch"
-                  value={branchId}
-                  onChange={(e) => setBranchId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:outline-hidden"
-                >
-                  {branches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      📍 {b.name} ({b.city})
-                    </option>
-                  ))}
-                </select>
+                <Select value={branchId} onValueChange={(val) => setBranchId(val || '')}>
+                  <SelectTrigger id="branch" className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione a filial" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>
+                        📍 {b.name} ({b.city})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Produtor */}
@@ -272,21 +279,24 @@ export default function NewReceivableClientForm({
                 <Label htmlFor="producer" className="text-xs font-semibold">
                   Produtor Rural / Cliente:
                 </Label>
-                <select
-                  id="producer"
+                <Select
                   value={producerId}
-                  onChange={(e) => {
-                    setProducerId(e.target.value)
+                  onValueChange={(val) => {
+                    setProducerId(val || '')
                     setPropertyId('')
                   }}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:outline-hidden"
                 >
-                  {producers.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      👤 {p.name} ({p.document})
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="producer" className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione o produtor rural" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {producers.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        👤 {p.name} ({p.document})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Propriedade */}
@@ -294,22 +304,25 @@ export default function NewReceivableClientForm({
                 <Label htmlFor="property" className="text-xs font-semibold">
                   Propriedade Rural (Opcional):
                 </Label>
-                <select
-                  id="property"
-                  value={propertyId}
-                  onChange={(e) => setPropertyId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-800 focus:border-emerald-600 focus:outline-hidden"
+                <Select
+                  value={propertyId || 'NONE'}
+                  onValueChange={(val) => setPropertyId(val === 'NONE' || !val ? '' : val)}
                 >
-                  <option value="">Nenhuma propriedade vinculada</option>
-                  {availableProperties.map((prop) => (
-                    <option key={prop.id} value={prop.id}>
-                      🌱 {prop.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="property" className="w-full text-xs font-medium bg-white border-slate-200">
+                    <SelectValue placeholder="Nenhuma propriedade vinculada" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">Nenhuma propriedade vinculada</SelectItem>
+                    {availableProperties.map((prop) => (
+                      <SelectItem key={prop.id} value={prop.id}>
+                        🌱 {prop.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Ano Safra */}
+              {/* Ano Safra com Máscara */}
               <div className="space-y-1.5">
                 <Label htmlFor="cropYear" className="text-xs font-semibold">
                   Ano Safra:
@@ -317,8 +330,9 @@ export default function NewReceivableClientForm({
                 <Input
                   id="cropYear"
                   value={cropYear}
-                  onChange={(e) => setCropYear(e.target.value)}
+                  onChange={(e) => setCropYear(maskCropYear(e.target.value))}
                   placeholder="2025/2026"
+                  maxLength={9}
                   className="text-xs font-semibold"
                 />
               </div>
@@ -337,18 +351,18 @@ export default function NewReceivableClientForm({
                 <Label htmlFor="category" className="text-xs font-semibold">
                   Plano de Contas (Receita):
                 </Label>
-                <select
-                  id="category"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:outline-hidden"
-                >
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      [{c.code}] {c.name}
-                    </option>
-                  ))}
-                </select>
+                <Select value={categoryId} onValueChange={(val) => setCategoryId(val || '')}>
+                  <SelectTrigger id="category" className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Selecione o plano de contas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        [{c.code}] {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Número Documento */}
@@ -423,20 +437,23 @@ export default function NewReceivableClientForm({
                 <Label htmlFor="numInstallments" className="text-xs font-semibold">
                   Número de Parcelas:
                 </Label>
-                <select
-                  id="numInstallments"
-                  value={numInstallments}
-                  onChange={(e) => setNumInstallments(parseInt(e.target.value, 10))}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:outline-hidden"
+                <Select
+                  value={String(numInstallments)}
+                  onValueChange={(val) => setNumInstallments(parseInt(val || '1', 10))}
                 >
-                  <option value={1}>1x (À Vista)</option>
-                  <option value={2}>2x</option>
-                  <option value={3}>3x</option>
-                  <option value={4}>4x</option>
-                  <option value={6}>6x</option>
-                  <option value={10}>10x</option>
-                  <option value={12}>12x</option>
-                </select>
+                  <SelectTrigger id="numInstallments" className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Número de Parcelas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">1x (À Vista)</SelectItem>
+                    <SelectItem value="2">2x</SelectItem>
+                    <SelectItem value="3">3x</SelectItem>
+                    <SelectItem value="4">4x</SelectItem>
+                    <SelectItem value="6">6x</SelectItem>
+                    <SelectItem value="10">10x</SelectItem>
+                    <SelectItem value="12">12x</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1.5">
@@ -493,19 +510,22 @@ export default function NewReceivableClientForm({
                 <Label htmlFor="partner" className="text-xs font-semibold">
                   Prospectador / Corretor:
                 </Label>
-                <select
-                  id="partner"
-                  value={partnerId}
-                  onChange={(e) => setPartnerId(e.target.value)}
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-800 focus:border-emerald-600 focus:outline-hidden"
+                <Select
+                  value={partnerId || 'NONE'}
+                  onValueChange={(val) => setPartnerId(val === 'NONE' || !val ? '' : val)}
                 >
-                  <option value="">Nenhum parceiro (Venda Direta)</option>
-                  {partners.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      🤝 {p.name}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="partner" className="w-full text-xs font-semibold bg-white border-slate-200">
+                    <SelectValue placeholder="Nenhum parceiro (Venda Direta)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">Nenhum parceiro (Venda Direta)</SelectItem>
+                    {partners.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        🤝 {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {partnerCommissionPreview && (
