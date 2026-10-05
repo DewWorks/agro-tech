@@ -23,6 +23,12 @@ async function main() {
       name: 'Gestão de Documentos',
       description: 'Armazenamento de Ficheiros, Pastas Virtuais e Alertas de Validade.',
       isActive: true,
+    },
+    {
+      code: 'FINANCIAL_ERP',
+      name: 'Módulo de Gestão Financeira (ERP)',
+      description: 'Contas a pagar e receber, conciliação, livro-caixa, trava de comissões e DRE da safra.',
+      isActive: true,
     }
   ]
 

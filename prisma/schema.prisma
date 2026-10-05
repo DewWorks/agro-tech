@@ -24,6 +24,8 @@ model Organization {
 
   branches Branch[]
   users    User[]
+  financialSettings   FinancialSettings?
+  financialCategories FinancialCategory[]
 
   @@map("organizations")
 }
@@ -55,6 +57,14 @@ model Branch {
   creditAnalyses CreditAnalysis[]
   urbanProperties UrbanProperty[]
   vehicles       Vehicle[]
+  financialBranchSettings FinancialBranchSettings?
+  bankAccounts            BankAccount[]
+  commercialPartners      CommercialPartner[]
+  receivableTitles        ReceivableTitle[]
+  partnerCommissions      PartnerCommission[]
+  payableTitles           PayableTitle[]
+  cashTransactions        CashTransaction[]
+  financialAuditLogs      FinancialAuditLog[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -346,6 +356,7 @@ model Producer {
   creditAnalyses CreditAnalysis[]
   urbanProperties UrbanProperty[]
   vehicles       Vehicle[]
+  receivableTitles ReceivableTitle[]
 
   // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
   @@unique([branchId, document])
@@ -435,6 +446,7 @@ model Property {
   documents      Document[]
   serviceDemands ServiceDemand[]
   creditAnalyses CreditAnalysis[]
+  receivableTitles ReceivableTitle[]
 
   @@index([branchId])
   @@index([branchId, name])
@@ -837,6 +849,8 @@ model ServiceDemand {
   document              Document?         @relation("DemandPrimaryDocument", fields: [documentId], references: [id], onDelete: SetNull)
   checklistItems        DemandChecklistItem[]
   history               ServiceDemandHistory[]
+  receivableTitles      ReceivableTitle[]
+  payableTitles         PayableTitle[]
 
   @@index([branchId, status])
   @@index([branchId, serviceType])
@@ -1135,4 +1149,396 @@ model Vehicle {
   @@index([producerId])
   @@map("vehicles")
 }
+
+// ======================================================================
+// MÓDULO DE GESTÃO FINANCEIRA E CONTROLE DO NEGÓCIO (ADITIVO 004 - ERP)
+// ======================================================================
+
+enum BillingOriginType {
+  ESTEIRA_CREDITO
+  SERVICO_AVULSO_PACOTE
+}
+
+enum ReceivableStatus {
+  PENDENTE
+  PARCIALMENTE_RECEBIDO
+  QUITADO
+  EM_ATRASO
+  CANCELADO
+  BAIXADO_INADIMPLENCIA
+}
+
+enum PayableStatus {
+  PENDENTE
+  PARCIALMENTE_PAGO
+  PAGO
+  EM_ATRASO
+  CANCELADO
+}
+
+enum InstallmentStatus {
+  A_VENCER
+  VENCE_HOJE
+  EM_ATRASO
+  QUITADO
+  CANCELADO
+}
+
+enum CommissionStatus {
+  BLOQUEADO
+  LIBERADO_PARCIAL
+  LIBERADO_TOTAL
+  PAGO
+  CANCELADO
+}
+
+enum ExpenseType {
+  CUSTO_DIRETO_PROPOSTA
+  DESPESA_FIXA_FILIAL
+  COMISSAO_PARCEIRO
+}
+
+enum TransactionType {
+  ENTRADA
+  SAIDA
+  TRANSFERENCIA_INTERNA
+}
+
+enum PixKeyType {
+  CPF
+  CNPJ
+  EMAIL
+  TELEFONE
+  ALEATORIA
+}
+
+enum BankAccountType {
+  CORRENTE
+  POUPANCA
+  CAIXA_ESPECIE
+}
+
+enum FinancialCategoryType {
+  RECEITA
+  DESPESA
+}
+
+model FinancialSettings {
+  id                                String       @id @default(uuid())
+  organizationId                    String       @unique @map("organization_id")
+  defaultSuccessFeePercent          Decimal      @default(2.00) @map("default_success_fee_percent") @db.Decimal(5, 2)
+  defaultPartnerCommissionPercent   Decimal      @default(20.00) @map("default_partner_commission_percent") @db.Decimal(5, 2)
+  defaultFieldSurveyCostPerKm       Decimal      @default(2.50) @map("default_field_survey_cost_per_km") @db.Decimal(10, 2)
+  createdAt                         DateTime     @default(now()) @map("created_at")
+  updatedAt                         DateTime     @updatedAt @map("updated_at")
+
+  organization                      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("financial_settings")
+}
+
+model FinancialBranchSettings {
+  id                      String       @id @default(uuid())
+  branchId                String       @unique @map("branch_id")
+  monthlyFixedCostTarget  Decimal      @default(0) @map("monthly_fixed_cost_target") @db.Decimal(15, 2)
+  monthlyRevenueTarget    Decimal      @default(0) @map("monthly_revenue_target") @db.Decimal(15, 2)
+  activeCropYear          String       @default("2025/2026") @map("active_crop_year")
+  notes                   String?      @db.Text
+  createdAt               DateTime     @default(now()) @map("created_at")
+  updatedAt               DateTime     @updatedAt @map("updated_at")
+
+  branch                  Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@map("financial_branch_settings")
+}
+
+model BankAccount {
+  id              String          @id @default(uuid())
+  branchId        String          @map("branch_id")
+  bankCode        String          @map("bank_code") // "001" (BB), "748" (Sicredi), "CAIXA_FISICO"
+  bankName        String          @map("bank_name")
+  agency          String?
+  accountNumber   String?         @map("account_number")
+  accountType     BankAccountType @default(CORRENTE) @map("account_type")
+  initialBalance  Decimal         @default(0) @map("initial_balance") @db.Decimal(15, 2)
+  currentBalance  Decimal         @default(0) @map("current_balance") @db.Decimal(15, 2)
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  branch                  Branch            @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  transactions            CashTransaction[] @relation("SourceAccount")
+  incomingTransfers       CashTransaction[] @relation("TransferDestination")
+  receivableInstallments  ReceivableInstallment[]
+  payableInstallments     PayableInstallment[]
+
+  @@index([branchId])
+  @@index([branchId, isActive])
+  @@map("bank_accounts")
+}
+
+model FinancialCategory {
+  id                  String                @id @default(uuid())
+  organizationId      String                @map("organization_id")
+  name                String
+  code                String                // ex.: "1.1.01", "2.1.05"
+  type                FinancialCategoryType
+  isDirectProjectCost Boolean               @default(false) @map("is_direct_project_cost")
+  isActive            Boolean               @default(true) @map("is_active")
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  receivableTitles    ReceivableTitle[]
+  payableTitles       PayableTitle[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, type])
+  @@map("financial_categories")
+}
+
+model CommercialPartner {
+  id                    String              @id @default(uuid())
+  branchId              String              @map("branch_id")
+  name                  String
+  document              String              // CPF ou CNPJ
+  phone                 String?
+  email                 String?
+  pixKey                String              @map("pix_key")
+  pixKeyType            PixKeyType          @default(CPF) @map("pix_key_type")
+  bankInfo              Json?               @map("bank_info")
+  defaultCommissionRate Decimal             @default(20.00) @map("default_commission_rate") @db.Decimal(5, 2)
+  isActive              Boolean             @default(true) @map("is_active")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  branch                Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  receivableTitles      ReceivableTitle[]
+  commissions           PartnerCommission[]
+
+  @@unique([branchId, document])
+  @@index([branchId])
+  @@index([branchId, isActive])
+  @@map("commercial_partners")
+}
+
+model ReceivableTitle {
+  id                  String                @id @default(uuid())
+  branchId            String                @map("branch_id")
+  producerId          String                @map("producer_id")
+  propertyId          String?               @map("property_id")
+  demandId            String?               @map("demand_id")
+  partnerId           String?               @map("partner_id")
+  categoryId          String                @map("category_id")
+  originType          BillingOriginType     @default(ESTEIRA_CREDITO) @map("origin_type")
+  serviceSubtype      String?               @map("service_subtype")
+  documentNumber      String                @map("document_number") // ex.: "FAT-2026-0001"
+  cropYear            String                @default("2025/2026") @map("crop_year")
+  
+  financedAmount      Decimal?              @map("financed_amount") @db.Decimal(15, 2)
+  successFeePercent   Decimal?              @map("success_fee_percent") @db.Decimal(5, 2)
+  grossAmount         Decimal               @map("gross_amount") @db.Decimal(15, 2)
+  discountAmount      Decimal               @default(0) @map("discount_amount") @db.Decimal(15, 2)
+  netAmount           Decimal               @map("net_amount") @db.Decimal(15, 2)
+  totalReceivedAmount Decimal               @default(0) @map("total_received_amount") @db.Decimal(15, 2)
+  
+  status              ReceivableStatus      @default(PENDENTE)
+  notes               String?               @db.Text
+  createdAt           DateTime              @default(now()) @map("created_at")
+  updatedAt           DateTime              @updatedAt @map("updated_at")
+
+  branch              Branch                @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer            Producer              @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  property            Property?             @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  demand              ServiceDemand?        @relation(fields: [demandId], references: [id], onDelete: SetNull)
+  partner             CommercialPartner?    @relation(fields: [partnerId], references: [id], onDelete: SetNull)
+  category            FinancialCategory     @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  
+  installments        ReceivableInstallment[]
+  commissions         PartnerCommission[]
+
+  @@unique([branchId, documentNumber])
+  @@index([branchId, status])
+  @@index([producerId])
+  @@index([demandId])
+  @@index([cropYear])
+  @@map("receivable_titles")
+}
+
+model ReceivableInstallment {
+  id                  String             @id @default(uuid())
+  receivableTitleId   String             @map("receivable_title_id")
+  installmentNumber   Int                @map("installment_number")
+  totalInstallments   Int                @map("total_installments")
+  dueDate             DateTime           @map("due_date")
+  amount              Decimal            @map("amount") @db.Decimal(15, 2)
+  receivedAmount      Decimal            @default(0) @map("received_amount") @db.Decimal(15, 2)
+  receivedAt          DateTime?          @map("received_at")
+  bankAccountId       String?            @map("bank_account_id")
+  status              InstallmentStatus  @default(A_VENCER)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  receivableTitle     ReceivableTitle    @relation(fields: [receivableTitleId], references: [id], onDelete: Cascade)
+  bankAccount         BankAccount?       @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  cashTransactions    CashTransaction[]
+  receipts            QuittanceReceipt[]
+  commissions         PartnerCommission[]
+
+  @@index([receivableTitleId])
+  @@index([dueDate, status])
+  @@map("receivable_installments")
+}
+
+model PartnerCommission {
+  id                      String             @id @default(uuid())
+  branchId                String             @map("branch_id")
+  partnerId               String             @map("partner_id")
+  receivableTitleId       String             @map("receivable_title_id")
+  receivableInstallmentId String?            @map("receivable_installment_id")
+  calculationBasisAmount  Decimal            @map("calculation_basis_amount") @db.Decimal(15, 2)
+  commissionPercent       Decimal            @map("commission_percent") @db.Decimal(5, 2)
+  totalCommissionAmount   Decimal            @map("total_commission_amount") @db.Decimal(15, 2)
+  releasedAmount          Decimal            @default(0) @map("released_amount") @db.Decimal(15, 2)
+  paidAmount              Decimal            @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  status                  CommissionStatus   @default(BLOQUEADO)
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
+
+  branch                  Branch             @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  partner                 CommercialPartner  @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  receivableTitle         ReceivableTitle    @relation(fields: [receivableTitleId], references: [id], onDelete: Cascade)
+  receivableInstallment   ReceivableInstallment? @relation(fields: [receivableInstallmentId], references: [id], onDelete: SetNull)
+  payableTitles           PayableTitle[]
+
+  @@index([branchId, status])
+  @@index([partnerId])
+  @@index([receivableTitleId])
+  @@map("partner_commissions")
+}
+
+model PayableTitle {
+  id                    String              @id @default(uuid())
+  branchId              String              @map("branch_id")
+  categoryId            String              @map("category_id")
+  demandId              String?             @map("demand_id")
+  partnerCommissionId   String?             @map("partner_commission_id")
+  supplierName          String              @map("supplier_name")
+  supplierDocument      String?             @map("supplier_document")
+  documentNumber        String?             @map("document_number")
+  expenseType           ExpenseType         @default(DESPESA_FIXA_FILIAL) @map("expense_type")
+  cropYear              String              @default("2025/2026") @map("crop_year")
+  totalAmount           Decimal             @map("total_amount") @db.Decimal(15, 2)
+  paidAmount            Decimal             @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  isInstallmentPurchase Boolean             @default(false) @map("is_installment_purchase")
+  status                PayableStatus       @default(PENDENTE)
+  notes                 String?             @db.Text
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  branch                Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  category              FinancialCategory   @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  demand                ServiceDemand?      @relation(fields: [demandId], references: [id], onDelete: SetNull)
+  partnerCommission     PartnerCommission?  @relation(fields: [partnerCommissionId], references: [id], onDelete: SetNull)
+  
+  installments          PayableInstallment[]
+
+  @@index([branchId, status])
+  @@index([categoryId])
+  @@index([demandId])
+  @@index([partnerCommissionId])
+  @@index([cropYear])
+  @@map("payable_titles")
+}
+
+model PayableInstallment {
+  id                  String             @id @default(uuid())
+  payableTitleId      String             @map("payable_title_id")
+  installmentNumber   Int                @map("installment_number")
+  totalInstallments   Int                @map("total_installments")
+  dueDate             DateTime           @map("due_date")
+  amount              Decimal            @map("amount") @db.Decimal(15, 2)
+  paidAmount          Decimal            @default(0) @map("paid_amount") @db.Decimal(15, 2)
+  paidAt              DateTime?          @map("paid_at")
+  bankAccountId       String?            @map("bank_account_id")
+  status              InstallmentStatus  @default(A_VENCER)
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  payableTitle        PayableTitle       @relation(fields: [payableTitleId], references: [id], onDelete: Cascade)
+  bankAccount         BankAccount?       @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  cashTransactions    CashTransaction[]
+
+  @@index([payableTitleId])
+  @@index([dueDate, status])
+  @@map("payable_installments")
+}
+
+model CashTransaction {
+  id                          String                 @id @default(uuid())
+  branchId                    String                 @map("branch_id")
+  bankAccountId               String                 @map("bank_account_id")
+  destinationBankAccountId    String?                @map("destination_bank_account_id")
+  type                        TransactionType
+  amount                      Decimal                @map("amount") @db.Decimal(15, 2)
+  transactionDate             DateTime               @default(now()) @map("transaction_date")
+  description                 String
+  receivableInstallmentId     String?                @map("receivable_installment_id")
+  payableInstallmentId        String?                @map("payable_installment_id")
+  isReversed                  Boolean                @default(false) @map("is_reversed")
+  reversedAt                  DateTime?              @map("reversed_at")
+  reversalReason              String?                @db.Text @map("reversal_reason")
+  operatorId                  String                 @map("operator_id")
+  createdAt                   DateTime               @default(now()) @map("created_at")
+
+  branch                      Branch                 @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  bankAccount                 BankAccount            @relation("SourceAccount", fields: [bankAccountId], references: [id], onDelete: Restrict)
+  destinationBankAccount      BankAccount?           @relation("TransferDestination", fields: [destinationBankAccountId], references: [id], onDelete: Restrict)
+  receivableInstallment       ReceivableInstallment? @relation(fields: [receivableInstallmentId], references: [id], onDelete: SetNull)
+  payableInstallment          PayableInstallment?    @relation(fields: [payableInstallmentId], references: [id], onDelete: SetNull)
+  receipt                     QuittanceReceipt?
+
+  @@index([branchId, transactionDate])
+  @@index([bankAccountId])
+  @@index([destinationBankAccountId])
+  @@map("cash_transactions")
+}
+
+model QuittanceReceipt {
+  id                  String                @id @default(uuid())
+  receiptNumber       String                @unique @map("receipt_number") // ex.: "REC-LN-2026-0001"
+  installmentId       String                @map("installment_id")
+  transactionId       String?               @unique @map("transaction_id")
+  pdfStoragePath      String?               @map("pdf_storage_path")
+  sha256Hash          String?               @map("sha256_hash")
+  payloadSnapshot     Json                  @map("payload_snapshot")
+  issuedAt            DateTime              @default(now()) @map("issued_at")
+  issuedById          String                @map("issued_by_id")
+
+  installment         ReceivableInstallment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+  transaction         CashTransaction?      @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([installmentId])
+  @@map("quittance_receipts")
+}
+
+model FinancialAuditLog {
+  id            String       @id @default(uuid())
+  branchId      String       @map("branch_id")
+  userId        String       @map("user_id")
+  action        String       // ex.: "ESTORNO_BAIXA", "DESCONTO_COMERCIAL", "CANCELAMENTO_TITULO"
+  entityName    String       @map("entity_name") // ex.: "ReceivableTitle", "PartnerCommission"
+  entityId      String       @map("entity_id")
+  justification String       @db.Text
+  oldSnapshot   Json?        @map("old_snapshot")
+  newSnapshot   Json?        @map("new_snapshot")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  branch        Branch       @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, createdAt])
+  @@index([entityName, entityId])
+  @@map("financial_audit_logs")
+}
+
 

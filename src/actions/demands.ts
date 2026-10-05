@@ -15,6 +15,7 @@ import {
   DemandStatusCode,
 } from '@/lib/validations/demands'
 import { DocumentType } from '@prisma/client'
+import { triggerReceivableFromDemand } from '@/actions/financial/triggers'
 
 export type SlaFilterOption = 'ALL' | 'WARNING_30' | 'OVERDUE' | 'ON_TRACK'
 
@@ -692,6 +693,15 @@ export async function updateDemandStatus(
 
     revalidatePath('/admin/demands')
     revalidatePath(`/admin/demands/${id}`)
+
+    // Automação Financeira (Termo Aditivo 004): Gera faturamento ao concluir a demanda
+    if (parsed.status === 'CONCLUIDO') {
+      try {
+        await triggerReceivableFromDemand(id)
+      } catch (finErr) {
+        console.error('[Financial Trigger Error]:', finErr)
+      }
+    }
 
     return {
       success: true,
