@@ -1,69 +1,88 @@
 'use client'
 
 import React, { useState } from 'react'
-import Link from 'next/link'
-import { PlusCircle, ArrowUpRight, Wallet, FileSpreadsheet } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import FinancialQuickActions from '@/components/financial/FinancialQuickActions'
 import FinancialExportModal, { DreExportData } from '@/components/financial/FinancialExportModal'
-import { Button } from '@/components/ui/button'
+import NewPayableModal from '@/components/financial/modals/NewPayableModal'
+import InternalTransferModal from '@/components/financial/modals/InternalTransferModal'
 
 interface FinancialOverviewHeaderClientProps {
   exportData: DreExportData
+  bankAccounts?: any[]
+  branches?: any[]
+  categories?: any[]
+  demands?: any[]
+  currentBranchId?: string | null
 }
 
 export default function FinancialOverviewHeaderClient({
   exportData,
+  bankAccounts = [],
+  branches = [],
+  categories = [],
+  demands = [],
+  currentBranchId = null,
 }: FinancialOverviewHeaderClientProps) {
+  const router = useRouter()
   const [exportModalOpen, setExportModalOpen] = useState(false)
+  const [payableModalOpen, setPayableModalOpen] = useState(false)
+  const [transferModalOpen, setTransferModalOpen] = useState(false)
+
+  const handleExpenseClick = () => {
+    if (branches.length > 0 && categories.length > 0) {
+      setPayableModalOpen(true)
+    } else {
+      router.push('/admin/financial/payables')
+    }
+  }
+
+  const handleTransferClick = () => {
+    if (bankAccounts.length >= 2) {
+      setTransferModalOpen(true)
+    } else {
+      router.push('/admin/financial/settings')
+    }
+  }
 
   return (
-    <>
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
-        <div>
-          <h2 className="text-sm font-bold text-slate-900">Ações Rápidas & Atalhos Operacionais</h2>
-          <p className="text-xs text-slate-500">
-            Acesso direto para emissão de faturamento, apropriação de despesas, transferências e exportação contábil.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/admin/financial/receivables/new"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-800 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-900 transition-colors"
-          >
-            <PlusCircle className="h-4 w-4" />
-            Novo Faturamento
-          </Link>
-          <Link
-            href="/admin/financial/payables"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
-          >
-            <ArrowUpRight className="h-4 w-4 text-rose-600" />
-            Nova Despesa
-          </Link>
-          <Link
-            href="/admin/financial/settings"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
-          >
-            <Wallet className="h-4 w-4 text-emerald-600" />
-            Transferência Interna
-          </Link>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setExportModalOpen(true)}
-            className="gap-1.5 text-xs font-bold text-slate-700 border-slate-300 hover:bg-slate-50"
-          >
-            <FileSpreadsheet className="h-4 w-4 text-blue-700" />
-            Exportação Contábil
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-4">
+      {/* Central de Ações Rápidas (Cards Escuros Institucionais Padrão Home) */}
+      <FinancialQuickActions
+        onOpenExpenseModal={handleExpenseClick}
+        onOpenTransferModal={handleTransferClick}
+        onOpenExportModal={() => setExportModalOpen(true)}
+      />
 
+      {/* Modal de Exportação Contábil */}
       <FinancialExportModal
         isOpen={exportModalOpen}
         onClose={() => setExportModalOpen(false)}
         exportData={exportData}
       />
-    </>
+
+      {/* Modal de Nova Despesa Sob Demanda */}
+      {payableModalOpen && (
+        <NewPayableModal
+          isOpen={payableModalOpen}
+          onClose={() => setPayableModalOpen(false)}
+          branches={branches}
+          categories={categories}
+          demands={demands}
+          currentBranchId={currentBranchId}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
+      {/* Modal de Transferência Interna Sob Demanda */}
+      {transferModalOpen && (
+        <InternalTransferModal
+          isOpen={transferModalOpen}
+          onClose={() => setTransferModalOpen(false)}
+          bankAccounts={bankAccounts}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+    </div>
   )
 }

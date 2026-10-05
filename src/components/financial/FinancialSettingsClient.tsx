@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
-import { SlidersHorizontal, Building, Landmark } from 'lucide-react'
+import { SlidersHorizontal, Building2, Landmark } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import GlobalSettingsForm from './settings/GlobalSettingsForm'
 import BranchSettingsForm from './settings/BranchSettingsForm'
 import BankAccountsSection from './settings/BankAccountsSection'
@@ -31,45 +32,66 @@ export default function FinancialSettingsClient({
 
   return (
     <div className="space-y-6">
-      {/* Abas Internas de Configurações */}
-      <div className="border-b border-slate-200">
-        <nav className="flex space-x-6" aria-label="Abas de Configurações">
+      {/* Abas Internas de Configurações - Design Pill Neutro Suave sem Corte de Texto */}
+      <div className="flex items-center">
+        <div className="inline-flex items-center gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/80 shadow-2xs">
           <button
+            type="button"
             onClick={() => setActiveTab('GLOBAL')}
-            className={`flex items-center gap-2 pb-3 text-xs font-bold transition-all border-b-2 ${
+            className={cn(
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-xs transition-all duration-150 cursor-pointer',
               activeTab === 'GLOBAL'
-                ? 'border-emerald-800 text-emerald-900'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+                ? 'bg-white text-slate-900 font-bold shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-semibold'
+            )}
           >
-            <SlidersHorizontal className="h-4 w-4" />
-            Parâmetros Globais
+            <SlidersHorizontal
+              className={cn(
+                'h-4 w-4 shrink-0',
+                activeTab === 'GLOBAL' ? 'text-emerald-800' : 'text-slate-500'
+              )}
+            />
+            <span>Parâmetros Globais</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('BRANCH')}
-            className={`flex items-center gap-2 pb-3 text-xs font-bold transition-all border-b-2 ${
+            className={cn(
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-xs transition-all duration-150 cursor-pointer',
               activeTab === 'BRANCH'
-                ? 'border-emerald-800 text-emerald-900'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+                ? 'bg-white text-slate-900 font-bold shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-semibold'
+            )}
           >
-            <Building className="h-4 w-4" />
-            Parâmetros por Filial
+            <Building2
+              className={cn(
+                'h-4 w-4 shrink-0',
+                activeTab === 'BRANCH' ? 'text-emerald-800' : 'text-slate-500'
+              )}
+            />
+            <span>Parâmetros por Filial</span>
           </button>
 
           <button
+            type="button"
             onClick={() => setActiveTab('ACCOUNTS')}
-            className={`flex items-center gap-2 pb-3 text-xs font-bold transition-all border-b-2 ${
+            className={cn(
+              'flex items-center gap-2 rounded-lg px-4 py-2 text-xs transition-all duration-150 cursor-pointer',
               activeTab === 'ACCOUNTS'
-                ? 'border-emerald-800 text-emerald-900'
-                : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
+                ? 'bg-white text-slate-900 font-bold shadow-xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-semibold'
+            )}
           >
-            <Landmark className="h-4 w-4" />
-            Contas Bancárias & Caixas ({bankAccounts.length})
+            <Landmark
+              className={cn(
+                'h-4 w-4 shrink-0',
+                activeTab === 'ACCOUNTS' ? 'text-emerald-800' : 'text-slate-500'
+              )}
+            />
+            <span>Contas Bancárias & Caixas ({bankAccounts.length})</span>
           </button>
-        </nav>
+        </div>
       </div>
 
       {/* Conteúdo das Abas */}

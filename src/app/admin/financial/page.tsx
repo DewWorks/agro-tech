@@ -37,6 +37,9 @@ export default async function FinancialOverviewPage({
     commissions,
     cashTransactions,
     branchSettings,
+    categories,
+    branches,
+    demands,
   ] = await Promise.all([
     // 1. Totalizadores de Recebíveis (Projeção Estrita)
     prisma.receivableTitle.findMany({
@@ -142,6 +145,40 @@ export default async function FinancialOverviewPage({
           where: { branchId: auth.effectiveBranchId },
         })
       : Promise.resolve(null),
+
+    // 7. Categorias para Modais Rápidos
+    prisma.financialCategory.findMany({
+      orderBy: { code: 'asc' },
+      select: { id: true, name: true, code: true },
+    }),
+
+    // 8. Filiais
+    prisma.branch.findMany({
+      where: {
+        organizationId: auth.organizationId,
+        isActive: true,
+        ...(auth.isGlobalView ? {} : { id: auth.effectiveBranchId! }),
+      },
+      select: { id: true, name: true, city: true },
+      orderBy: { name: 'asc' },
+    }),
+
+    // 9. Demandas para Apropriação Direta
+    prisma.serviceDemand.findMany({
+      where: {
+        branch: {
+          organizationId: auth.organizationId,
+          ...(auth.isGlobalView ? {} : { id: auth.effectiveBranchId! }),
+        },
+      },
+      select: {
+        id: true,
+        serviceType: true,
+        producer: { select: { name: true } },
+      },
+      take: 50,
+      orderBy: { createdAt: 'desc' },
+    }),
   ])
 
   // Processamento síncrono em memória das métricas
@@ -336,7 +373,14 @@ export default async function FinancialOverviewPage({
   return (
     <div className="space-y-6">
       {/* Barra de Ações Rápidas & Exportação Contábil */}
-      <FinancialOverviewHeaderClient exportData={exportData} />
+      <FinancialOverviewHeaderClient
+        exportData={exportData}
+        bankAccounts={bankAccounts}
+        branches={branches}
+        categories={categories}
+        demands={demands}
+        currentBranchId={branchId}
+      />
 
       {/* Grid de Cards de Métricas Principais (DRE Executivo) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
