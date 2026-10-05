@@ -48,7 +48,7 @@ export default function InternalTransferModal({
       <div className="rounded-md border border-emerald-100 bg-emerald-50/60 p-2.5 text-emerald-950 text-[10px]">
         <div className="flex items-center gap-1.5 font-bold uppercase text-[11px]">
           <ShieldCheck className="h-4 w-4 text-emerald-800 shrink-0" />
-          <span>Neutralidade Contábil no DRE (ADR-023)</span>
+          <span>Neutralidade Contábil no DRE</span>
         </div>
         <p className="text-emerald-800 mt-0.5">Movimentação interna de recursos sem impacto no resultado da safra.</p>
       </div>

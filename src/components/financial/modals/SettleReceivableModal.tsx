@@ -70,7 +70,7 @@ export default function SettleReceivableModal({
           {commissionPreview && (
             <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2.5 space-y-1">
               <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px] uppercase">
-                <Clock className="h-3.5 w-3.5" /> Destravamento Proporcional da Trava (ADR-021)
+                <Clock className="h-3.5 w-3.5" /> Destravamento Proporcional da Trava
               </div>
               <div className="text-[11px] text-amber-800">Parceiro: <strong>{commissionPreview.partnerName}</strong></div>
               <div className="text-[11px] text-amber-900 font-semibold">Comissão liberada nesta baixa: <span className="text-emerald-800 font-black">{formatCurrency(commissionPreview.unlockAmount)}</span> (de {formatCurrency(commissionPreview.totalCommission)})</div>

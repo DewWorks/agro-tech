@@ -564,7 +564,7 @@ export function generateQuittanceReceiptHtml(data: QuittanceReceiptPdfData): str
         <div class="auth-title">PROTOCOLO DE AUTENTICIDADE CRIPTOGRÁFICA (SHA-256)</div>
         <div class="auth-hash">${data.sha256Hash || 'HASH-PENDENTE-CONVERSAO'}</div>
         <div style="font-size: 8px; color: #64748b; margin-top: 4px;">
-          Este recibo oficial foi gerado e chancelado pelo Módulo de Gestão Financeira (Aditivo 004). O código hash acima assegura imutabilidade jurídica e auditoria digital conforme as normas vigentes.
+          Este recibo oficial foi gerado e chancelado pelo Módulo de Gestão Financeira. O código hash acima assegura imutabilidade jurídica e auditoria digital conforme as normas vigentes.
         </div>
       </div>
 

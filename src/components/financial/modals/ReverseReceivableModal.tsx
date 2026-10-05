@@ -40,7 +40,7 @@ export default function ReverseReceivableModal({
       <div className="rounded-md border border-rose-200 bg-rose-50 p-2.5 text-rose-900 text-[11px]">
         <div className="flex items-center gap-1.5 font-semibold text-rose-950">
           <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
-          <span>Regra de Governança (ADR-023):</span>
+          <span>Regra de Governança Financeira:</span>
         </div>
         <p className="text-rose-800 mt-0.5">O estorno reverterá o saldo atomicamente, re-bloqueará a comissão do parceiro, invalidará o recibo e gerará log perpétuo.</p>
       </div>

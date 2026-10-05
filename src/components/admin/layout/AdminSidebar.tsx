@@ -113,7 +113,7 @@ function getNavigationGroups(
             href: '/admin/credit-limit',
           },
           {
-            title: 'Gestão Financeira (ERP)',
+            title: 'Gestão Financeira',
             icon: CircleDollarSign,
             href: '/admin/financial',
           },
@@ -250,7 +250,7 @@ function getNavigationGroups(
     items: docCreditItems,
   }
 
-  // 4. Grupo Financeiro & Controladoria (Aditivo 004)
+  // 4. Grupo Financeiro & Controladoria
   const financialItems: MenuItem[] = []
   const financialErpStatus = checkModule('FINANCIAL_ERP')
   if (financialErpStatus.show) {

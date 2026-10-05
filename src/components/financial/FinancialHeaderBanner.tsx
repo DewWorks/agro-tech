@@ -31,7 +31,7 @@ const ROUTE_CONFIG: Record<string, RouteInfo> = {
     title: 'Contas a Receber & Faturamento',
     description:
       'Controle de cobranças de honorários de crédito rural, serviços avulsos, liquidações declaratórias com emissão de recibo oficial em PDF e conciliação bancária.',
-    badge: 'Faturamento & Recebíveis • Aditivo Nº 004',
+    badge: 'Faturamento & Contas a Receber',
     icon: ArrowDownLeft,
   },
   '/admin/financial/payables': {
@@ -45,7 +45,7 @@ const ROUTE_CONFIG: Record<string, RouteInfo> = {
     title: 'Parceiros Comerciais & Comissões',
     description:
       'Gestão de intermediadores e correspondentes bancários, cadastro de chaves PIX para repasse e controle da trava de segurança (liberação proporcional vinculada à quitação do produtor).',
-    badge: 'Originação & Trava de Segurança • ADR-021',
+    badge: 'Originação & Trava de Segurança',
     icon: Users2,
   },
   '/admin/financial/settings': {
