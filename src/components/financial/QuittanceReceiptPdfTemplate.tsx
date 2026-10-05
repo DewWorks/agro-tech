@@ -469,7 +469,7 @@ export function generateQuittanceReceiptHtml(data: QuittanceReceiptPdfData): str
         </div>
         <div class="amount-box-right">
           <span class="quittance-status-pill">
-            ${isTotalQuittance ? '✓ Quitação Total' : ' Amortização Parcial'}
+            ${isTotalQuittance ? 'Quitação Total' : 'Amortização Parcial'}
           </span>
         </div>
       </div>
@@ -561,7 +561,7 @@ export function generateQuittanceReceiptHtml(data: QuittanceReceiptPdfData): str
 
       <!-- Bloco de Autenticidade Digital Criptográfica -->
       <div class="auth-box">
-        <div class="auth-title">🔒 PROTOCOLO DE AUTENTICIDADE CRIPTOGRÁFICA (SHA-256)</div>
+        <div class="auth-title">PROTOCOLO DE AUTENTICIDADE CRIPTOGRÁFICA (SHA-256)</div>
         <div class="auth-hash">${data.sha256Hash || 'HASH-PENDENTE-CONVERSAO'}</div>
         <div style="font-size: 8px; color: #64748b; margin-top: 4px;">
           Este recibo oficial foi gerado e chancelado pelo Módulo de Gestão Financeira (Aditivo 004). O código hash acima assegura imutabilidade jurídica e auditoria digital conforme as normas vigentes.
@@ -658,7 +658,7 @@ export default function QuittanceReceiptPdfTemplate({
               isTotalQuittance ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
             }`}
           >
-            {isTotalQuittance ? '✓ Quitação Total' : 'Amortização Parcial'}
+            {isTotalQuittance ? 'Quitação Total' : 'Amortização Parcial'}
           </span>
         </div>
       </div>

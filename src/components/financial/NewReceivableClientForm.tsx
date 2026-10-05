@@ -10,6 +10,9 @@ import {
   ArrowLeft,
   Users2,
   CheckCircle2,
+  MapPin,
+  User,
+  Sprout,
 } from 'lucide-react'
 import { formatCurrency, maskCropYear } from '@/lib/utils'
 import { createDirectReceivableTitle } from '@/actions/financial/receivables'
@@ -262,12 +265,26 @@ export default function NewReceivableClientForm({
                 </Label>
                 <Select value={branchId} onValueChange={(val) => setBranchId(val || '')}>
                   <SelectTrigger id="branch" className="w-full text-xs font-semibold bg-white border-slate-200">
-                    <SelectValue placeholder="Selecione a filial" />
+                    <SelectValue placeholder="Selecione a filial">
+                      {(() => {
+                        const b = branches.find((branch) => branch.id === branchId)
+                        if (!b) return 'Selecione a filial'
+                        return (
+                          <span className="flex items-center gap-1.5 truncate">
+                            <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                            <span className="truncate">{b.name} ({b.city})</span>
+                          </span>
+                        )
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {branches.map((b) => (
                       <SelectItem key={b.id} value={b.id}>
-                        📍 {b.name} ({b.city})
+                        <span className="flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                          <span>{b.name} ({b.city})</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -287,12 +304,26 @@ export default function NewReceivableClientForm({
                   }}
                 >
                   <SelectTrigger id="producer" className="w-full text-xs font-semibold bg-white border-slate-200">
-                    <SelectValue placeholder="Selecione o produtor rural" />
+                    <SelectValue placeholder="Selecione o produtor rural">
+                      {(() => {
+                        const p = producers.find((prod) => prod.id === producerId)
+                        if (!p) return 'Selecione o produtor rural'
+                        return (
+                          <span className="flex items-center gap-1.5 truncate">
+                            <User className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                            <span className="truncate">{p.name} ({p.document})</span>
+                          </span>
+                        )
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {producers.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        👤 {p.name} ({p.document})
+                        <span className="flex items-center gap-2">
+                          <User className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                          <span>{p.name} ({p.document})</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -305,17 +336,32 @@ export default function NewReceivableClientForm({
                   Propriedade Rural (Opcional):
                 </Label>
                 <Select
-                  value={propertyId || 'NONE'}
-                  onValueChange={(val) => setPropertyId(val === 'NONE' || !val ? '' : val)}
+                  value={propertyId || 'NENHUMA'}
+                  onValueChange={(val) => setPropertyId(val === 'NENHUMA' || !val ? '' : val)}
                 >
                   <SelectTrigger id="property" className="w-full text-xs font-medium bg-white border-slate-200">
-                    <SelectValue placeholder="Nenhuma propriedade vinculada" />
+                    <SelectValue placeholder="Nenhuma propriedade vinculada">
+                      {(() => {
+                        if (!propertyId || propertyId === 'NENHUMA') return 'Nenhuma propriedade vinculada'
+                        const prop = availableProperties.find((pr) => pr.id === propertyId)
+                        if (!prop) return 'Nenhuma propriedade vinculada'
+                        return (
+                          <span className="flex items-center gap-1.5 truncate">
+                            <Sprout className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                            <span className="truncate">{prop.name}</span>
+                          </span>
+                        )
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NONE">Nenhuma propriedade vinculada</SelectItem>
+                    <SelectItem value="NENHUMA">Nenhuma propriedade vinculada</SelectItem>
                     {availableProperties.map((prop) => (
                       <SelectItem key={prop.id} value={prop.id}>
-                        🌱 {prop.name}
+                        <span className="flex items-center gap-2">
+                          <Sprout className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span>{prop.name}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -511,17 +557,32 @@ export default function NewReceivableClientForm({
                   Prospectador / Corretor:
                 </Label>
                 <Select
-                  value={partnerId || 'NONE'}
-                  onValueChange={(val) => setPartnerId(val === 'NONE' || !val ? '' : val)}
+                  value={partnerId || 'NENHUM'}
+                  onValueChange={(val) => setPartnerId(val === 'NENHUM' || !val ? '' : val)}
                 >
                   <SelectTrigger id="partner" className="w-full text-xs font-semibold bg-white border-slate-200">
-                    <SelectValue placeholder="Nenhum parceiro (Venda Direta)" />
+                    <SelectValue placeholder="Nenhum parceiro (Venda Direta)">
+                      {(() => {
+                        if (!partnerId || partnerId === 'NENHUM') return 'Nenhum parceiro (Venda Direta)'
+                        const p = partners.find((part) => part.id === partnerId)
+                        if (!p) return 'Nenhum parceiro (Venda Direta)'
+                        return (
+                          <span className="flex items-center gap-1.5 truncate">
+                            <Users2 className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                            <span className="truncate">{p.name}</span>
+                          </span>
+                        )
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="NONE">Nenhum parceiro (Venda Direta)</SelectItem>
+                    <SelectItem value="NENHUM">Nenhum parceiro (Venda Direta)</SelectItem>
                     {partners.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        🤝 {p.name}
+                        <span className="flex items-center gap-2">
+                          <Users2 className="h-3.5 w-3.5 text-amber-700 shrink-0" />
+                          <span>{p.name}</span>
+                        </span>
                       </SelectItem>
                     ))}
                   </SelectContent>

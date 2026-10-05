@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ArrowRightLeft } from 'lucide-react'
+import { ArrowRightLeft, ShieldCheck } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { transferBetweenBankAccounts } from '@/actions/financial/settings'
 import { toast } from 'sonner'
@@ -46,7 +46,10 @@ export default function InternalTransferModal({
       submitDisabled={amount <= 0 || sourceId === destId} onSubmit={handleConfirmTransfer}
     >
       <div className="rounded-md border border-emerald-100 bg-emerald-50/60 p-2.5 text-emerald-950 text-[10px]">
-        <p className="font-bold uppercase text-[11px]">🛡️ Neutralidade Contábil no DRE (ADR-023)</p>
+        <div className="flex items-center gap-1.5 font-bold uppercase text-[11px]">
+          <ShieldCheck className="h-4 w-4 text-emerald-800 shrink-0" />
+          <span>Neutralidade Contábil no DRE (ADR-023)</span>
+        </div>
         <p className="text-emerald-800 mt-0.5">Movimentação interna de recursos sem impacto no resultado da safra.</p>
       </div>
       <SelectField label="Conta de Origem (Débito):" value={sourceId} onChange={setSourceId} options={accountOptions} />

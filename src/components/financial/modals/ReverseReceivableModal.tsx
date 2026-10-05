@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ShieldAlert } from 'lucide-react'
+import { ShieldAlert, AlertTriangle } from 'lucide-react'
 import { reverseReceivablePayment } from '@/actions/financial/receivables'
 import { toast } from 'sonner'
 import { Textarea } from '@/components/ui/textarea'
@@ -38,7 +38,10 @@ export default function ReverseReceivableModal({
       onSubmit={handleConfirmReverse}
     >
       <div className="rounded-md border border-rose-200 bg-rose-50 p-2.5 text-rose-900 text-[11px]">
-        <p className="font-semibold">⚠️ Regra de Governança (ADR-023):</p>
+        <div className="flex items-center gap-1.5 font-semibold text-rose-950">
+          <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+          <span>Regra de Governança (ADR-023):</span>
+        </div>
         <p className="text-rose-800 mt-0.5">O estorno reverterá o saldo atomicamente, re-bloqueará a comissão do parceiro, invalidará o recibo e gerará log perpétuo.</p>
       </div>
       <FormField label={`Justificativa Formal do Estorno (${justification.length}/15 caracteres):`}>

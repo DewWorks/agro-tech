@@ -108,6 +108,16 @@ export default async function ReceivablesPage({
         </div>
       </div>
 
+      {/* Título de Seção com Subtítulo Explicativo */}
+      <div>
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">
+          Títulos de Cobrança & Baixas Declaratórias
+        </h2>
+        <p className="text-xs text-slate-500">
+          Monitore o faturamento líquido, efetue liquidações com emissão de recibo oficial em PDF e acompanhe a quitação de honorários dos contratos de crédito rural.
+        </p>
+      </div>
+
       {/* Tabela Interativa de Títulos a Receber */}
       <ReceivablesTableClient
         titles={titles}

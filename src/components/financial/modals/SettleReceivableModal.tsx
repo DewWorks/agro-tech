@@ -62,7 +62,7 @@ export default function SettleReceivableModal({
             <div className="text-slate-500">Parcela {selectedInstallment.installmentNumber}/{selectedInstallment.totalInstallments} • Vencimento: {new Date(selectedInstallment.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
             <div className="text-slate-700 font-semibold pt-0.5">Saldo devedor desta parcela: <span className="text-rose-600 font-bold">{formatCurrency(residual)}</span></div>
           </div>
-          <SelectField label="Conta Bancária de Crédito:" value={bankAccountId} onChange={setBankAccountId} options={bankAccounts.map((b) => ({ value: b.id, label: `🏦 ${b.bankName} (Ag. ${b.agency || 'S/A'} - CC ${b.accountNumber || 'S/N'})` }))} />
+          <SelectField label="Conta Bancária de Crédito:" value={bankAccountId} onChange={setBankAccountId} options={bankAccounts.map((b) => ({ value: b.id, label: `${b.bankName} (Ag. ${b.agency || 'S/A'} - CC ${b.accountNumber || 'S/N'})` }))} />
           <div className="grid grid-cols-2 gap-2">
             <InputField label="Valor a Baixar (R$):" type="number" step="0.01" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} className="font-bold text-emerald-900" />
             <InputField label="Data da Liquidação:" type="date" value={date} onChange={(e) => setDate(e.target.value)} />

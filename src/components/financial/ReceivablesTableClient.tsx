@@ -13,8 +13,9 @@ import {
   ChevronDown,
   ChevronUp,
   DollarSign,
+  ListFilter,
 } from 'lucide-react'
-import { formatCurrency, formatCPF, formatCNPJ } from '@/lib/utils'
+import { formatCurrency, formatCPF, formatCNPJ, cn } from '@/lib/utils'
 import { getQuittanceReceiptData } from '@/actions/financial/receivables'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,14 @@ import {
 import { useReceivablesFilter } from './hooks/useReceivablesFilter'
 import SettleReceivableModal from './modals/SettleReceivableModal'
 import ReverseReceivableModal from './modals/ReverseReceivableModal'
+
+const RECEIVABLE_STATUS_OPTIONS = [
+  { value: 'TODOS', label: 'Status: Todos', icon: ListFilter, iconColor: 'text-slate-500' },
+  { value: 'PENDENTE', label: 'Pendentes', icon: Clock, iconColor: 'text-amber-500' },
+  { value: 'PARCIALMENTE_RECEBIDO', label: 'Parcialmente Recebidos', icon: Clock, iconColor: 'text-blue-500' },
+  { value: 'QUITADO', label: 'Quitados', icon: CheckCircle2, iconColor: 'text-emerald-600' },
+  { value: 'EM_ATRASO', label: 'Em Atraso', icon: AlertTriangle, iconColor: 'text-rose-600' },
+]
 
 interface ReceivablesTableClientProps {
   titles: any[]
@@ -214,16 +223,33 @@ export default function ReceivablesTableClient({
           </div>
 
           {/* Filtro por Status */}
-          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'ALL')}>
+          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'TODOS')}>
             <SelectTrigger className="h-9 w-[210px] text-xs font-semibold bg-white border-slate-200">
-              <SelectValue placeholder="Status: Todos" />
+              <SelectValue placeholder="Status: Todos">
+                {(() => {
+                  const opt = RECEIVABLE_STATUS_OPTIONS.find((o) => o.value === statusFilter) || RECEIVABLE_STATUS_OPTIONS[0]
+                  const Icon = opt.icon
+                  return (
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Icon className={cn('h-3.5 w-3.5 shrink-0', opt.iconColor)} />
+                      <span className="truncate">{opt.label}</span>
+                    </span>
+                  )
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Status: Todos</SelectItem>
-              <SelectItem value="PENDENTE">🟡 Pendentes</SelectItem>
-              <SelectItem value="PARCIALMENTE_RECEBIDO">🔵 Parcialmente Recebidos</SelectItem>
-              <SelectItem value="QUITADO">🟢 Quitados</SelectItem>
-              <SelectItem value="EM_ATRASO">🔴 Em Atraso</SelectItem>
+              {RECEIVABLE_STATUS_OPTIONS.map((opt) => {
+                const Icon = opt.icon
+                return (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span className="flex items-center gap-2">
+                      <Icon className={cn('h-3.5 w-3.5 shrink-0', opt.iconColor)} />
+                      <span>{opt.label}</span>
+                    </span>
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </div>

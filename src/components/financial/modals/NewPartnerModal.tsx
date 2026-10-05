@@ -64,7 +64,7 @@ export default function NewPartnerModal({
       title="Cadastrar Parceiro Comercial (Corretor / Prospectador)" submitLabel="Cadastrar Parceiro"
       loading={isSubmitting} submitDisabled={!name.trim() || !document.trim() || !pixKey.trim()} onSubmit={handleCreatePartner}
     >
-      <SelectField label="Filial:" value={branchId} onChange={setBranchId} options={branches.map((b) => ({ value: b.id, label: `📍 ${b.name} (${b.city})` }))} />
+      <SelectField label="Filial:" value={branchId} onChange={setBranchId} options={branches.map((b) => ({ value: b.id, label: `${b.name} (${b.city})` }))} />
       <InputField label="Nome Completo / Razão Social:" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Carlos Eduardo Silveira" />
       <div className="grid grid-cols-2 gap-2">
         <InputField label="CPF ou CNPJ:" value={document} onChange={(e) => setDocument(maskDocument(e.target.value))} placeholder="000.000.000-00" maxLength={18} className="font-mono" />
@@ -76,7 +76,11 @@ export default function NewPartnerModal({
         <div className="grid grid-cols-3 gap-2">
           <FormField label="Tipo:">
             <Select value={pixKeyType} onValueChange={(val: any) => { setPixKeyType(val); setPixKey((prev) => maskPixKey(prev, val)) }}>
-              <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200"><SelectValue placeholder="Tipo" /></SelectTrigger>
+              <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+                <SelectValue placeholder="Tipo">
+                  {pixKeyType}
+                </SelectValue>
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="CPF">CPF</SelectItem><SelectItem value="CNPJ">CNPJ</SelectItem><SelectItem value="TELEFONE">Telefone</SelectItem><SelectItem value="EMAIL">E-mail</SelectItem><SelectItem value="ALEATORIA">Aleatória</SelectItem>
               </SelectContent>

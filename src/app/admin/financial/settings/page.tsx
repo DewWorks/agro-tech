@@ -53,7 +53,7 @@ export default async function FinancialSettingsPage({
           Central de Configurações & Tesouraria
         </h2>
         <p className="text-xs text-slate-500">
-          Governança de parâmetros do ERP, metas operacionais da safra e contas de liquidação.
+          Governança de parâmetros do ERP, metas orçamentárias por filial, cadastro de contas bancárias e transferências internas de tesouraria.
         </p>
       </div>
 

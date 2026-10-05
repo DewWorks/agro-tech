@@ -122,11 +122,14 @@ export function SelectField({
   placeholder?: string
   options: { value: string; label: string }[]
 }) {
+  const selectedLabel = options.find((o) => o.value === value)?.label
   return (
     <FormField label={label}>
       <Select value={value} onValueChange={(val) => onChange(val || '')}>
         <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={placeholder}>
+            {selectedLabel}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {options.map((o) => (

@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 
 export function useReceivablesFilter(titles: any[]) {
   const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [statusFilter, setStatusFilter] = useState<string>('TODOS')
 
   const filteredTitles = useMemo(() => {
     const term = searchTerm.toLowerCase().trim()
@@ -15,7 +15,7 @@ export function useReceivablesFilter(titles: any[]) {
         t.documentNumber?.toLowerCase().includes(term) ||
         t.notes?.toLowerCase().includes(term)
 
-      const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter
+      const matchesStatus = statusFilter === 'TODOS' || statusFilter === 'ALL' || t.status === statusFilter
 
       return matchesSearch && matchesStatus
     })

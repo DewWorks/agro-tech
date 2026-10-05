@@ -81,7 +81,7 @@ export default function PartnersListClient({
             Parceiros Comerciais & Correspondentes
           </h2>
           <p className="text-xs text-slate-500">
-            Originação externa de propostas, cadastro de chaves PIX e controle da trava de segurança.
+            Originação externa de propostas, cadastro de chaves PIX para repasse e controle da trava de segurança com liberação proporcional à quitação do produtor.
           </p>
         </div>
 

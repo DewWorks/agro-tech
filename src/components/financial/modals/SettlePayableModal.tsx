@@ -46,7 +46,7 @@ export default function SettlePayableModal({
             <div className="text-slate-500">Boleto {selectedInstallment.installmentNumber}/{selectedInstallment.totalInstallments} • Vencimento: {new Date(selectedInstallment.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
             <div className="text-slate-700 font-semibold pt-0.5">Saldo devedor: <span className="text-rose-600 font-bold">{formatCurrency(residual)}</span></div>
           </div>
-          <SelectField label="Conta Bancária de Saída / Débito:" value={bankAccountId} onChange={setBankAccountId} options={bankAccounts.map((b) => ({ value: b.id, label: `🏦 ${b.bankName} (Saldo: ${formatCurrency(Number(b.currentBalance))})` }))} />
+          <SelectField label="Conta Bancária de Saída / Débito:" value={bankAccountId} onChange={setBankAccountId} options={bankAccounts.map((b) => ({ value: b.id, label: `${b.bankName} (Saldo: ${formatCurrency(Number(b.currentBalance))})` }))} />
           <div className="grid grid-cols-2 gap-2">
             <InputField label="Valor a Pagar (R$):" type="number" step="0.01" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} className="font-bold text-rose-800" />
             <InputField label="Data do Pagamento:" type="date" value={date} onChange={(e) => setDate(e.target.value)} />

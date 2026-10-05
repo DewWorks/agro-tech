@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import FinancialNavTabs from '@/components/financial/FinancialNavTabs'
+import FinancialHeaderBanner from '@/components/financial/FinancialHeaderBanner'
 import { Landmark } from 'lucide-react'
 
 export const metadata = {
@@ -57,24 +58,8 @@ export default async function FinancialLayout({
 
   return (
     <div className="space-y-6">
-      {/* Top Banner / Header */}
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="rounded-lg bg-emerald-800 p-2 text-white shadow-xs">
-              <Landmark className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900">
-                Gestão Financeira & ERP
-              </h1>
-              <p className="text-xs font-medium text-slate-500">
-                LN Consultoria e Projetos Rurais • Safra 2025/2026 • Opção ERP Completo (Aditivo 004)
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Top Banner Padronizado com PageHeaderBanner Oficial */}
+      <FinancialHeaderBanner />
 
       {/* Navegação por Abas e Seletor de Filiais */}
       <FinancialNavTabs

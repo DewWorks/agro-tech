@@ -9,6 +9,8 @@ import {
   ArrowUpRight,
   Users2,
   SlidersHorizontal,
+  Building2,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -123,14 +125,40 @@ export default function FinancialNavTabs({
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold text-slate-500 whitespace-nowrap">Filial:</span>
           <Select value={branchParam} onValueChange={(val) => handleBranchChange(val || 'ALL')}>
-            <SelectTrigger className="h-8 w-[240px] rounded-lg border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-xs focus:ring-1 focus:ring-emerald-600">
-              <SelectValue placeholder="Selecione a filial" />
+            <SelectTrigger className="h-8 w-[250px] rounded-lg border-slate-200 bg-white text-xs font-semibold text-slate-800 shadow-xs focus:ring-1 focus:ring-emerald-600">
+              <SelectValue placeholder="Grupo LN (Consolidado)">
+                {(() => {
+                  const currentBranch = branches.find((b) => b.id === branchParam)
+                  if (!currentBranch || branchParam === 'ALL') {
+                    return (
+                      <span className="flex items-center gap-1.5 truncate">
+                        <Building2 className="h-3.5 w-3.5 text-emerald-800 shrink-0" />
+                        <span className="truncate">Grupo LN (Consolidado)</span>
+                      </span>
+                    )
+                  }
+                  return (
+                    <span className="flex items-center gap-1.5 truncate">
+                      <MapPin className="h-3.5 w-3.5 text-slate-600 shrink-0" />
+                      <span className="truncate">{currentBranch.name} ({currentBranch.city})</span>
+                    </span>
+                  )
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">🏢 Grupo LN (Consolidado)</SelectItem>
+              <SelectItem value="ALL">
+                <span className="flex items-center gap-2">
+                  <Building2 className="h-3.5 w-3.5 text-emerald-800 shrink-0" />
+                  <span>Grupo LN (Consolidado)</span>
+                </span>
+              </SelectItem>
               {branches.map((b) => (
                 <SelectItem key={b.id} value={b.id}>
-                  📍 {b.name} ({b.city})
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                    <span>{b.name} ({b.city})</span>
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

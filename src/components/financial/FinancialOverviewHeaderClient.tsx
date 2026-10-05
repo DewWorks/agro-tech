@@ -19,9 +19,9 @@ export default function FinancialOverviewHeaderClient({
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">Visão Geral & Indicadores de Caixa</h2>
+          <h2 className="text-sm font-bold text-slate-900">Ações Rápidas & Atalhos Operacionais</h2>
           <p className="text-xs text-slate-500">
-            Acompanhamento em tempo real de liquidações, obrigações futuras e resultado operacional.
+            Acesso direto para emissão de faturamento, apropriação de despesas, transferências e exportação contábil.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">

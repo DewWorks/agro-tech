@@ -11,8 +11,13 @@ import {
   ChevronDown,
   ChevronUp,
   CreditCard,
+  ListFilter,
+  Layers,
+  Tractor,
+  Building2,
+  Users2,
 } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -25,6 +30,21 @@ import {
 import { usePayablesFilter } from './hooks/usePayablesFilter'
 import NewPayableModal from './modals/NewPayableModal'
 import SettlePayableModal from './modals/SettlePayableModal'
+
+const PAYABLE_STATUS_OPTIONS = [
+  { value: 'TODOS', label: 'Status: Todos', icon: ListFilter, iconColor: 'text-slate-500' },
+  { value: 'PENDENTE', label: 'Pendentes', icon: Clock, iconColor: 'text-amber-500' },
+  { value: 'PARCIALMENTE_PAGO', label: 'Parcialmente Pagos', icon: Clock, iconColor: 'text-blue-500' },
+  { value: 'PAGO', label: 'Pagos', icon: CheckCircle2, iconColor: 'text-emerald-600' },
+  { value: 'EM_ATRASO', label: 'Em Atraso', icon: AlertTriangle, iconColor: 'text-rose-600' },
+]
+
+const PAYABLE_TYPE_OPTIONS = [
+  { value: 'TODOS', label: 'Tipo: Todos', icon: Layers, iconColor: 'text-slate-500' },
+  { value: 'CUSTO_DIRETO_PROPOSTA', label: 'Custo Direto (Projetos)', icon: Tractor, iconColor: 'text-emerald-700' },
+  { value: 'DESPESA_FIXA_FILIAL', label: 'Despesa Fixa (Filial)', icon: Building2, iconColor: 'text-slate-700' },
+  { value: 'COMISSAO_PARCEIRO', label: 'Comissões', icon: Users2, iconColor: 'text-amber-700' },
+]
 
 interface PayablesTableClientProps {
   payables: any[]
@@ -127,29 +147,64 @@ export default function PayablesTableClient({
           </div>
 
           {/* Filtro Status */}
-          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'ALL')}>
+          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || 'TODOS')}>
             <SelectTrigger className="h-9 w-[190px] text-xs font-semibold bg-white border-slate-200">
-              <SelectValue placeholder="Status: Todos" />
+              <SelectValue placeholder="Status: Todos">
+                {(() => {
+                  const opt = PAYABLE_STATUS_OPTIONS.find((o) => o.value === statusFilter) || PAYABLE_STATUS_OPTIONS[0]
+                  const Icon = opt.icon
+                  return (
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Icon className={cn('h-3.5 w-3.5 shrink-0', opt.iconColor)} />
+                      <span className="truncate">{opt.label}</span>
+                    </span>
+                  )
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Status: Todos</SelectItem>
-              <SelectItem value="PENDENTE">🟡 Pendentes</SelectItem>
-              <SelectItem value="PARCIALMENTE_PAGO">🔵 Parcialmente Pagos</SelectItem>
-              <SelectItem value="PAGO">🟢 Pagos</SelectItem>
-              <SelectItem value="EM_ATRASO">🔴 Em Atraso</SelectItem>
+              {PAYABLE_STATUS_OPTIONS.map((opt) => {
+                const Icon = opt.icon
+                return (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span className="flex items-center gap-2">
+                      <Icon className={cn('h-3.5 w-3.5 shrink-0', opt.iconColor)} />
+                      <span>{opt.label}</span>
+                    </span>
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
 
           {/* Filtro Tipo */}
-          <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val || 'ALL')}>
+          <Select value={typeFilter} onValueChange={(val) => setTypeFilter(val || 'TODOS')}>
             <SelectTrigger className="h-9 w-[220px] text-xs font-semibold bg-white border-slate-200">
-              <SelectValue placeholder="Tipo: Todos" />
+              <SelectValue placeholder="Tipo: Todos">
+                {(() => {
+                  const opt = PAYABLE_TYPE_OPTIONS.find((o) => o.value === typeFilter) || PAYABLE_TYPE_OPTIONS[0]
+                  const Icon = opt.icon
+                  return (
+                    <span className="flex items-center gap-1.5 truncate">
+                      <Icon className={cn('h-3.5 w-3.5 shrink-0', opt.iconColor)} />
+                      <span className="truncate">{opt.label}</span>
+                    </span>
+                  )
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">Tipo: Todos</SelectItem>
-              <SelectItem value="CUSTO_DIRETO_PROPOSTA">🚜 Custo Direto (Projetos)</SelectItem>
-              <SelectItem value="DESPESA_FIXA_FILIAL">🏢 Despesa Fixa (Filial)</SelectItem>
-              <SelectItem value="COMISSAO_PARCEIRO">🤝 Comissões</SelectItem>
+              {PAYABLE_TYPE_OPTIONS.map((opt) => {
+                const Icon = opt.icon
+                return (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    <span className="flex items-center gap-2">
+                      <Icon className={cn('h-3.5 w-3.5 shrink-0', opt.iconColor)} />
+                      <span>{opt.label}</span>
+                    </span>
+                  </SelectItem>
+                )
+              })}
             </SelectContent>
           </Select>
         </div>

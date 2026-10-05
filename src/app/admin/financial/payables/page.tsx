@@ -153,6 +153,16 @@ export default async function PayablesPage({
         </div>
       </div>
 
+      {/* Título de Seção com Subtítulo Explicativo */}
+      <div>
+        <h2 className="text-xl font-bold tracking-tight text-slate-900">
+          Obrigações a Pagar & Despesas da Safra
+        </h2>
+        <p className="text-xs text-slate-500">
+          Controle as saídas operacionais, apropriação de despesas de projetos, agendamento de boletos futuros e quitações com débito em conta corrente.
+        </p>
+      </div>
+
       {/* Tabela Interativa de Títulos a Pagar */}
       <PayablesTableClient
         payables={payables}

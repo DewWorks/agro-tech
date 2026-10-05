@@ -46,7 +46,7 @@ export default function NewBankAccountModal({
       title="Cadastrar Conta Bancária ou Caixa Físico" submitLabel="Cadastrar Conta"
       loading={isCreating} submitDisabled={!branchId || !bankName.trim()} onSubmit={handleCreate}
     >
-      <SelectField label="Filial:" value={branchId} onChange={setBranchId} options={branches.map((b) => ({ value: b.id, label: `📍 ${b.name} (${b.city})` }))} />
+      <SelectField label="Filial:" value={branchId} onChange={setBranchId} options={branches.map((b) => ({ value: b.id, label: `${b.name} (${b.city})` }))} />
       <SelectField
         label="Tipo de Recurso:" value={accountType} onChange={(val: any) => setAccountType(val)}
         options={[{ value: 'CORRENTE', label: 'Conta Corrente Bancária' }, { value: 'CAIXA_ESPECIE', label: 'Caixa Físico da Filial (Espécie)' }, { value: 'POUPANCA', label: 'Poupança' }]}

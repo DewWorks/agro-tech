@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { MapPin } from 'lucide-react'
 import { updateBranchFinancialSettings } from '@/actions/financial/settings'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -94,12 +95,26 @@ export default function BranchSettingsForm({
             onValueChange={(val) => setSelectedBranchId(val || '')}
           >
             <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
-              <SelectValue placeholder="Selecione a filial" />
+              <SelectValue placeholder="Selecione a filial">
+                {(() => {
+                  const b = branches.find((branch) => branch.id === selectedBranchId)
+                  if (!b) return 'Selecione a filial'
+                  return (
+                    <span className="flex items-center gap-1.5 truncate">
+                      <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                      <span className="truncate">{b.name} ({b.city})</span>
+                    </span>
+                  )
+                })()}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {branches.map((b) => (
                 <SelectItem key={b.id} value={b.id}>
-                  📍 {b.name} ({b.city})
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                    <span>{b.name} ({b.city})</span>
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

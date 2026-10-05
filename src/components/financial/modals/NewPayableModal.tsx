@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import { Zap } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { createDirectPayableTitle } from '@/actions/financial/payables'
 import { toast } from 'sonner'
@@ -78,7 +79,9 @@ export default function NewPayableModal({
       loading={isCreating} submitDisabled={totalAmount <= 0 || !supplierName.trim()} onSubmit={handleCreate}
     >
       <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-2">
-        <span className="text-[10px] font-bold uppercase text-emerald-800 mb-1 block">⚡ Presets Frequentes:</span>
+        <span className="text-[10px] font-bold uppercase text-emerald-800 mb-1 flex items-center gap-1">
+          <Zap className="h-3 w-3" /> Presets Frequentes:
+        </span>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {PRESETS.map((p) => (
             <button key={p.name} type="button" onClick={() => applyPreset(p)} className="text-left rounded border border-emerald-200 bg-white p-1 hover:border-emerald-600">
@@ -90,13 +93,13 @@ export default function NewPayableModal({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <SelectField label="Filial:" value={branchId} onChange={setBranchId} options={branches.map((b) => ({ value: b.id, label: `📍 ${b.name}` }))} />
+        <SelectField label="Filial:" value={branchId} onChange={setBranchId} options={branches.map((b) => ({ value: b.id, label: b.name }))} />
         <SelectField label="Categoria Financeira:" value={categoryId} onChange={setCategoryId} options={categories.map((c) => ({ value: c.id, label: `[${c.code}] ${c.name}` }))} />
         <InputField label="Fornecedor / Credor:" value={supplierName} onChange={(e) => setSupplierName(e.target.value)} placeholder="Nome da empresa ou prestador" />
         <InputField label="Nº do Documento / Nota / Boleto:" value={docNumber} onChange={(e) => setDocNumber(e.target.value)} placeholder="NF 12345 / Boleto 001" className="font-mono" />
         <SelectField
-          label="Centro de Custo / Proposta (Opcional):" value={demandId || 'NONE'} onChange={(val) => setDemandId(val === 'NONE' ? '' : val)}
-          options={[{ value: 'NONE', label: 'Despesa Geral da Filial' }, ...demands.map((d) => ({ value: d.id, label: `🚜 ${d.producer?.name} (${d.serviceType})` }))]}
+          label="Centro de Custo / Proposta (Opcional):" value={demandId || 'DESPESA_GERAL'} onChange={(val) => setDemandId(val === 'DESPESA_GERAL' ? '' : val)}
+          options={[{ value: 'DESPESA_GERAL', label: 'Despesa Geral da Filial' }, ...demands.map((d) => ({ value: d.id, label: `${d.producer?.name} (${d.serviceType})` }))]}
         />
         <InputField label="Valor Total (R$):" type="number" step="0.01" value={totalAmount} onChange={(e) => setTotalAmount(parseFloat(e.target.value) || 0)} className="font-bold text-slate-900" />
       </div>
