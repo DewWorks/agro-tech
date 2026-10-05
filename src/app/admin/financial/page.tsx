@@ -14,24 +14,9 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import dynamic from 'next/dynamic'
-import type { CropYearMonthData } from '@/components/financial/FinancialDreCharts'
+import FinancialDreCharts, { type CropYearMonthData } from '@/components/financial/FinancialDreCharts'
 import FinancialOverviewHeaderClient from '@/components/financial/FinancialOverviewHeaderClient'
 import { DreExportData } from '@/components/financial/FinancialExportModal'
-
-// Code splitting & Lazy Loading isolando Recharts do SSR
-const FinancialDreCharts = dynamic(
-  () => import('@/components/financial/FinancialDreCharts'),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="h-[380px] w-full animate-pulse rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
-        <div className="h-6 w-48 bg-slate-100 rounded-md" />
-        <div className="h-64 w-full bg-slate-50 rounded-lg" />
-      </div>
-    ),
-  }
-)
 
 export default async function FinancialOverviewPage({
   searchParams,

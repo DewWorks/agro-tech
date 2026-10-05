@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   AreaChart,
   Area,
@@ -51,7 +51,21 @@ export default function FinancialDreCharts({
   cropYear = '2025/2026',
   branchName = 'Consolidado Grupo LN',
 }: FinancialDreChartsProps) {
+  const [mounted, setMounted] = useState(false)
   const [activeChart, setActiveChart] = useState<'CURVE' | 'CATEGORIES'>('CURVE')
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="h-[380px] w-full animate-pulse rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
+        <div className="h-6 w-48 bg-slate-100 rounded-md" />
+        <div className="h-64 w-full bg-slate-50 rounded-lg" />
+      </div>
+    )
+  }
 
   // Tooltip customizado para a curva de saldo acumulado
   const CustomCurveTooltip = ({ active, payload, label }: any) => {
