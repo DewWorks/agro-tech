@@ -64,6 +64,12 @@ export async function ensureDefaultSystemModules() {
       description: 'Gestão de ordens de serviço rurais, fluxo visual de 4 estados, esteira de auditoria/rastreabilidade, controle de prazos/SLA e checklist documental do GED.',
       isActive: false,
     },
+    {
+      code: 'FINANCIAL_ERP',
+      name: 'Módulo de Gestão Financeira (ERP)',
+      description: 'Contas a pagar e receber, conciliação, livro-caixa, trava de comissões e DRE da safra.',
+      isActive: true,
+    },
   ]
 
   for (const mod of defaults) {
