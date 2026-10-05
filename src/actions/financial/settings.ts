@@ -163,7 +163,17 @@ export async function getBankAccounts(targetBranchId?: string | null) {
 
     const accounts = await prisma.bankAccount.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        bankCode: true,
+        bankName: true,
+        accountType: true,
+        agency: true,
+        accountNumber: true,
+        initialBalance: true,
+        currentBalance: true,
+        isActive: true,
+        branchId: true,
         branch: {
           select: { id: true, name: true, city: true, state: true },
         },

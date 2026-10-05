@@ -2,40 +2,23 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Search,
   PlusCircle,
-  FileText,
   Download,
-  RotateCcw,
   CheckCircle2,
   Clock,
   AlertTriangle,
   ChevronDown,
   ChevronUp,
   DollarSign,
-  Landmark,
-  ShieldAlert,
 } from 'lucide-react'
 import { formatCurrency, formatCPF, formatCNPJ } from '@/lib/utils'
-import {
-  settleReceivableInstallment,
-  reverseReceivablePayment,
-  getQuittanceReceiptData,
-} from '@/actions/financial/receivables'
-import { triggerQuittanceReceiptDownload, QuittanceReceiptPdfData } from '@/components/financial/QuittanceReceiptPdfTemplate'
+import { getQuittanceReceiptData } from '@/actions/financial/receivables'
 import { toast } from 'sonner'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -43,6 +26,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useReceivablesFilter } from './hooks/useReceivablesFilter'
+import SettleReceivableModal from './modals/SettleReceivableModal'
+import ReverseReceivableModal from './modals/ReverseReceivableModal'
 
 interface ReceivablesTableClientProps {
   titles: any[]
@@ -55,143 +41,52 @@ export default function ReceivablesTableClient({
   bankAccounts,
   currentBranchId,
 }: ReceivablesTableClientProps) {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const router = useRouter()
+  const {
+    searchTerm,
+    setSearchTerm,
+    statusFilter,
+    setStatusFilter,
+    filteredTitles,
+  } = useReceivablesFilter(titles)
+
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
 
-  // Modal de Baixa Declaratória
+  // Modais sob demanda
   const [settleModalOpen, setSettleModalOpen] = useState(false)
   const [selectedInstallment, setSelectedInstallment] = useState<any | null>(null)
   const [selectedTitle, setSelectedTitle] = useState<any | null>(null)
-  const [settleAmount, setSettleAmount] = useState<number>(0)
-  const [settleBankAccountId, setSettleBankAccountId] = useState<string>('')
-  const [settleDate, setSettleDate] = useState<string>(new Date().toISOString().slice(0, 10))
-  const [isSettling, setIsSettling] = useState(false)
 
-  // Modal de Estorno
   const [reverseModalOpen, setReverseModalOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<any | null>(null)
-  const [justification, setJustification] = useState('')
-  const [isReversing, setIsReversing] = useState(false)
 
-  // Estado de download de PDF
+  // Download do PDF de Recibo
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null)
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }))
   }
 
-  // Filtragem local dos títulos
-  const filteredTitles = titles.filter((t) => {
-    const matchesSearch =
-      searchTerm === '' ||
-      t.producer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.documentNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.notes?.toLowerCase().includes(searchTerm.toLowerCase())
-
-    const matchesStatus = statusFilter === 'ALL' || t.status === statusFilter
-
-    return matchesSearch && matchesStatus
-  })
-
-  // Abertura do modal de liquidação
   const handleOpenSettle = (title: any, installment: any) => {
     setSelectedTitle(title)
     setSelectedInstallment(installment)
-    const residual = Math.max(0, Number(installment.amount) - Number(installment.receivedAmount))
-    setSettleAmount(residual)
-    setSettleBankAccountId(bankAccounts[0]?.id || '')
-    setSettleDate(new Date().toISOString().slice(0, 10))
     setSettleModalOpen(true)
   }
 
-  // Submissão da baixa
-  const handleConfirmSettle = async () => {
-    if (!selectedInstallment || !settleBankAccountId || settleAmount <= 0) {
-      toast.error('Informe a conta bancária e um valor válido para liquidação.')
-      return
-    }
-
-    setIsSettling(true)
-    const toastId = toast.loading('Processando liquidação e destravamento atômico...')
-
-    try {
-      const res = await settleReceivableInstallment({
-        installmentId: selectedInstallment.id,
-        bankAccountId: settleBankAccountId,
-        receivedAmount: settleAmount,
-        receivedAt: new Date(settleDate).toISOString(),
-      })
-
-      if (res.error) {
-        toast.dismiss(toastId)
-        toast.error(res.error)
-        return
-      }
-
-      toast.dismiss(toastId)
-      toast.success('Baixa efetuada com sucesso! Recibo oficial gerado.')
-      setSettleModalOpen(false)
-
-      // Se gerou recibo, oferece download imediato
-      if (res.data?.receipt) {
-        handleDownloadReceipt(res.data.receipt.id)
-      }
-    } catch (err: any) {
-      toast.dismiss(toastId)
-      toast.error(err?.message || 'Falha ao processar liquidação.')
-    } finally {
-      setIsSettling(false)
-    }
-  }
-
-  // Abertura do modal de estorno
   const handleOpenReverse = (tx: any) => {
     setSelectedTransaction(tx)
-    setJustification('')
     setReverseModalOpen(true)
   }
 
-  // Confirmação do estorno
-  const handleConfirmReverse = async () => {
-    if (!selectedTransaction) return
-    if (!justification || justification.trim().length < 15) {
-      toast.error('A justificativa de estorno deve ter no mínimo 15 caracteres.')
-      return
-    }
-
-    setIsReversing(true)
-    const toastId = toast.loading('Processando estorno atômico e rastreabilidade...')
-
-    try {
-      const res = await reverseReceivablePayment({
-        transactionId: selectedTransaction.id,
-        justification: justification.trim(),
-      })
-
-      if (res.error) {
-        toast.dismiss(toastId)
-        toast.error(res.error)
-        return
-      }
-
-      toast.dismiss(toastId)
-      toast.success('Estorno realizado com sucesso. Saldo e comissões reajustados.')
-      setReverseModalOpen(false)
-    } catch (err: any) {
-      toast.dismiss(toastId)
-      toast.error(err?.message || 'Falha ao executar estorno.')
-    } finally {
-      setIsReversing(false)
-    }
-  }
-
-  // Download do Recibo em PDF em 1-clique
+  // Download sob demanda (code-split) de PDF
   const handleDownloadReceipt = async (receiptId: string) => {
     setDownloadingReceiptId(receiptId)
     const toastId = toast.loading('Compilando Recibo Oficial em Alta Resolução (336 DPI)...')
 
     try {
+      const { triggerQuittanceReceiptDownload } = await import(
+        '@/components/financial/QuittanceReceiptPdfTemplate'
+      )
       const res = await getQuittanceReceiptData(receiptId)
       if (res.error || !res.data) {
         toast.dismiss(toastId)
@@ -203,7 +98,7 @@ export default function ReceivablesTableClient({
       const title = receipt.installment.receivableTitle
       const snapshot = receipt.payloadSnapshot as any
 
-      const pdfData: QuittanceReceiptPdfData = {
+      const pdfData = {
         receiptNumber: receipt.receiptNumber,
         issuedAt: receipt.issuedAt,
         sha256Hash: receipt.sha256Hash,
@@ -218,19 +113,21 @@ export default function ReceivablesTableClient({
         },
         producer: {
           name: title.producer?.name || 'Produtor Rural',
-          document: title.producer?.document || '',
+          document: title.producer?.document || '000.000.000-00',
           phone: title.producer?.phone,
         },
         property: title.property
           ? {
               name: title.property.name,
+              city: title.property.city,
+              state: title.property.state,
             }
-          : null,
+          : undefined,
         title: {
           documentNumber: title.documentNumber,
-          serviceSubtype: title.serviceSubtype || title.category?.name,
-          cropYear: title.cropYear,
-          originType: title.originType,
+          serviceSubtype: title.serviceSubtype || title.category?.name || 'Serviços Técnicos e Honorários',
+          cropYear: title.cropYear || '2025/2026',
+          originType: title.originType || 'ESTEIRA_CREDITO',
         },
         installment: {
           installmentNumber: receipt.installment.installmentNumber,
@@ -261,22 +158,6 @@ export default function ReceivablesTableClient({
       setDownloadingReceiptId(null)
     }
   }
-
-  // Cálculo da prévia de comissão destravada no modal
-  const commissionPreview = React.useMemo(() => {
-    if (!selectedTitle || !selectedTitle.commissions || selectedTitle.commissions.length === 0) {
-      return null
-    }
-    const net = Number(selectedTitle.netAmount) || 1
-    const ratio = settleAmount / net
-    const totalCommission = Number(selectedTitle.commissions[0].totalCommissionAmount) || 0
-    const unlockAmount = totalCommission * ratio
-    return {
-      partnerName: selectedTitle.partner?.name || 'Parceiro Comercial',
-      totalCommission,
-      unlockAmount: Math.min(totalCommission, unlockAmount),
-    }
-  }, [selectedTitle, settleAmount])
 
   // Semáforo visual para status da parcela
   const getInstallmentSemaphore = (inst: any) => {
@@ -596,198 +477,31 @@ export default function ReceivablesTableClient({
         </div>
       </div>
 
-      {/* MODAL DE BAIXA DECLARATÓRIA */}
-      <Dialog open={settleModalOpen} onOpenChange={setSettleModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-slate-900">
-              <Landmark className="h-5 w-5 text-emerald-800" />
-              Liquidação Declaratória de Parcela
-            </DialogTitle>
-          </DialogHeader>
+      {/* Modais Montados Sob Demanda */}
+      {settleModalOpen && (
+        <SettleReceivableModal
+          isOpen={settleModalOpen}
+          onClose={() => setSettleModalOpen(false)}
+          selectedTitle={selectedTitle}
+          selectedInstallment={selectedInstallment}
+          bankAccounts={bankAccounts}
+          onSuccess={(receiptId) => {
+            router.refresh()
+            if (receiptId) {
+              handleDownloadReceipt(receiptId)
+            }
+          }}
+        />
+      )}
 
-          {selectedInstallment && selectedTitle && (
-            <div className="space-y-4 py-2 text-xs">
-              <div className="rounded-lg bg-slate-50 p-3 space-y-1 border border-slate-200">
-                <div className="font-bold text-slate-800">
-                  {selectedTitle.producer?.name} • {selectedTitle.documentNumber}
-                </div>
-                <div className="text-slate-500">
-                  Parcela {selectedInstallment.installmentNumber} de{' '}
-                  {selectedInstallment.totalInstallments} • Vencimento:{' '}
-                  {new Date(selectedInstallment.dueDate).toLocaleDateString('pt-BR', {
-                    timeZone: 'UTC',
-                  })}
-                </div>
-                <div className="text-slate-700 pt-1 font-semibold">
-                  Saldo devedor desta parcela:{' '}
-                  <span className="text-rose-600 font-bold">
-                    {formatCurrency(
-                      Math.max(
-                        0,
-                        Number(selectedInstallment.amount) -
-                          Number(selectedInstallment.receivedAmount)
-                      )
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              {/* Conta Bancária */}
-              <div className="space-y-1.5">
-                <Label htmlFor="bankAccount" className="text-xs font-semibold">
-                  Conta Bancária de Crédito:
-                </Label>
-                <Select
-                  value={settleBankAccountId}
-                  onValueChange={(val) => setSettleBankAccountId(val || '')}
-                >
-                  <SelectTrigger id="bankAccount" className="w-full text-xs font-semibold bg-white border-slate-200">
-                    <SelectValue placeholder="Selecione a conta de crédito" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {bankAccounts.map((b) => (
-                      <SelectItem key={b.id} value={b.id}>
-                        🏦 {b.bankName} (Ag. {b.agency || 'S/A'} - CC {b.accountNumber || 'S/N'})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Valor da Baixa */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="settleAmount" className="text-xs font-semibold">
-                    Valor a Baixar (R$):
-                  </Label>
-                  <Input
-                    id="settleAmount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    value={settleAmount}
-                    onChange={(e) => setSettleAmount(parseFloat(e.target.value) || 0)}
-                    className="font-bold text-emerald-900"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="settleDate" className="text-xs font-semibold">
-                    Data da Liquidação:
-                  </Label>
-                  <Input
-                    id="settleDate"
-                    type="date"
-                    value={settleDate}
-                    onChange={(e) => setSettleDate(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Prévia de Destravamento de Comissão */}
-              {commissionPreview && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 space-y-1">
-                  <div className="flex items-center gap-1.5 text-amber-900 font-bold text-[11px] uppercase">
-                    <Clock className="h-3.5 w-3.5" />
-                    Destravamento Proporcional da Trava (ADR-021)
-                  </div>
-                  <div className="text-[11px] text-amber-800">
-                    Parceiro: <strong>{commissionPreview.partnerName}</strong>
-                  </div>
-                  <div className="text-[11px] text-amber-900 font-semibold">
-                    Comissão liberada nesta baixa:{' '}
-                    <span className="text-emerald-800 font-black">
-                      {formatCurrency(commissionPreview.unlockAmount)}
-                    </span>{' '}
-                    (de {formatCurrency(commissionPreview.totalCommission)})
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSettleModalOpen(false)}
-              disabled={isSettling}
-            >
-              Cancelar
-            </Button>
-            <Button
-              className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold"
-              onClick={handleConfirmSettle}
-              disabled={isSettling}
-            >
-              {isSettling ? 'Gravando...' : 'Confirmar Liquidação & Gerar Recibo'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* MODAL DE ESTORNO COM JUSTIFICATIVA */}
-      <Dialog open={reverseModalOpen} onOpenChange={setReverseModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-rose-800">
-              <ShieldAlert className="h-5 w-5 text-rose-600" />
-              Estorno de Liquidação Financeira
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-3 py-2 text-xs">
-            <div className="rounded-md border border-rose-200 bg-rose-50 p-3 text-rose-900">
-              <p className="font-semibold">⚠️ Regra de Auditoria e Governança (ADR-023):</p>
-              <p className="text-[11px] mt-1 text-rose-800">
-                O estorno reverterá o saldo em conta corrente atomicamente, re-bloqueará a fração de
-                comissão do parceiro, invalidará o recibo oficial e gerará registro perpétuo em{' '}
-                <code>FinancialAuditLog</code>.
-              </p>
-            </div>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="justification" className="text-xs font-semibold">
-                  Justificativa Formal do Estorno:
-                </Label>
-                <span
-                  className={`text-[10px] font-bold ${
-                    justification.length >= 15 ? 'text-emerald-700' : 'text-slate-400'
-                  }`}
-                >
-                  {justification.length} / 15 caracteres mínimos
-                </span>
-              </div>
-              <Textarea
-                id="justification"
-                placeholder="Exemplo: Lançamento efetuado em duplicidade pelo operador no caixa..."
-                value={justification}
-                onChange={(e) => setJustification(e.target.value)}
-                rows={3}
-                className="text-xs"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setReverseModalOpen(false)}
-              disabled={isReversing}
-            >
-              Cancelar
-            </Button>
-            <Button
-              className="bg-rose-700 hover:bg-rose-800 text-white font-bold"
-              onClick={handleConfirmReverse}
-              disabled={isReversing || justification.trim().length < 15}
-            >
-              {isReversing ? 'Estornando...' : 'Confirmar Estorno Irreversível'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {reverseModalOpen && (
+        <ReverseReceivableModal
+          isOpen={reverseModalOpen}
+          onClose={() => setReverseModalOpen(false)}
+          selectedTransaction={selectedTransaction}
+          onSuccess={() => router.refresh()}
+        />
+      )}
     </div>
   )
 }

@@ -14,9 +14,24 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import FinancialDreCharts, { CropYearMonthData } from '@/components/financial/FinancialDreCharts'
+import dynamic from 'next/dynamic'
+import type { CropYearMonthData } from '@/components/financial/FinancialDreCharts'
 import FinancialOverviewHeaderClient from '@/components/financial/FinancialOverviewHeaderClient'
 import { DreExportData } from '@/components/financial/FinancialExportModal'
+
+// Code splitting & Lazy Loading isolando Recharts do SSR
+const FinancialDreCharts = dynamic(
+  () => import('@/components/financial/FinancialDreCharts'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="h-[380px] w-full animate-pulse rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
+        <div className="h-6 w-48 bg-slate-100 rounded-md" />
+        <div className="h-64 w-full bg-slate-50 rounded-lg" />
+      </div>
+    ),
+  }
+)
 
 export default async function FinancialOverviewPage({
   searchParams,
@@ -29,22 +44,122 @@ export default async function FinancialOverviewPage({
 
   const branchWhere = buildFinancialBranchWhere(auth)
 
-  // 1. Totalizadores de Recebíveis
-  const receivables = await prisma.receivableTitle.findMany({
-    where: {
-      ...branchWhere,
-      status: { not: 'CANCELADO' },
-    },
-    select: {
-      grossAmount: true,
-      discountAmount: true,
-      netAmount: true,
-      totalReceivedAmount: true,
-      status: true,
-      category: { select: { id: true, name: true, code: true } },
-    },
-  })
+  // Paralelização de Queries no Banco de Dados (Eliminação de Waterfall Prisma)
+  const [
+    receivables,
+    payables,
+    bankAccounts,
+    commissions,
+    cashTransactions,
+    branchSettings,
+  ] = await Promise.all([
+    // 1. Totalizadores de Recebíveis (Projeção Estrita)
+    prisma.receivableTitle.findMany({
+      where: {
+        ...branchWhere,
+        status: { not: 'CANCELADO' },
+      },
+      select: {
+        grossAmount: true,
+        discountAmount: true,
+        netAmount: true,
+        totalReceivedAmount: true,
+        status: true,
+        category: { select: { id: true, name: true, code: true } },
+      },
+    }),
 
+    // 2. Totalizadores de Pagáveis (Projeção Estrita)
+    prisma.payableTitle.findMany({
+      where: {
+        ...branchWhere,
+        status: { not: 'CANCELADO' },
+      },
+      select: {
+        totalAmount: true,
+        paidAmount: true,
+        status: true,
+        expenseType: true,
+        category: { select: { id: true, name: true, code: true } },
+      },
+    }),
+
+    // 3. Saldo em Contas Bancárias e Caixas
+    prisma.bankAccount.findMany({
+      where: {
+        ...branchWhere,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        bankName: true,
+        accountType: true,
+        currentBalance: true,
+      },
+    }),
+
+    // 4. Total de Comissões de Parceiros
+    prisma.partnerCommission.findMany({
+      where: {
+        ...branchWhere,
+        status: { not: 'CANCELADO' },
+      },
+      select: {
+        totalCommissionAmount: true,
+        releasedAmount: true,
+        paidAmount: true,
+        status: true,
+      },
+    }),
+
+    // 5. Transações do Livro-Caixa (Projeção Estrita)
+    prisma.cashTransaction.findMany({
+      where: {
+        ...branchWhere,
+        isReversed: false,
+      },
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        description: true,
+        transactionDate: true,
+        bankAccount: { select: { bankName: true } },
+        receivableInstallment: {
+          select: {
+            receivableTitle: {
+              select: {
+                documentNumber: true,
+                producer: { select: { name: true } },
+                category: { select: { name: true, code: true } },
+              },
+            },
+          },
+        },
+        payableInstallment: {
+          select: {
+            payableTitle: {
+              select: {
+                documentNumber: true,
+                supplierName: true,
+                category: { select: { name: true, code: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { transactionDate: 'desc' },
+    }),
+
+    // 6. Configurações da Filial (Metas)
+    auth.effectiveBranchId
+      ? prisma.financialBranchSettings.findUnique({
+          where: { branchId: auth.effectiveBranchId },
+        })
+      : Promise.resolve(null),
+  ])
+
+  // Processamento síncrono em memória das métricas
   let faturamentoBruto = 0
   let descontosComerciais = 0
   let faturamentoPrevisto = 0
@@ -56,26 +171,10 @@ export default async function FinancialOverviewPage({
     faturamentoRealizado += Number(r.totalReceivedAmount)
   }
 
-  // 2. Totalizadores de Pagáveis
-  const payables = await prisma.payableTitle.findMany({
-    where: {
-      ...branchWhere,
-      status: { not: 'CANCELADO' },
-    },
-    select: {
-      totalAmount: true,
-      paidAmount: true,
-      status: true,
-      expenseType: true,
-      category: { select: { id: true, name: true, code: true } },
-    },
-  })
-
   let despesasPrevistas = 0
   let despesasRealizadas = 0
   let custosDiretosRealizados = 0
   let despesasFixasRealizadas = 0
-
   for (const p of payables) {
     const tot = Number(p.totalAmount)
     const paid = Number(p.paidAmount)
@@ -88,42 +187,13 @@ export default async function FinancialOverviewPage({
     }
   }
 
-  // 3. Resultado Operacional Líquido do Caixa
   const margemContribuicao = faturamentoRealizado - custosDiretosRealizados
   const resultadoOperacional = faturamentoRealizado - despesasRealizadas
-
-  // 4. Saldo em Contas Bancárias e Caixas
-  const bankAccounts = await prisma.bankAccount.findMany({
-    where: {
-      ...branchWhere,
-      isActive: true,
-    },
-    select: {
-      id: true,
-      bankName: true,
-      accountType: true,
-      currentBalance: true,
-    },
-  })
 
   let saldoTotalDisponivel = 0
   for (const b of bankAccounts) {
     saldoTotalDisponivel += Number(b.currentBalance)
   }
-
-  // 5. Total de Comissões de Parceiros
-  const commissions = await prisma.partnerCommission.findMany({
-    where: {
-      ...branchWhere,
-      status: { not: 'CANCELADO' },
-    },
-    select: {
-      totalCommissionAmount: true,
-      releasedAmount: true,
-      paidAmount: true,
-      status: true,
-    },
-  })
 
   let comissoesBloqueadas = 0
   let comissoesLiberadas = 0
@@ -135,45 +205,6 @@ export default async function FinancialOverviewPage({
     comissoesBloqueadas += Math.max(0, total - rel)
     comissoesLiberadas += Math.max(0, rel - paid)
     comissoesPagas += paid
-  }
-
-  // 6. Transações do Livro-Caixa
-  const cashTransactions = await prisma.cashTransaction.findMany({
-    where: {
-      ...branchWhere,
-      isReversed: false,
-    },
-    include: {
-      bankAccount: { select: { bankName: true } },
-      receivableInstallment: {
-        include: {
-          receivableTitle: {
-            include: {
-              category: true,
-              producer: { select: { name: true } },
-            },
-          },
-        },
-      },
-      payableInstallment: {
-        include: {
-          payableTitle: {
-            include: {
-              category: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: { transactionDate: 'desc' },
-  })
-
-  // 7. Configurações da Filial (Metas)
-  let branchSettings = null
-  if (auth.effectiveBranchId) {
-    branchSettings = await prisma.financialBranchSettings.findUnique({
-      where: { branchId: auth.effectiveBranchId },
-    })
   }
 
   const monthlyTarget = Number(branchSettings?.monthlyRevenueTarget || 60000.0)

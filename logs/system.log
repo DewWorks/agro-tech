@@ -52,3 +52,30 @@
     at async requestHandlerImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:565:13)
     at async Server.requestListener (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\start-server.js:225:13)
 
+[2026-10-05T19:18:19.401Z] [ERROR] [getBankAccounts]
+  - Message: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["default"].bankAccount.findMany()` invocation in
+C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\[root-of-the-server]__11qvawh._.js:789:172
+
+  786 } else {
+  787     where.branchId = auth.effectiveBranchId;
+  788 }
+→ 789 const accounts = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["default"].bankAccount.findMany(
+
+  - Stack: PrismaClientKnownRequestError: 
+Invalid `__TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["default"].bankAccount.findMany()` invocation in
+C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\[root-of-the-server]__11qvawh._.js:789:172
+
+  786 } else {
+  787     where.branchId = auth.effectiveBranchId;
+  788 }
+→ 789 const accounts = await __TURBOPACK__imported__module__$5b$project$5d2f$src$2f$lib$2f$prisma$2e$ts__$5b$app$2d$rsc$5d$__$28$ecmascript$29$__["default"].bankAccount.findMany(
+
+    at Jr.handleRequestError (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\@prisma\client\runtime\client.js:65:8286)
+    at Jr.handleAndLogRequestError (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\@prisma\client\runtime\client.js:65:7581)
+    at Jr.request (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\@prisma\client\runtime\client.js:65:7288)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async a (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\@prisma\client\runtime\client.js:99:6862)
+    at async getBankAccounts (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\[root-of-the-server]__11qvawh._.js:789:26)
+    at async Promise.all (index 2)
+
