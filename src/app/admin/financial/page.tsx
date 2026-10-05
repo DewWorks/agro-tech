@@ -141,9 +141,12 @@ export default async function FinancialOverviewPage({
 
     // 6. Configurações da Filial (Metas)
     auth.effectiveBranchId
-      ? prisma.financialBranchSettings.findUnique({
-          where: { branchId: auth.effectiveBranchId },
-        })
+      ? prisma.branch
+          .findUnique({
+            where: { id: auth.effectiveBranchId },
+            select: { financialBranchSettings: true },
+          })
+          .then((b) => b?.financialBranchSettings ?? null)
       : Promise.resolve(null),
 
     // 7. Categorias para Modais Rápidos
