@@ -15,6 +15,7 @@ import {
   Users,
   Settings,
   Settings2,
+  CircleDollarSign,
   ChevronDown,
   ChevronRight,
   LogOut,
@@ -110,6 +111,11 @@ function getNavigationGroups(
             title: 'Limite de Crédito',
             icon: Landmark,
             href: '/admin/credit-limit',
+          },
+          {
+            title: 'Gestão Financeira (ERP)',
+            icon: CircleDollarSign,
+            href: '/admin/financial',
           },
         ],
       },
@@ -244,6 +250,32 @@ function getNavigationGroups(
     items: docCreditItems,
   }
 
+  // 4. Grupo Financeiro & Controladoria (Aditivo 004)
+  const financialItems: MenuItem[] = []
+  const financialErpStatus = checkModule('FINANCIAL_ERP')
+  if (financialErpStatus.show) {
+    financialItems.push({
+      title: 'ERP Financeiro',
+      icon: CircleDollarSign,
+      badge: financialErpStatus.badge,
+      subItems: [
+        { title: 'Visão Geral (DRE)', href: '/admin/financial' },
+        { title: 'Contas a Receber', href: '/admin/financial/receivables' },
+        { title: 'Contas a Pagar', href: '/admin/financial/payables' },
+        { title: 'Parceiros & Comissões', href: '/admin/financial/partners' },
+        { title: 'Configurações & Caixa', href: '/admin/financial/settings' },
+      ],
+    })
+  }
+
+  const financialGroup: NavGroup | null =
+    financialItems.length > 0
+      ? {
+          label: 'Financeiro & Controladoria',
+          items: financialItems,
+        }
+      : null
+
   // 4. Grupo Governança & Sistema
   const governanceItems: MenuItem[] = [
     {
@@ -273,7 +305,13 @@ function getNavigationGroups(
     items: governanceItems,
   }
 
-  return [overviewGroup, operationsGroup, docCreditGroup, governanceGroup]
+  return [
+    overviewGroup,
+    operationsGroup,
+    docCreditGroup,
+    ...(financialGroup ? [financialGroup] : []),
+    governanceGroup,
+  ]
 }
 
 /**

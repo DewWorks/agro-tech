@@ -116,6 +116,17 @@ async function main() {
   for (const org of organizations) {
     console.log(`\nProcessando Organização: ${org.name} (${org.id})`)
 
+    // 0. Ativação do Módulo FINANCIAL_ERP
+    if (!org.modules.includes('FINANCIAL_ERP')) {
+      await prisma.organization.update({
+        where: { id: org.id },
+        data: {
+          modules: [...org.modules, 'FINANCIAL_ERP'],
+        },
+      })
+      console.log(`  [+] Módulo FINANCIAL_ERP ativado na organização ${org.name}.`)
+    }
+
     // 1. Configurações Globais da Organização
     const existingSettings = await prisma.financialSettings.findUnique({
       where: { organizationId: org.id },
