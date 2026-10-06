@@ -14,6 +14,8 @@ import {
   ChevronUp,
   DollarSign,
   ListFilter,
+  History,
+  ShieldCheck,
 } from 'lucide-react'
 import { formatCurrency, formatCPF, formatCNPJ, cn } from '@/lib/utils'
 import { getQuittanceReceiptData } from '@/actions/financial/receivables'
@@ -30,6 +32,7 @@ import {
 import { useReceivablesFilter } from './hooks/useReceivablesFilter'
 import SettleReceivableModal from './modals/SettleReceivableModal'
 import ReverseReceivableModal from './modals/ReverseReceivableModal'
+import FinancialAuditDrawer from '@/components/financial/audit/FinancialAuditDrawer'
 
 const RECEIVABLE_STATUS_OPTIONS = [
   { value: 'TODOS', label: 'Status: Todos', icon: ListFilter, iconColor: 'text-slate-500' },
@@ -71,6 +74,17 @@ export default function ReceivablesTableClient({
 
   // Download do PDF de Recibo
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null)
+
+  // Gaveta Lateral de Auditoria & Observabilidade
+  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false)
+  const [selectedAuditTitleId, setSelectedAuditTitleId] = useState<string | null>(null)
+  const [selectedAuditDocNumber, setSelectedAuditDocNumber] = useState<string | undefined>()
+
+  const handleOpenAudit = (titleId: string, docNumber?: string) => {
+    setSelectedAuditTitleId(titleId)
+    setSelectedAuditDocNumber(docNumber)
+    setAuditDrawerOpen(true)
+  }
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -368,12 +382,23 @@ export default function ReceivablesTableClient({
                         </td>
 
                         <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => toggleRow(title.id)}
-                            className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 underline"
-                          >
-                            {installments.length} {installments.length === 1 ? 'parcela' : 'parcelas'}
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => toggleRow(title.id)}
+                              className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 underline"
+                            >
+                              {installments.length} {installments.length === 1 ? 'parcela' : 'parcelas'}
+                            </button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenAudit(title.id, title.documentNumber)}
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg"
+                              title="Abrir Trilha de Auditoria Integral"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
 
@@ -421,7 +446,20 @@ export default function ReceivablesTableClient({
                                     return (
                                       <tr key={inst.id} className="hover:bg-slate-50">
                                         <td className="py-2.5 px-3 font-semibold text-slate-800">
-                                          Parcela {inst.installmentNumber}/{inst.totalInstallments}
+                                          <div>Parcela {inst.installmentNumber}/{inst.totalInstallments}</div>
+                                          {instRec > 0 && (
+                                            <div className="text-[10px] text-slate-500 font-normal mt-0.5 flex flex-wrap items-center gap-1">
+                                              <span>👤 Baixa: <strong className="text-slate-700">{inst.settlementOperator?.name || 'Operador'}</strong></span>
+                                              <span>•</span>
+                                              <span>{inst.bankAccount?.bankName || 'Caixa'}</span>
+                                              {inst.receivedAt && (
+                                                <>
+                                                  <span>•</span>
+                                                  <span>{new Date(inst.receivedAt).toLocaleDateString('pt-BR')}</span>
+                                                </>
+                                              )}
+                                            </div>
+                                          )}
                                         </td>
 
                                         <td className="py-2.5 px-3 text-slate-600">
@@ -528,6 +566,20 @@ export default function ReceivablesTableClient({
           onSuccess={() => router.refresh()}
         />
       )}
+
+      {/* Gaveta Lateral de Trilha de Auditoria Integral */}
+      <FinancialAuditDrawer
+        isOpen={auditDrawerOpen}
+        onClose={() => {
+          setAuditDrawerOpen(false)
+          setSelectedAuditTitleId(null)
+          setSelectedAuditDocNumber(undefined)
+        }}
+        titleId={selectedAuditTitleId}
+        type="RECEIVABLE"
+        initialDocumentNumber={selectedAuditDocNumber}
+        onDownloadReceipt={(receiptId) => handleDownloadReceipt(receiptId)}
+      />
     </div>
   )
 }

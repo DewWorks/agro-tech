@@ -43,18 +43,24 @@ import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner';
 import { UniversalDocumentPreviewModal } from '@/components/documents/UniversalDocumentPreviewModal';
 import { printElementCleanly } from '@/lib/utils/clean-print';
 
-export default function CreditProjectWizard({ 
-  producers, 
-  templates,
-  defaultResponsibleName = '',
-  defaultOrgName = '',
-  defaultOrgCnpj = '',
-  initialTemplateCode,
-  initialSavedData,
-  backUrl,
-  pageTitle,
-  initialCategory,
-}: CreditProjectWizardProps) {
+export default function CreditProjectWizard(props: CreditProjectWizardProps) {
+  const {
+    producers,
+    templates,
+    defaultResponsibleName = '',
+    defaultOrgName = '',
+    defaultOrgCnpj = '',
+    initialTemplateCode,
+    initialProducerId,
+    initialPropertyId,
+    initialDemandId,
+    linkedDemand: propLinkedDemand,
+    initialSavedData,
+    backUrl,
+    pageTitle,
+    initialCategory,
+  } = props
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -67,6 +73,10 @@ export default function CreditProjectWizard({
     defaultOrgName,
     defaultOrgCnpj,
     initialTemplateCode: initialTemplateCode || initialTemplate,
+    initialProducerId,
+    initialPropertyId,
+    initialDemandId: initialDemandId || searchParams.get('demandId') || undefined,
+    linkedDemand: propLinkedDemand,
     initialSavedData,
   })
 
@@ -90,7 +100,9 @@ export default function CreditProjectWizard({
     producerErrors,
     projectErrors,
     isFormValid,
-    documentData
+    documentData,
+    selectedDemandId,
+    linkedDemand,
   } = state
 
   const axisParam = searchParams.get('axis') as 'custeio' | 'investimento' | null
@@ -202,15 +214,36 @@ export default function CreditProjectWizard({
 
       const storagePdfPath = `ged/credit-projects/${selectedTemplateCode}/${Date.now()}_${fileName}`
 
+      // Resolver valor financiado conforme o modelo para persistência garantida
+      const enrichedOptions = { ...customOptions }
+      if (!enrichedOptions.financedAmount) {
+        if (selectedTemplateCode === 'PROJETO_CUSTEIO_SAFRA') {
+          const custeioTotal =
+            (Number(customOptions.custeioAreaHa || 0) * Number(customOptions.custeioCostPerHa || 0)) ||
+            (Number(customOptions.custeioQuantity || 0) * Number(customOptions.custeioUnitPrice || 0))
+          if (custeioTotal > 0) enrichedOptions.financedAmount = custeioTotal
+        } else if (selectedTemplateCode === 'PROJETO_RENOVAGRO') {
+          if (Number(customOptions.renovagroFinanced || 0) > 0) {
+            enrichedOptions.financedAmount = Number(customOptions.renovagroFinanced)
+          }
+        } else if (selectedTemplateCode === 'PROJETO_INOVAGRO') {
+          if (Number(customOptions.inovagroFinanced || 0) > 0) {
+            enrichedOptions.financedAmount = Number(customOptions.inovagroFinanced)
+          }
+        }
+      }
+
       // Registrar evento de emissão formal no banco de dados e sincronizar rascunho
       if (selectedProducerId && selectedTemplateCode) {
         await recordDocumentEmission({
           producerId: selectedProducerId,
           propertyId: selectedPropertyId,
           templateCode: selectedTemplateCode,
-          payload: customOptions,
+          payload: enrichedOptions,
           storagePdfPath,
           sha256Hash: sha256,
+          demandId: selectedDemandId || undefined,
+          fileName,
         }).catch((err) => console.error('Erro ao contabilizar emissão no banco:', err))
       }
 
@@ -353,6 +386,36 @@ export default function CreditProjectWizard({
           </div>
         }
       />
+
+      {/* Banner de Integração com Demanda Técnica */}
+      {linkedDemand && (
+        <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+              OS
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-900">
+                  Demanda Vinculada #{linkedDemand.id.slice(-6).toUpperCase()}
+                </span>
+                <Badge className="bg-emerald-100 text-emerald-800 text-[10px] font-semibold border-emerald-300">
+                  {linkedDemand.serviceType}
+                </Badge>
+              </div>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Produtor: <strong>{linkedDemand.producerName}</strong> {linkedDemand.propertyName ? `• Fazenda ${linkedDemand.propertyName}` : ''}. O documento emitido será vinculado automaticamente ao checklist desta demanda e registrará o valor financiado.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/admin/demands/${linkedDemand.id}`}
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-900 underline whitespace-nowrap ml-auto"
+          >
+            Ver Demanda
+          </Link>
+        </div>
+      )}
 
       {/* Top Selectors Bar: Produtor, Propriedade, Linha Oficial e Modelo Oficial */}
       <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs space-y-4 print:hidden">

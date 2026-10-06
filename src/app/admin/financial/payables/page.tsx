@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import prisma from '@/lib/prisma'
 import { getPayableTitles } from '@/actions/financial/payables'
 import { getBankAccounts } from '@/actions/financial/settings'
@@ -6,13 +6,14 @@ import { requireFinancialAuth } from '@/lib/financial/auth-guard'
 import PayablesTableClient from '@/components/financial/PayablesTableClient'
 import { formatCurrency } from '@/lib/utils'
 import { ArrowUpRight, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { MetricCardsSkeleton, TableSkeleton } from '@/components/financial/FinancialSkeletons'
 
 export const metadata = {
   title: 'Contas a Pagar & Boletos Futuros | AgroTech Financeiro',
   description: 'Apropriação de despesas de projetos, custos fixos e compras parceladas a prazo.',
 }
 
-export default async function PayablesPage({
+async function PayablesContent({
   searchParams,
 }: {
   searchParams: Promise<{ branchId?: string; status?: string; expenseType?: string; search?: string }>
@@ -173,5 +174,30 @@ export default async function PayablesPage({
         currentBranchId={branchId}
       />
     </div>
+  )
+}
+
+function PayablesSkeleton() {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-100">
+      <MetricCardsSkeleton count={4} />
+      <div className="space-y-1">
+        <div className="h-6 w-72 bg-slate-200/70 rounded-md animate-pulse" />
+        <div className="h-4 w-96 bg-slate-100 rounded-md animate-pulse" />
+      </div>
+      <TableSkeleton rows={6} />
+    </div>
+  )
+}
+
+export default function PayablesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ branchId?: string; status?: string; expenseType?: string; search?: string }>
+}) {
+  return (
+    <Suspense fallback={<PayablesSkeleton />}>
+      <PayablesContent searchParams={searchParams} />
+    </Suspense>
   )
 }

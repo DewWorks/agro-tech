@@ -1,7 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { requireFinancialAuth, assertBranchMutationAllowed } from '@/lib/financial/auth-guard'
 import {
@@ -14,6 +14,8 @@ import {
 } from '@/lib/validations/financial'
 import { Prisma, ReceivableStatus, InstallmentStatus, CommissionStatus } from '@prisma/client'
 import crypto from 'crypto'
+import { serializeDecimals } from '@/lib/utils'
+import { resolveOperators } from '@/lib/financial/audit-operator'
 
 export interface ReceivableFilters {
   branchId?: string | null
@@ -25,31 +27,33 @@ export interface ReceivableFilters {
   search?: string
 }
 
-/**
- * Lista títulos a receber com filtros avançados e isolamento multi-filial.
- */
-export async function getReceivableTitles(filters: ReceivableFilters = {}) {
-  try {
-    const auth = await requireFinancialAuth(filters.branchId)
-
+const fetchCachedReceivableTitles = unstable_cache(
+  async (
+    branchKey: string,
+    organizationId: string,
+    producerIdKey: string,
+    statusKey: string,
+    cropYearKey: string,
+    searchKey: string
+  ) => {
+    const isGlobal = branchKey === 'ALL'
     const where: Prisma.ReceivableTitleWhereInput = {}
 
-    // Isolamento multi-tenant
-    if (auth.isGlobalView || !auth.effectiveBranchId) {
-      where.branch = { organizationId: auth.organizationId }
+    if (isGlobal) {
+      where.branch = { organizationId }
     } else {
-      where.branchId = auth.effectiveBranchId
+      where.branchId = branchKey
     }
 
-    if (filters.producerId) where.producerId = filters.producerId
-    if (filters.status && filters.status !== 'ALL') where.status = filters.status
-    if (filters.cropYear) where.cropYear = filters.cropYear
+    if (producerIdKey) where.producerId = producerIdKey
+    if (statusKey && statusKey !== 'ALL') where.status = statusKey as ReceivableStatus
+    if (cropYearKey) where.cropYear = cropYearKey
 
-    if (filters.search) {
+    if (searchKey) {
       where.OR = [
-        { documentNumber: { contains: filters.search, mode: 'insensitive' } },
-        { producer: { name: { contains: filters.search, mode: 'insensitive' } } },
-        { notes: { contains: filters.search, mode: 'insensitive' } },
+        { documentNumber: { contains: searchKey, mode: 'insensitive' } },
+        { producer: { name: { contains: searchKey, mode: 'insensitive' } } },
+        { notes: { contains: searchKey, mode: 'insensitive' } },
       ]
     }
 
@@ -65,6 +69,10 @@ export async function getReceivableTitles(filters: ReceivableFilters = {}) {
           include: {
             bankAccount: { select: { id: true, bankName: true } },
             receipts: { select: { id: true, receiptNumber: true, issuedAt: true, sha256Hash: true } },
+            cashTransactions: {
+              where: { isReversed: false },
+              select: { id: true, operatorId: true, transactionDate: true, amount: true },
+            },
           },
         },
         commissions: {
@@ -79,6 +87,49 @@ export async function getReceivableTitles(filters: ReceivableFilters = {}) {
       },
       orderBy: { createdAt: 'desc' },
     })
+
+    const operatorIds: string[] = []
+    for (const t of titles) {
+      for (const inst of t.installments) {
+        for (const tx of inst.cashTransactions) {
+          if (tx.operatorId) operatorIds.push(tx.operatorId)
+        }
+      }
+    }
+    const operatorsMap = await resolveOperators(operatorIds)
+
+    const titlesWithOperators = titles.map((t) => ({
+      ...t,
+      installments: t.installments.map((inst) => ({
+        ...inst,
+        settlementOperator: inst.cashTransactions[0]?.operatorId
+          ? operatorsMap.get(inst.cashTransactions[0].operatorId) || null
+          : null,
+      })),
+    }))
+
+    return serializeDecimals(titlesWithOperators)
+  },
+  ['financial-receivables-data'],
+  { tags: ['financial-data'], revalidate: 3600 }
+)
+
+/**
+ * Lista títulos a receber com filtros avançados e isolamento multi-filial (Cache em memória < 50ms).
+ */
+export async function getReceivableTitles(filters: ReceivableFilters = {}) {
+  try {
+    const auth = await requireFinancialAuth(filters.branchId)
+    const branchKey = auth.isGlobalView || !auth.effectiveBranchId ? 'ALL' : auth.effectiveBranchId
+
+    const titles = await fetchCachedReceivableTitles(
+      branchKey,
+      auth.organizationId,
+      filters.producerId || '',
+      filters.status || 'ALL',
+      filters.cropYear || '',
+      filters.search || ''
+    )
 
     return { data: titles }
   } catch (error) {
@@ -129,7 +180,7 @@ export async function getReceivableTitleById(titleId: string) {
 
     await requireFinancialAuth(title.branchId)
 
-    return { data: title }
+    return { data: serializeDecimals(title) }
   } catch (error) {
     return { error: handleServerError(error, 'getReceivableTitleById') }
   }
@@ -231,9 +282,27 @@ export async function createDirectReceivableTitle(data: CreateReceivableTitleInp
         })
       }
 
+      // 4. Registro de Auditoria de Criação
+      await tx.financialAuditLog.create({
+        data: {
+          branchId: validated.branchId,
+          userId: auth.user.id,
+          action: 'CRIACAO_TITULO',
+          entityName: 'ReceivableTitle',
+          entityId: title.id,
+          justification: 'Cadastro inicial de faturamento direto no módulo financeiro.',
+          newSnapshot: {
+            documentNumber,
+            netAmount: netAmount.toNumber(),
+            installmentsCount: installments.length,
+          },
+        },
+      })
+
       return { title, installments, commission }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/receivables')
     return { data: result, success: true }
@@ -414,41 +483,59 @@ export async function settleReceivableInstallment(data: SettleReceivableInstallm
           })
         }
 
-        // Criar o Título a Pagar para o Parceiro correspondente à fração destravada
+        // Criar o Título a Pagar para o Parceiro correspondente à fração destravada com trava de idempotência
         if (unlockAmount.gt(0) && commCategory) {
           const partner = await tx.commercialPartner.findUnique({
             where: { id: commission.partnerId },
           })
 
-          const payableTitle = await tx.payableTitle.create({
-            data: {
+          const idempotencyKey = `[IDEMPOTENCY:partnerCommissionId=${commission.id}:installmentId=${installment.id}]`
+
+          const existingPayable = await tx.payableTitle.findFirst({
+            where: {
               branchId: title.branchId,
-              categoryId: commCategory.id,
               partnerCommissionId: commission.id,
-              supplierName: partner?.name || 'Parceiro Comercial',
-              supplierDocument: partner?.document,
-              documentNumber: `COM-${receiptNumber}`,
-              expenseType: 'COMISSAO_PARCEIRO',
-              cropYear: title.cropYear,
-              totalAmount: unlockAmount,
-              paidAmount: new Prisma.Decimal(0),
-              status: 'PENDENTE',
-              notes: `Comissão destravada proporcionalmente referente à baixa da parcela ${installment.installmentNumber} do título ${title.documentNumber}. Chave PIX: ${partner?.pixKey} (${partner?.pixKeyType}).`,
+              OR: [
+                { notes: { contains: idempotencyKey } },
+                { notes: { contains: `baixa da parcela ${installment.installmentNumber} do título ${title.documentNumber}` } },
+                { documentNumber: `COM-${receiptNumber}` },
+              ],
             },
           })
 
-          // Cria parcela única a pagar
-          await tx.payableInstallment.create({
-            data: {
-              payableTitleId: payableTitle.id,
-              installmentNumber: 1,
-              totalInstallments: 1,
-              dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // Vencimento padrão: 5 dias
-              amount: unlockAmount,
-              paidAmount: new Prisma.Decimal(0),
-              status: 'A_VENCER',
-            },
-          })
+          let payableTitle = existingPayable
+
+          if (!payableTitle) {
+            payableTitle = await tx.payableTitle.create({
+              data: {
+                branchId: title.branchId,
+                categoryId: commCategory.id,
+                partnerCommissionId: commission.id,
+                supplierName: partner?.name || 'Parceiro Comercial',
+                supplierDocument: partner?.document,
+                documentNumber: `COM-${receiptNumber}`,
+                expenseType: 'COMISSAO_PARCEIRO',
+                cropYear: title.cropYear,
+                totalAmount: unlockAmount,
+                paidAmount: new Prisma.Decimal(0),
+                status: 'PENDENTE',
+                notes: `Comissão destravada proporcionalmente referente à baixa da parcela ${installment.installmentNumber} do título ${title.documentNumber}. Chave PIX: ${partner?.pixKey} (${partner?.pixKeyType}). ${idempotencyKey}`,
+              },
+            })
+
+            // Cria parcela única a pagar
+            await tx.payableInstallment.create({
+              data: {
+                payableTitleId: payableTitle.id,
+                installmentNumber: 1,
+                totalInstallments: 1,
+                dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000), // Vencimento padrão: 5 dias
+                amount: unlockAmount,
+                paidAmount: new Prisma.Decimal(0),
+                status: 'A_VENCER',
+              },
+            })
+          }
 
           unlockedCommissions.push({ commission: updatedCommission, payableTitle })
         }
@@ -464,6 +551,7 @@ export async function settleReceivableInstallment(data: SettleReceivableInstallm
       }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/receivables')
     revalidatePath('/admin/financial/payables')
@@ -638,6 +726,7 @@ export async function reverseReceivablePayment(data: ReverseReceivablePaymentInp
       return { updatedTx, updatedAccount, updatedInstallment, updatedTitle, auditLog }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/receivables')
     revalidatePath('/admin/financial/payables')

@@ -2,6 +2,14 @@ import React from 'react'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import { DemandHubContainer } from '@/components/demands/DemandHubContainer'
 
+jest.mock('next/cache', () => ({
+  revalidatePath: jest.fn(),
+}))
+
+jest.mock('@/components/demands/DemandBillingModal', () => ({
+  DemandBillingModal: () => null,
+}))
+
 const pushMock = jest.fn()
 jest.mock('next/navigation', () => ({
   useRouter: () => ({

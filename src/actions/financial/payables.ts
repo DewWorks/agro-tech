@@ -1,7 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { requireFinancialAuth, assertBranchMutationAllowed } from '@/lib/financial/auth-guard'
 import {
@@ -11,6 +11,8 @@ import {
   SettlePayableInstallmentInput,
 } from '@/lib/validations/financial'
 import { Prisma, PayableStatus, ExpenseType } from '@prisma/client'
+import { serializeDecimals } from '@/lib/utils'
+import { resolveOperators } from '@/lib/financial/audit-operator'
 
 export interface PayableFilters {
   branchId?: string | null
@@ -21,31 +23,35 @@ export interface PayableFilters {
   search?: string
 }
 
-/**
- * Lista títulos a pagar com suporte a filtros e isolamento multi-filial.
- */
-export async function getPayableTitles(filters: PayableFilters = {}) {
-  try {
-    const auth = await requireFinancialAuth(filters.branchId)
-
+const fetchCachedPayables = unstable_cache(
+  async (
+    branchKey: string,
+    organizationId: string,
+    statusKey: string,
+    expenseTypeKey: string,
+    categoryIdKey: string,
+    cropYearKey: string,
+    searchKey: string
+  ) => {
+    const isGlobal = branchKey === 'ALL'
     const where: Prisma.PayableTitleWhereInput = {}
 
-    if (auth.isGlobalView || !auth.effectiveBranchId) {
-      where.branch = { organizationId: auth.organizationId }
+    if (isGlobal) {
+      where.branch = { organizationId }
     } else {
-      where.branchId = auth.effectiveBranchId
+      where.branchId = branchKey
     }
 
-    if (filters.status && filters.status !== 'ALL') where.status = filters.status
-    if (filters.expenseType && filters.expenseType !== 'ALL') where.expenseType = filters.expenseType
-    if (filters.categoryId) where.categoryId = filters.categoryId
-    if (filters.cropYear) where.cropYear = filters.cropYear
+    if (statusKey && statusKey !== 'ALL') where.status = statusKey as PayableStatus
+    if (expenseTypeKey && expenseTypeKey !== 'ALL') where.expenseType = expenseTypeKey as ExpenseType
+    if (categoryIdKey) where.categoryId = categoryIdKey
+    if (cropYearKey) where.cropYear = cropYearKey
 
-    if (filters.search) {
+    if (searchKey) {
       where.OR = [
-        { supplierName: { contains: filters.search, mode: 'insensitive' } },
-        { documentNumber: { contains: filters.search, mode: 'insensitive' } },
-        { notes: { contains: filters.search, mode: 'insensitive' } },
+        { supplierName: { contains: searchKey, mode: 'insensitive' } },
+        { documentNumber: { contains: searchKey, mode: 'insensitive' } },
+        { notes: { contains: searchKey, mode: 'insensitive' } },
       ]
     }
 
@@ -64,11 +70,59 @@ export async function getPayableTitles(filters: PayableFilters = {}) {
           orderBy: { installmentNumber: 'asc' },
           include: {
             bankAccount: { select: { id: true, bankName: true } },
+            cashTransactions: {
+              where: { isReversed: false },
+              select: { id: true, operatorId: true, transactionDate: true, amount: true },
+            },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     })
+
+    const operatorIds: string[] = []
+    for (const p of payables) {
+      for (const inst of p.installments) {
+        for (const tx of inst.cashTransactions) {
+          if (tx.operatorId) operatorIds.push(tx.operatorId)
+        }
+      }
+    }
+    const operatorsMap = await resolveOperators(operatorIds)
+
+    const payablesWithOperators = payables.map((p) => ({
+      ...p,
+      installments: p.installments.map((inst) => ({
+        ...inst,
+        settlementOperator: inst.cashTransactions[0]?.operatorId
+          ? operatorsMap.get(inst.cashTransactions[0].operatorId) || null
+          : null,
+      })),
+    }))
+
+    return serializeDecimals(payablesWithOperators)
+  },
+  ['financial-payables-data'],
+  { tags: ['financial-data'], revalidate: 3600 }
+)
+
+/**
+ * Lista títulos a pagar com suporte a filtros e isolamento multi-filial (Cache em memória < 50ms).
+ */
+export async function getPayableTitles(filters: PayableFilters = {}) {
+  try {
+    const auth = await requireFinancialAuth(filters.branchId)
+    const branchKey = auth.isGlobalView || !auth.effectiveBranchId ? 'ALL' : auth.effectiveBranchId
+
+    const payables = await fetchCachedPayables(
+      branchKey,
+      auth.organizationId,
+      filters.status || 'ALL',
+      filters.expenseType || 'ALL',
+      filters.categoryId || '',
+      filters.cropYear || '',
+      filters.search || ''
+    )
 
     return { data: payables }
   } catch (error) {
@@ -107,7 +161,7 @@ export async function getPayableTitleById(id: string) {
 
     await requireFinancialAuth(title.branchId)
 
-    return { data: title }
+    return { data: serializeDecimals(title) }
   } catch (error) {
     return { error: handleServerError(error, 'getPayableTitleById') }
   }
@@ -171,9 +225,28 @@ export async function createDirectPayableTitle(data: CreatePayableTitleInput) {
         )
       )
 
+      // 3. Registro de Auditoria de Criação
+      await tx.financialAuditLog.create({
+        data: {
+          branchId: validated.branchId,
+          userId: auth.user.id,
+          action: 'CRIACAO_TITULO',
+          entityName: 'PayableTitle',
+          entityId: title.id,
+          justification: 'Cadastro inicial de despesa / obrigação a pagar no módulo financeiro.',
+          newSnapshot: {
+            documentNumber,
+            supplierName: title.supplierName,
+            totalAmount: totalAmount.toNumber(),
+            installmentsCount: installments.length,
+          },
+        },
+      })
+
       return { title, installments }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/payables')
     return { data: result, success: true }
@@ -272,25 +345,46 @@ export async function settlePayableInstallment(data: SettlePayableInstallmentInp
         },
       })
 
-      // 5. Se for comissão de parceiro, atualiza o acumulado pago na PartnerCommission
+      // 5. Se for comissão de parceiro, atualiza atomicamente a PartnerCommission
       let updatedCommission = null
-      if (title.partnerCommission) {
-        const commission = title.partnerCommission
-        const newCommPaid = commission.paidAmount.add(paidAmount)
-        const isCommFullyPaid = newCommPaid.gte(commission.totalCommissionAmount)
+      let commissionId = title.partnerCommissionId || title.partnerCommission?.id
 
-        updatedCommission = await tx.partnerCommission.update({
-          where: { id: commission.id },
-          data: {
-            paidAmount: newCommPaid,
-            status: isCommFullyPaid ? 'PAGO' : commission.status,
+      if (!commissionId && title.expenseType === 'COMISSAO_PARCEIRO') {
+        const found = await tx.partnerCommission.findFirst({
+          where: {
+            branchId: title.branchId,
+            OR: [
+              { payableTitles: { some: { id: title.id } } },
+              { partner: { name: title.supplierName } },
+            ],
           },
         })
+        if (found) commissionId = found.id
+      }
+
+      if (commissionId) {
+        const commission = await tx.partnerCommission.findUnique({
+          where: { id: commissionId },
+        })
+
+        if (commission) {
+          const newCommPaid = commission.paidAmount.add(paidAmount)
+          const isCommFullyPaid = newCommPaid.gte(commission.totalCommissionAmount)
+
+          updatedCommission = await tx.partnerCommission.update({
+            where: { id: commission.id },
+            data: {
+              paidAmount: newCommPaid,
+              status: isCommFullyPaid ? 'PAGO' : 'LIBERADO_PARCIAL',
+            },
+          })
+        }
       }
 
       return { cashTransaction, updatedInstallment, updatedTitle, updatedCommission, updatedAccount }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/payables')
     revalidatePath('/admin/financial/partners')
@@ -415,6 +509,7 @@ export async function reversePayablePayment(transactionId: string, justification
       return { updatedTx, updatedAccount, updatedInstallment, updatedTitle }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/payables')
     return { data: result, success: true }

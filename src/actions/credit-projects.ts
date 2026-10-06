@@ -711,6 +711,8 @@ export async function recordDocumentEmission({
   payload,
   storagePdfPath,
   sha256Hash,
+  demandId,
+  fileName,
 }: {
   producerId: string
   propertyId?: string
@@ -718,6 +720,8 @@ export async function recordDocumentEmission({
   payload: Record<string, any>
   storagePdfPath?: string
   sha256Hash?: string
+  demandId?: string
+  fileName?: string
 }) {
   const user = await getUserContext()
   if (!user) throw new Error('Não autorizado')
@@ -754,7 +758,26 @@ export async function recordDocumentEmission({
     branchId = producer.branchId
   }
 
-  // Criar registro permanente de emissão primeiro para resposta imediata
+  // Resolver valor financiado a partir do payload
+  const resolvedFinancedAmount = Number(
+    payload.financedAmount ||
+    payload.renovagroFinanced ||
+    payload.inovagroFinanced ||
+    (Number(payload.custeioAreaHa || 0) * Number(payload.custeioCostPerHa || 0)) ||
+    (Number(payload.custeioQuantity || 0) * Number(payload.custeioUnitPrice || 0)) ||
+    payload.amount ||
+    payload.valorFinanciado ||
+    payload.machineryValue ||
+    payload.totalInvestment ||
+    0
+  )
+
+  const enrichedPayload = {
+    ...payload,
+    financedAmount: resolvedFinancedAmount > 0 ? resolvedFinancedAmount : payload.financedAmount,
+  }
+
+  // Criar registro permanente de emissão
   const emission = await prisma.generatedForm.create({
     data: {
       branchId: branchId!,
@@ -762,21 +785,173 @@ export async function recordDocumentEmission({
       propertyId: propertyId || null,
       templateCode,
       templateVersion: 1,
-      payloadSnapshot: payload,
+      payloadSnapshot: enrichedPayload,
       storagePdfPath: storagePdfPath || null,
       sha256Hash: sha256Hash || null,
     }
   })
 
+  // Criar registro correspondente no GED (documents) se a entidade estiver disponível
+  const resolvedFileName =
+    fileName || storagePdfPath?.split('/').pop() || `${templateCode}_${Date.now()}.pdf`
+  const targetBank = payload.targetBank || payload.financialAgent || 'Banco do Brasil'
+
+  let doc: any = null
+  if (prisma.document?.create) {
+    doc = await prisma.document.create({
+      data: {
+        branchId: branchId!,
+        producerId,
+        propertyId: propertyId || null,
+        documentType: 'LAUDO_TECNICO',
+        fileName: resolvedFileName,
+        fileSize: 1024 * 50,
+        mimeType: 'application/pdf',
+        storagePath: storagePdfPath || `ged/credit-projects/${templateCode}/${Date.now()}_${resolvedFileName}`,
+        complianceStatus: 'APPROVED',
+        issueDate: new Date(),
+        metadataPayload: {
+          templateCode,
+          sha256Hash: sha256Hash || emission.sha256Hash,
+          emissionId: emission.id,
+          financedAmount: resolvedFinancedAmount,
+          financialAgent: targetBank,
+          demandId: demandId || null,
+        },
+      },
+    })
+  }
+
+  // Localizar demanda alvo para vinculação bidirecional
+  let targetDemand: any = null
+  if (prisma.serviceDemand?.findUnique) {
+    if (demandId) {
+      targetDemand = await prisma.serviceDemand.findUnique({
+        where: { id: demandId },
+      })
+    }
+
+    // Se não foi informada demandId explicitamente, localiza demanda de crédito em aberto para o produtor
+    if (!targetDemand && prisma.serviceDemand?.findFirst) {
+      targetDemand = await prisma.serviceDemand.findFirst({
+        where: {
+          producerId,
+          ...(propertyId ? { propertyId } : {}),
+          status: { in: ['SOLICITADO', 'EM_EXECUCAO', 'AGUARDANDO_DOCUMENTACAO'] },
+          serviceType: {
+            in: ['PROJETO_CUSTEIO', 'PROJETO_INVESTIMENTO', 'LIMITE_CREDITO', 'PRORROGACAO_DIVIDAS'],
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+    }
+  }
+
+  // Integração com a demanda encontrada: atualiza vínculos e checklist
+  if (targetDemand && doc) {
+    console.log(`[Credit Project Emission] Vinculando emissão à demanda #${targetDemand.id.slice(-6).toUpperCase()} com valor financiado R$ ${resolvedFinancedAmount}`)
+
+    const proposalRef =
+      payload.proposalNumber ||
+      payload.artNumber ||
+      targetDemand.proposalId ||
+      emission.id.slice(0, 8).toUpperCase()
+
+    const financeFormatted =
+      resolvedFinancedAmount > 0
+        ? `R$ ${resolvedFinancedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        : 'Conforme projeto'
+
+    const projectNote = `[Projeto Emitido] Financiado: ${financeFormatted} | Banco: ${targetBank} | Doc: ${doc.fileName}`
+    const updatedNotes = targetDemand.notes
+      ? `${targetDemand.notes}\n${projectNote}`
+      : projectNote
+
+    if (prisma.serviceDemand?.update) {
+      await prisma.serviceDemand.update({
+        where: { id: targetDemand.id },
+        data: {
+          documentId: doc.id,
+          proposalId: proposalRef,
+          notes: updatedNotes,
+        },
+      })
+    }
+
+    // Auto-vincular no checklist da demanda
+    if (prisma.demandChecklistItem?.findFirst) {
+      const existingChecklistItem = await prisma.demandChecklistItem.findFirst({
+        where: {
+          demandId: targetDemand.id,
+          OR: [
+            { title: { contains: 'Projeto', mode: 'insensitive' } },
+            { title: { contains: 'Custeio', mode: 'insensitive' } },
+            { title: { contains: 'Dossiê', mode: 'insensitive' } },
+            { title: { contains: 'Crédito', mode: 'insensitive' } },
+            { documentType: 'LAUDO_TECNICO' },
+            { isDelivered: false },
+          ],
+        },
+      })
+
+      if (existingChecklistItem && prisma.demandChecklistItem?.update) {
+        await prisma.demandChecklistItem.update({
+          where: { id: existingChecklistItem.id },
+          data: {
+            documentId: doc.id,
+            isDelivered: true,
+            deliveredAt: new Date(),
+            notes: `Anexado automaticamente via Emissão do Projeto de Crédito (${templateCode}).`,
+          },
+        })
+      } else if (prisma.demandChecklistItem?.create) {
+        await prisma.demandChecklistItem.create({
+          data: {
+            demandId: targetDemand.id,
+            title: `Projeto de Crédito Emitido (${templateCode})`,
+            documentType: 'LAUDO_TECNICO',
+            documentId: doc.id,
+            isDelivered: true,
+            deliveredAt: new Date(),
+            notes: `Anexado automaticamente via Emissão do Projeto.`,
+          },
+        })
+      }
+    }
+
+    // Registrar histórico da demanda
+    if (prisma.serviceDemandHistory?.create) {
+      await prisma.serviceDemandHistory.create({
+        data: {
+          demandId: targetDemand.id,
+          userId: user.id,
+          fromStatus: targetDemand.status,
+          toStatus: targetDemand.status,
+          notes: `Documento "${doc.fileName}" anexado automaticamente ao checklist. Valor financiado: ${financeFormatted}.`,
+        },
+      })
+    }
+
+    revalidatePath('/admin/demands')
+    revalidatePath(`/admin/demands/${targetDemand.id}`)
+  }
+
   // Sincronizar rascunho permanente em segundo plano sem bloquear a resposta ao usuário
   if (propertyId) {
-    saveCreditProjectData(producerId, propertyId, templateCode, payload).catch((err) => {
+    saveCreditProjectData(producerId, propertyId, templateCode, enrichedPayload).catch((err) => {
       console.error('Warning: could not sync draft during emission:', err)
     })
   }
 
+  revalidatePath('/admin/documents/credit-projects')
   revalidatePath('/admin/dashboard/owner')
-  return { success: true, id: emission.id, sha256Hash: emission.sha256Hash }
+  return { 
+    success: true, 
+    id: emission.id, 
+    documentId: doc?.id || null,
+    sha256Hash: emission.sha256Hash,
+    linkedDemandId: targetDemand?.id || null,
+  }
 }
 
 export interface CreditProjectHistoryItem {

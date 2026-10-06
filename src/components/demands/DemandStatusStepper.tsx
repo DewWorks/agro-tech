@@ -14,11 +14,13 @@ import {
   FileText,
   MessageSquare,
   Ban,
+  Receipt,
 } from 'lucide-react'
 import { updateDemandStatus } from '@/actions/demands'
 import { DemandStatusCode } from '@/lib/validations/demands'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { DemandBillingModal } from './DemandBillingModal'
 
 interface StepConfig {
   status: DemandStatusCode
@@ -110,6 +112,9 @@ export function DemandStatusStepper({
   const [targetReopenStatus, setTargetReopenStatus] = useState<DemandStatusCode>('EM_EXECUCAO')
   const [reopenReason, setReopenReason] = useState('')
 
+  // Modal de faturamento inteligente ao concluir demanda
+  const [billingModalOpen, setBillingModalOpen] = useState(false)
+
   // Modal de despacho ao avançar etapa
   const [dispatchModalOpen, setDispatchModalOpen] = useState(false)
   const [targetDispatchStatus, setTargetDispatchStatus] = useState<DemandStatusCode>('AGUARDANDO_DOCUMENTACAO')
@@ -146,8 +151,14 @@ export function DemandStatusStepper({
       return
     }
 
-    // Se avançar para AGUARDANDO_DOCUMENTACAO ou CONCLUIDO, abre modal de despacho
-    if (targetStatus === 'AGUARDANDO_DOCUMENTACAO' || targetStatus === 'CONCLUIDO') {
+    // Se avançar para CONCLUIDO, intercepta e abre o Diálogo Inteligente de Faturamento
+    if (targetStatus === 'CONCLUIDO') {
+      setBillingModalOpen(true)
+      return
+    }
+
+    // Se avançar para AGUARDANDO_DOCUMENTACAO, abre modal de despacho
+    if (targetStatus === 'AGUARDANDO_DOCUMENTACAO') {
       setTargetDispatchStatus(targetStatus)
       setDispatchNote('')
       setDispatchModalOpen(true)
@@ -217,9 +228,21 @@ export function DemandStatusStepper({
               Fluxo da Ordem de Serviço Rural
             </span>
           </div>
-          <span className="text-xs text-muted-foreground">
-            Clique em uma etapa para avançar a esteira
-          </span>
+          {currentStatus === 'CONCLUIDO' ? (
+            <button
+              type="button"
+              onClick={() => setBillingModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#1B4D3E] border border-emerald-300 text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
+              title="Abrir Central de Faturamento para conferir ou emitir o Título a Receber"
+            >
+              <Receipt className="w-3.5 h-3.5 text-emerald-700" />
+              <span>Faturamento da Demanda</span>
+            </button>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              Clique em uma etapa para avançar a esteira
+            </span>
+          )}
         </div>
 
         {/* Linha de Conexão e Steps */}
@@ -456,6 +479,21 @@ export function DemandStatusStepper({
           </div>
         </div>
       )}
+
+      {/* Modal Inteligente de Faturamento ao Concluir Demanda */}
+      <DemandBillingModal
+        isOpen={billingModalOpen}
+        onClose={() => setBillingModalOpen(false)}
+        demandId={demandId}
+        onSuccess={() => {
+          setBillingModalOpen(false)
+          if (onStatusChange) onStatusChange('CONCLUIDO')
+        }}
+        onSkipBilling={() => {
+          setBillingModalOpen(false)
+          if (onStatusChange) onStatusChange('CONCLUIDO')
+        }}
+      />
     </>
   )
 }

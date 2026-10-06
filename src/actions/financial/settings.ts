@@ -1,7 +1,8 @@
 'use server'
 
+import { cache } from 'react'
 import prisma from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { requireFinancialAuth, assertBranchMutationAllowed } from '@/lib/financial/auth-guard'
 import {
@@ -15,6 +16,29 @@ import {
   TransferBetweenAccountsInput,
 } from '@/lib/validations/financial'
 import { Prisma } from '@prisma/client'
+import { serializeDecimals } from '@/lib/utils'
+
+/**
+ * Consulta interna de configurações financeiras com React cache()
+ */
+const fetchFinancialSettingsInternal = cache(async (organizationId: string) => {
+  let settings = await prisma.financialSettings.findUnique({
+    where: { organizationId },
+  })
+
+  if (!settings && organizationId) {
+    settings = await prisma.financialSettings.create({
+      data: {
+        organizationId,
+        defaultSuccessFeePercent: new Prisma.Decimal(2.0),
+        defaultPartnerCommissionPercent: new Prisma.Decimal(20.0),
+        defaultFieldSurveyCostPerKm: new Prisma.Decimal(2.5),
+      },
+    })
+  }
+
+  return settings
+})
 
 /**
  * Obtém as configurações financeiras globais da organização.
@@ -22,23 +46,8 @@ import { Prisma } from '@prisma/client'
 export async function getFinancialSettings() {
   try {
     const auth = await requireFinancialAuth()
-    
-    let settings = await prisma.financialSettings.findUnique({
-      where: { organizationId: auth.organizationId },
-    })
-
-    if (!settings && auth.organizationId) {
-      settings = await prisma.financialSettings.create({
-        data: {
-          organizationId: auth.organizationId,
-          defaultSuccessFeePercent: new Prisma.Decimal(2.0),
-          defaultPartnerCommissionPercent: new Prisma.Decimal(20.0),
-          defaultFieldSurveyCostPerKm: new Prisma.Decimal(2.5),
-        },
-      })
-    }
-
-    return { data: settings }
+    const settings = await fetchFinancialSettingsInternal(auth.organizationId)
+    return { data: serializeDecimals(settings) }
   } catch (error) {
     return { error: handleServerError(error, 'getFinancialSettings') }
   }
@@ -71,12 +80,35 @@ export async function updateFinancialSettings(data: FinancialSettingsInput) {
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
-    return { data: updated, success: true }
+    return { data: serializeDecimals(updated), success: true }
   } catch (error) {
     return { error: handleServerError(error, 'updateFinancialSettings') }
   }
 }
+
+/**
+ * Consulta interna de parâmetros por filial com React cache()
+ */
+const fetchBranchFinancialSettingsInternal = cache(async (targetBranchId: string) => {
+  let settings = await prisma.financialBranchSettings.findUnique({
+    where: { branchId: targetBranchId },
+  })
+
+  if (!settings && targetBranchId) {
+    settings = await prisma.financialBranchSettings.create({
+      data: {
+        branchId: targetBranchId,
+        monthlyFixedCostTarget: new Prisma.Decimal(15000.0),
+        monthlyRevenueTarget: new Prisma.Decimal(60000.0),
+        activeCropYear: '2025/2026',
+      },
+    })
+  }
+
+  return settings
+})
 
 /**
  * Obtém os parâmetros e metas financeiras de uma filial específica.
@@ -84,24 +116,9 @@ export async function updateFinancialSettings(data: FinancialSettingsInput) {
 export async function getBranchFinancialSettings(branchId: string) {
   try {
     const auth = await requireFinancialAuth(branchId)
-
-    let settings = await prisma.financialBranchSettings.findUnique({
-      where: { branchId: auth.effectiveBranchId || branchId },
-    })
-
-    if (!settings && (auth.effectiveBranchId || branchId)) {
-      const targetId = auth.effectiveBranchId || branchId
-      settings = await prisma.financialBranchSettings.create({
-        data: {
-          branchId: targetId,
-          monthlyFixedCostTarget: new Prisma.Decimal(15000.0),
-          monthlyRevenueTarget: new Prisma.Decimal(60000.0),
-          activeCropYear: '2025/2026',
-        },
-      })
-    }
-
-    return { data: settings }
+    const targetId = auth.effectiveBranchId || branchId
+    const settings = await fetchBranchFinancialSettingsInternal(targetId)
+    return { data: serializeDecimals(settings) }
   } catch (error) {
     return { error: handleServerError(error, 'getBranchFinancialSettings') }
   }
@@ -137,6 +154,7 @@ export async function updateBranchFinancialSettings(
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
     return { data: updated, success: true }
   } catch (error) {
@@ -145,20 +163,22 @@ export async function updateBranchFinancialSettings(
 }
 
 /**
- * Lista as contas bancárias e caixas físicos (com suporte a filtro multi-filial).
+ * Consulta interna de contas bancárias com unstable_cache em memória (< 50ms)
  */
-export async function getBankAccounts(targetBranchId?: string | null) {
-  try {
-    const auth = await requireFinancialAuth(targetBranchId)
-
+const fetchCachedBankAccounts = unstable_cache(
+  async (
+    isGlobalView: boolean,
+    effectiveBranchId: string | null,
+    organizationId: string
+  ) => {
     const where: Prisma.BankAccountWhereInput = {
       isActive: true,
     }
 
-    if (auth.isGlobalView || !auth.effectiveBranchId) {
-      where.branch = { organizationId: auth.organizationId }
+    if (isGlobalView || !effectiveBranchId) {
+      where.branch = { organizationId }
     } else {
-      where.branchId = auth.effectiveBranchId
+      where.branchId = effectiveBranchId
     }
 
     const accounts = await prisma.bankAccount.findMany({
@@ -180,6 +200,24 @@ export async function getBankAccounts(targetBranchId?: string | null) {
       },
       orderBy: [{ branchId: 'asc' }, { bankName: 'asc' }],
     })
+
+    return serializeDecimals(accounts)
+  },
+  ['financial-bank-accounts-data'],
+  { tags: ['financial-data'], revalidate: 3600 }
+)
+
+/**
+ * Lista as contas bancárias e caixas físicos com cache em memória (< 50ms).
+ */
+export async function getBankAccounts(targetBranchId?: string | null) {
+  try {
+    const auth = await requireFinancialAuth(targetBranchId)
+    const accounts = await fetchCachedBankAccounts(
+      auth.isGlobalView,
+      auth.effectiveBranchId,
+      auth.organizationId
+    )
 
     return { data: accounts }
   } catch (error) {
@@ -211,6 +249,7 @@ export async function createBankAccount(data: BankAccountInput) {
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
     return { data: account, success: true }
   } catch (error) {
@@ -250,6 +289,7 @@ export async function updateBankAccount(
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
     return { data: updated, success: true }
   } catch (error) {
@@ -324,6 +364,7 @@ export async function transferBetweenBankAccounts(data: TransferBetweenAccountsI
       return { transaction, updatedSource, updatedDest }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/settings')
     return { data: result, success: true }

@@ -15,7 +15,7 @@ import {
   DemandStatusCode,
 } from '@/lib/validations/demands'
 import { DocumentType } from '@prisma/client'
-import { triggerReceivableFromDemand } from '@/actions/financial/triggers'
+import { triggerReceivableFromDemand, TriggerReceivableOptions } from '@/actions/financial/triggers'
 
 export type SlaFilterOption = 'ALL' | 'WARNING_30' | 'OVERDUE' | 'ON_TRACK'
 
@@ -616,7 +616,8 @@ export async function updateDemand(id: string, rawData: any) {
 export async function updateDemandStatus(
   id: string,
   newStatus: DemandStatusCode,
-  notes?: string | null
+  notes?: string | null,
+  billingOptions?: TriggerReceivableOptions
 ) {
   try {
     const dbUser = await getUserContext()
@@ -695,9 +696,12 @@ export async function updateDemandStatus(
     revalidatePath(`/admin/demands/${id}`)
 
     // Automação Financeira (Termo Aditivo 004): Gera faturamento ao concluir a demanda
+    let financialResult: any = null
     if (parsed.status === 'CONCLUIDO') {
       try {
-        await triggerReceivableFromDemand(id)
+        console.log(`[Demand Status Update] Invocando trigger financeiro para demanda ${id} com parâmetros:`, billingOptions)
+        financialResult = await triggerReceivableFromDemand(id, billingOptions)
+        console.log(`[Demand Status Update] Retorno do trigger financeiro para demanda ${id}:`, financialResult)
       } catch (finErr) {
         console.error('[Financial Trigger Error]:', finErr)
       }
@@ -706,6 +710,7 @@ export async function updateDemandStatus(
     return {
       success: true,
       demand: updated,
+      financialResult,
     }
   } catch (error) {
     return {

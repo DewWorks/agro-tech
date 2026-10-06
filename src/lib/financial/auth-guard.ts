@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { getUserContext } from '@/lib/auth'
 
 export interface FinancialAuthContext {
@@ -10,15 +11,16 @@ export interface FinancialAuthContext {
 
 /**
  * Utilitário de segurança RBAC e isolamento multi-filial para o módulo financeiro.
+ * Deduplicado por request com React cache().
  * 
  * Regras:
  * 1. Apenas papéis autorizados (OWNER, SUPER_ADMIN, ADMIN, OPERATOR) podem acessar.
  * 2. Operadores locais têm consultas estritamente fixadas na sua filial (user.branchId).
  * 3. Apenas perfis executivos (OWNER, SUPER_ADMIN) podem alternar entre filiais ou visualizar o consolidado (ALL).
  */
-export async function requireFinancialAuth(
+export const requireFinancialAuth = cache(async (
   targetBranchId?: string | null
-): Promise<FinancialAuthContext> {
+): Promise<FinancialAuthContext> => {
   const user = await getUserContext()
   if (!user) {
     throw new Error('Não autenticado. Faça login para acessar o módulo financeiro.')
@@ -72,7 +74,7 @@ export async function requireFinancialAuth(
     effectiveBranchId: targetBranchId,
     organizationId: organizationId || '',
   }
-}
+})
 
 /**
  * Constrói a cláusula WHERE de isolamento multi-tenant para queries Prisma.

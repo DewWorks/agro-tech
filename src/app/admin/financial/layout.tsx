@@ -4,6 +4,7 @@ import { getUserContext } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import FinancialNavTabs from '@/components/financial/FinancialNavTabs'
 import FinancialHeaderBanner from '@/components/financial/FinancialHeaderBanner'
+import { getFinancialBadgeCounts } from '@/actions/financial/badges'
 import { Landmark } from 'lucide-react'
 
 export const metadata = {
@@ -40,21 +41,24 @@ export default async function FinancialLayout({
     )
   }
 
-  // Carrega as filiais ativas da organização para o seletor
-  const branches = user.organizationId
-    ? await prisma.branch.findMany({
-        where: {
-          organizationId: user.organizationId,
-          isActive: true,
-        },
-        select: {
-          id: true,
-          name: true,
-          city: true,
-        },
-        orderBy: { name: 'asc' },
-      })
-    : []
+  // Carrega as filiais ativas da organização e contadores de badges em paralelo
+  const [branches, badgeCounts] = await Promise.all([
+    user.organizationId
+      ? prisma.branch.findMany({
+          where: {
+            organizationId: user.organizationId,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            name: true,
+            city: true,
+          },
+          orderBy: { name: 'asc' },
+        })
+      : Promise.resolve([]),
+    getFinancialBadgeCounts(user.branchId),
+  ])
 
   return (
     <div className="space-y-6">
@@ -66,6 +70,7 @@ export default async function FinancialLayout({
         branches={branches}
         isExecutive={isExecutive}
         currentBranchId={user.branchId}
+        badgeCounts={badgeCounts}
       />
 
       {/* Conteúdo da Rota Ativa */}
