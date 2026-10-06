@@ -25,6 +25,8 @@ export interface ServiceMarginData {
 export interface PartnerRankingData {
   partnerName: string
   volumeFinanciado: number
+  volumeCreditoBancario?: number
+  baseHonorarios?: number
   comissaoPaga: number
   comissaoTotal: number
 }
@@ -366,6 +368,12 @@ export async function fetchFinancialOverview(
             totalCommissionAmount: true,
             releasedAmount: true,
             paidAmount: true,
+            receivableTitle: {
+              select: {
+                financedAmount: true,
+                grossAmount: true,
+              },
+            },
           },
         },
       },
@@ -444,25 +452,36 @@ export async function fetchFinancialOverview(
   }
 
   const monthlyTarget = Number(branchSettings?.monthlyRevenueTarget || 60000.0)
-  const activeCrop = branchSettings?.activeCropYear || '2025/2026'
 
-  // Série Temporal de Meses contemplando o ciclo da safra e o mês corrente (Out/26 em diante)
+  // Safra ativa: utiliza a configurada na filial ou deriva do ciclo atual (Outubro/2026 = Safra 2026/2027)
+  const now = new Date()
+  const currentCalYear = now.getFullYear()
+  const derivedSafraStart = now.getMonth() >= 9 ? currentCalYear : currentCalYear - 1
+  const defaultSafraYear = `${derivedSafraStart}/${derivedSafraStart + 1}`
+
+  const activeCrop =
+    branchSettings?.activeCropYear && branchSettings.activeCropYear !== '2025/2026'
+      ? branchSettings.activeCropYear
+      : defaultSafraYear
+
+  const [safraStartStr, safraEndStr] = activeCrop.split('/')
+  const safraStartYear = parseInt(safraStartStr, 10) || derivedSafraStart
+  const safraEndYear = parseInt(safraEndStr, 10) || safraStartYear + 1
+
+  // 12 Meses exatos do ciclo da safra: Outubro (Ano 1) a Setembro (Ano 2)
   const monthNames = [
-    { key: '2025-10', label: 'Out/25' },
-    { key: '2025-11', label: 'Nov/25' },
-    { key: '2025-12', label: 'Dez/25' },
-    { key: '2026-01', label: 'Jan/26' },
-    { key: '2026-02', label: 'Fev/26' },
-    { key: '2026-03', label: 'Mar/26' },
-    { key: '2026-04', label: 'Abr/26' },
-    { key: '2026-05', label: 'Mai/26' },
-    { key: '2026-06', label: 'Jun/26' },
-    { key: '2026-07', label: 'Jul/26' },
-    { key: '2026-08', label: 'Ago/26' },
-    { key: '2026-09', label: 'Set/26' },
-    { key: '2026-10', label: 'Out/26' },
-    { key: '2026-11', label: 'Nov/26' },
-    { key: '2026-12', label: 'Dez/26' },
+    { key: `${safraStartYear}-10`, label: `Out/${String(safraStartYear).slice(2)}` },
+    { key: `${safraStartYear}-11`, label: `Nov/${String(safraStartYear).slice(2)}` },
+    { key: `${safraStartYear}-12`, label: `Dez/${String(safraStartYear).slice(2)}` },
+    { key: `${safraEndYear}-01`, label: `Jan/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-02`, label: `Fev/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-03`, label: `Mar/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-04`, label: `Abr/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-05`, label: `Mai/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-06`, label: `Jun/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-07`, label: `Jul/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-08`, label: `Ago/${String(safraEndYear).slice(2)}` },
+    { key: `${safraEndYear}-09`, label: `Set/${String(safraEndYear).slice(2)}` },
   ]
 
   const totalInitialBalance = bankAccountsRaw.reduce((sum, b) => sum + Number(b.initialBalance || 0), 0)
@@ -728,23 +747,29 @@ export async function fetchFinancialOverview(
     },
   ]
 
-  // 6. Ranking de Parceiros Comerciais (Volume Financiado vs. Comissão Paga - Dados Reais)
+  // 6. Ranking de Parceiros Comerciais (Base de Honorários vs. Volume de Crédito vs. Comissão Paga)
   const partnerRankingData: PartnerRankingData[] = commercialPartnersRaw.map((p) => {
     let vol = 0
+    let creditoBancario = 0
     let paid = 0
     let totalComm = 0
     for (const c of p.commissions) {
       vol += Number(c.calculationBasisAmount)
       paid += Number(c.paidAmount)
       totalComm += Number(c.totalCommissionAmount)
+      if (c.receivableTitle?.financedAmount) {
+        creditoBancario += Number(c.receivableTitle.financedAmount)
+      }
     }
     return {
       partnerName: p.name,
       volumeFinanciado: vol,
+      volumeCreditoBancario: creditoBancario > 0 ? creditoBancario : undefined,
+      baseHonorarios: vol,
       comissaoPaga: paid,
       comissaoTotal: totalComm,
     }
-  }).sort((a, b) => b.volumeFinanciado - a.volumeFinanciado)
+  }).sort((a, b) => (b.baseHonorarios || b.volumeFinanciado) - (a.baseHonorarios || a.volumeFinanciado))
 
   // 7. Termômetro da Safra (Previsto vs. Faturado vs. Liquidado)
   const metaSafra = monthlyTarget > 0 ? monthlyTarget * 12 : 120000
@@ -821,6 +846,6 @@ export async function fetchFinancialOverview(
 export const getCachedFinancialOverview = unstable_cache(
   async (branchId: string = 'ALL', organizationId?: string) =>
     fetchFinancialOverview(branchId, organizationId),
-  ['financial-overview-data-v5'],
+  ['financial-overview-data-v6'],
   { tags: ['financial-data'], revalidate: 3600 }
 )

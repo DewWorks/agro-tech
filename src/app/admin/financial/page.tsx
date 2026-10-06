@@ -136,13 +136,13 @@ async function FinancialOverviewContent({
               {formatCurrency(metrics.despesasRealizadas)}
             </p>
             <p className="text-xs text-slate-500 mt-1">
-              Compromissos futuros de {formatCurrency(metrics.despesasPrevistas)}
+              Saídas efetivamente liquidadas em caixa
             </p>
           </div>
           <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-rose-700">
-            <Clock className="h-3.5 w-3.5" />
+            <Clock className="h-3.5 w-3.5 shrink-0" />
             <span>
-              {formatCurrency(Math.max(0, metrics.despesasPrevistas - metrics.despesasRealizadas))} a vencer
+              Total Apropriado: {formatCurrency(metrics.despesasPrevistas)} • {formatCurrency(Math.max(0, metrics.despesasPrevistas - metrics.despesasRealizadas))} a vencer
             </span>
           </div>
         </div>

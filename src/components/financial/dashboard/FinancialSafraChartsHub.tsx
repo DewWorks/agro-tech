@@ -196,9 +196,14 @@ export default function FinancialSafraChartsHub({
   const effectiveServiceMargin: ServiceMarginData[] = serviceMarginData || []
 
   // 5. Dados Reais para Ranking de Parceiros Comerciais
-  const effectivePartnerRanking: PartnerRankingData[] = (partnerRankingData || []).filter(
-    (p) => p.volumeFinanciado > 0 || p.comissaoPaga > 0 || p.comissaoTotal > 0
-  )
+  const effectivePartnerRanking: PartnerRankingData[] = (partnerRankingData || [])
+    .filter(
+      (p) => (p.baseHonorarios || p.volumeFinanciado || 0) > 0 || p.comissaoPaga > 0 || p.comissaoTotal > 0
+    )
+    .map((p) => ({
+      ...p,
+      baseHonorarios: p.baseHonorarios ?? p.volumeFinanciado ?? 0,
+    }))
 
   // 6. Dados Reais para Metas da Safra (Termômetro)
   const metaMensalBase = cropTargetData?.metaSafra ? Math.round(cropTargetData.metaSafra / 12) : 10000
@@ -223,13 +228,25 @@ export default function FinancialSafraChartsHub({
   // Tooltip customizado reutilizável com tipografia elegante
   const CustomGenericTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
+      const currentItem = payload[0]?.payload
       return (
-        <div className="rounded-xl border border-slate-200 bg-white/95 backdrop-blur-xs p-3 shadow-xl text-xs min-w-[210px] space-y-1.5 z-50">
+        <div className="rounded-xl border border-slate-200 bg-white/95 backdrop-blur-xs p-3 shadow-xl text-xs min-w-[220px] space-y-1.5 z-50">
           <div className="font-bold text-slate-900 border-b border-slate-100 pb-1 flex items-center justify-between">
             <span>{label}</span>
             <span className="text-[10px] text-slate-400 font-mono">Safra {cropYear}</span>
           </div>
           <div className="space-y-1 pt-0.5">
+            {currentItem?.volumeCreditoBancario ? (
+              <div className="flex justify-between items-center gap-3 py-0.5 border-b border-slate-50">
+                <span className="font-medium text-blue-700 flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full shrink-0 bg-blue-600" />
+                  Volume de Crédito Bancário:
+                </span>
+                <span className="font-bold text-blue-900">
+                  {formatCurrency(currentItem.volumeCreditoBancario)}
+                </span>
+              </div>
+            ) : null}
             {payload.map((item: any, idx: number) => (
               <div key={idx} className="flex justify-between items-center gap-3">
                 <span className="font-medium text-slate-600 flex items-center gap-1.5">
@@ -359,7 +376,10 @@ export default function FinancialSafraChartsHub({
                 axisLine={false}
                 tickFormatter={formatYAxisCurrency}
               />
-              <Tooltip content={<CustomGenericTooltip />} />
+              <Tooltip
+                content={<CustomGenericTooltip />}
+                cursor={{ stroke: '#047857', strokeWidth: 1.5, strokeDasharray: '3 3' }}
+              />
               <Area
                 type="monotone"
                 dataKey="saldoAcumulado"
@@ -386,7 +406,7 @@ export default function FinancialSafraChartsHub({
                 axisLine={false}
                 tickFormatter={formatYAxisCurrency}
               />
-              <Tooltip content={<CustomGenericTooltip />} />
+              <Tooltip content={<CustomGenericTooltip />} cursor={{ fill: 'transparent' }} />
               <Legend
                 verticalAlign="top"
                 align="right"
@@ -476,7 +496,7 @@ export default function FinancialSafraChartsHub({
                 axisLine={false}
                 tickFormatter={formatYAxisCurrency}
               />
-              <Tooltip content={<CustomGenericTooltip />} />
+              <Tooltip content={<CustomGenericTooltip />} cursor={{ fill: 'transparent' }} />
               <Legend
                 verticalAlign="top"
                 align="right"
@@ -512,7 +532,7 @@ export default function FinancialSafraChartsHub({
                   axisLine={false}
                   tickFormatter={formatYAxisCurrency}
                 />
-                <Tooltip content={<CustomGenericTooltip />} />
+                <Tooltip content={<CustomGenericTooltip />} cursor={{ fill: 'transparent' }} />
                 <Legend
                   verticalAlign="top"
                   align="right"
@@ -558,14 +578,14 @@ export default function FinancialSafraChartsHub({
                   tickLine={false}
                   width={140}
                 />
-                <Tooltip content={<CustomGenericTooltip />} />
+                <Tooltip content={<CustomGenericTooltip />} cursor={{ fill: 'transparent' }} />
                 <Legend
                   verticalAlign="top"
                   align="right"
                   iconType="circle"
                   wrapperStyle={{ paddingBottom: '12px', fontSize: '11px' }}
                 />
-                <Bar dataKey="volumeFinanciado" name="Volume Financiado" fill="#059669" radius={[0, 4, 4, 0]} maxBarSize={20} />
+                <Bar dataKey="baseHonorarios" name="Base de Faturamento (Honorários)" fill="#059669" radius={[0, 4, 4, 0]} maxBarSize={20} />
                 <Bar dataKey="comissaoPaga" name="Comissão Paga ao Parceiro" fill="#f59e0b" radius={[0, 4, 4, 0]} maxBarSize={20} />
               </BarChart>
             </ResponsiveContainer>
@@ -588,7 +608,7 @@ export default function FinancialSafraChartsHub({
                 axisLine={false}
                 tickFormatter={formatYAxisCurrency}
               />
-              <Tooltip content={<CustomGenericTooltip />} />
+              <Tooltip content={<CustomGenericTooltip />} cursor={{ fill: 'transparent' }} />
               <Legend
                 verticalAlign="top"
                 align="right"
