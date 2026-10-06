@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation'
 import { getPartnerCommissionSummary } from '@/actions/financial/partners'
 import PartnerStatementClient from '@/components/financial/PartnerStatementClient'
 
+import { serializeDecimals } from '@/lib/utils'
+
 export const metadata = {
   title: 'Extrato do Parceiro Comercial | AgroTech Financeiro',
   description: 'Prestação de contas e conferência de comissões liberadas.',
@@ -20,7 +22,8 @@ export default async function PartnerDetailPage({
     notFound()
   }
 
-  const { partner, metrics, commissions } = res.data
+  const safeData = serializeDecimals(res.data)
+  const { partner, metrics, commissions } = safeData
 
   return (
     <div className="space-y-6">

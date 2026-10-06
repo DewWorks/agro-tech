@@ -1,16 +1,17 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import { getReceivableTitles } from '@/actions/financial/receivables'
 import { getBankAccounts } from '@/actions/financial/settings'
 import ReceivablesTableClient from '@/components/financial/ReceivablesTableClient'
 import { formatCurrency } from '@/lib/utils'
 import { ArrowDownLeft, CheckCircle2, Clock, AlertTriangle } from 'lucide-react'
+import { MetricCardsSkeleton, TableSkeleton } from '@/components/financial/FinancialSkeletons'
 
 export const metadata = {
   title: 'Contas a Receber | AgroTech Financeiro',
   description: 'Controle de honorários de crédito rural, pacotes avulsos e liquidações declaratórias.',
 }
 
-export default async function ReceivablesPage({
+async function ReceivablesContent({
   searchParams,
 }: {
   searchParams: Promise<{ branchId?: string; status?: string; search?: string }>
@@ -125,5 +126,30 @@ export default async function ReceivablesPage({
         currentBranchId={branchId}
       />
     </div>
+  )
+}
+
+function ReceivablesSkeleton() {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-100">
+      <MetricCardsSkeleton count={4} />
+      <div className="space-y-1">
+        <div className="h-6 w-72 bg-slate-200/70 rounded-md animate-pulse" />
+        <div className="h-4 w-96 bg-slate-100 rounded-md animate-pulse" />
+      </div>
+      <TableSkeleton rows={6} />
+    </div>
+  )
+}
+
+export default function ReceivablesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ branchId?: string; status?: string; search?: string }>
+}) {
+  return (
+    <Suspense fallback={<ReceivablesSkeleton />}>
+      <ReceivablesContent searchParams={searchParams} />
+    </Suspense>
   )
 }

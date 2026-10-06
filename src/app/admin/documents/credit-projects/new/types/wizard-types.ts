@@ -90,6 +90,17 @@ export interface CreditProjectWizardProps {
   defaultOrgName?: string
   defaultOrgCnpj?: string
   initialTemplateCode?: string
+  initialProducerId?: string
+  initialPropertyId?: string
+  initialDemandId?: string
+  linkedDemand?: {
+    id: string
+    serviceType: string
+    producerId: string
+    propertyId?: string | null
+    producerName?: string
+    propertyName?: string | null
+  } | null
   initialSavedData?: CustomOptions | null
   backUrl?: string
   pageTitle?: string

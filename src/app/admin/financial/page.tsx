@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import Link from 'next/link'
 import prisma from '@/lib/prisma'
 import { requireFinancialAuth, buildFinancialBranchWhere } from '@/lib/financial/auth-guard'
@@ -17,8 +17,10 @@ import { formatCurrency } from '@/lib/utils'
 import FinancialDreCharts, { type CropYearMonthData } from '@/components/financial/FinancialDreCharts'
 import FinancialOverviewHeaderClient from '@/components/financial/FinancialOverviewHeaderClient'
 import { DreExportData } from '@/components/financial/FinancialExportModal'
+import DashboardPendingReceivablesList from '@/components/financial/DashboardPendingReceivablesList'
+import FinancialOverviewLoading from './loading'
 
-export default async function FinancialOverviewPage({
+async function FinancialOverviewContent({
   searchParams,
 }: {
   searchParams: Promise<{ branchId?: string }>
@@ -40,6 +42,7 @@ export default async function FinancialOverviewPage({
     categories,
     branches,
     demands,
+    pendingReceivables,
   ] = await Promise.all([
     // 1. Totalizadores de Recebíveis (Projeção Estrita)
     prisma.receivableTitle.findMany({
@@ -81,6 +84,8 @@ export default async function FinancialOverviewPage({
       select: {
         id: true,
         bankName: true,
+        agency: true,
+        accountNumber: true,
         accountType: true,
         currentBalance: true,
       },
@@ -182,6 +187,48 @@ export default async function FinancialOverviewPage({
       take: 50,
       orderBy: { createdAt: 'desc' },
     }),
+
+    // 10. Top 5 Títulos a Receber Pendentes (Para o Radar de Cobrança da Home)
+    prisma.receivableTitle.findMany({
+      where: {
+        ...branchWhere,
+        status: { in: ['PENDENTE', 'PARCIALMENTE_RECEBIDO', 'EM_ATRASO'] },
+      },
+      select: {
+        id: true,
+        documentNumber: true,
+        serviceSubtype: true,
+        originType: true,
+        grossAmount: true,
+        netAmount: true,
+        totalReceivedAmount: true,
+        status: true,
+        producer: { select: { id: true, name: true, document: true } },
+        partner: { select: { id: true, name: true } },
+        installments: {
+          where: { status: { in: ['A_VENCER', 'VENCE_HOJE', 'EM_ATRASO'] } },
+          orderBy: { dueDate: 'asc' },
+          select: {
+            id: true,
+            installmentNumber: true,
+            totalInstallments: true,
+            dueDate: true,
+            amount: true,
+            receivedAmount: true,
+            status: true,
+          },
+        },
+        commissions: {
+          select: {
+            id: true,
+            totalCommissionAmount: true,
+            status: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
   ])
 
   // Processamento síncrono em memória das métricas
@@ -189,12 +236,53 @@ export default async function FinancialOverviewPage({
   let descontosComerciais = 0
   let faturamentoPrevisto = 0
   let faturamentoRealizado = 0
+  let titulosPendentesCount = 0
   for (const r of receivables) {
     faturamentoBruto += Number(r.grossAmount)
     descontosComerciais += Number(r.discountAmount)
     faturamentoPrevisto += Number(r.netAmount)
     faturamentoRealizado += Number(r.totalReceivedAmount)
+    if (r.status !== 'QUITADO') {
+      titulosPendentesCount++
+    }
   }
+
+  const saldoAReceberEmAberto = Math.max(0, faturamentoPrevisto - faturamentoRealizado)
+  const percentualQuitado =
+    faturamentoPrevisto > 0
+      ? Math.min(100, Math.round((faturamentoRealizado / faturamentoPrevisto) * 100))
+      : 100
+
+  const pendingReceivablesMapped = pendingReceivables.map((r) => ({
+    id: r.id,
+    documentNumber: r.documentNumber,
+    serviceSubtype: r.serviceSubtype,
+    originType: r.originType,
+    grossAmount: Number(r.grossAmount),
+    netAmount: Number(r.netAmount),
+    totalReceivedAmount: Number(r.totalReceivedAmount),
+    status: r.status,
+    producer: {
+      id: r.producer.id,
+      name: r.producer.name,
+      document: r.producer.document,
+    },
+    partner: r.partner ? { id: r.partner.id, name: r.partner.name } : null,
+    installments: r.installments.map((inst) => ({
+      id: inst.id,
+      installmentNumber: inst.installmentNumber,
+      totalInstallments: inst.totalInstallments,
+      dueDate: inst.dueDate,
+      amount: Number(inst.amount),
+      receivedAmount: Number(inst.receivedAmount),
+      status: inst.status,
+    })),
+    commissions: r.commissions.map((c) => ({
+      id: c.id,
+      totalCommissionAmount: Number(c.totalCommissionAmount),
+      status: c.status,
+    })),
+  }))
 
   let despesasPrevistas = 0
   let despesasRealizadas = 0
@@ -387,31 +475,66 @@ export default async function FinancialOverviewPage({
 
       {/* Grid de Cards de Métricas Principais (DRE Executivo) */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Faturamento Realizado vs Previsto */}
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Receitas Realizadas
-            </span>
-            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-800">
-              <ArrowDownLeft className="h-4 w-4" />
+        {/* Card 1: Carteira de Honorários & Faturamento */}
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                Carteira de Honorários & Faturamento
+              </span>
+              <div className="rounded-lg bg-emerald-100 p-2 text-emerald-800">
+                <ArrowDownLeft className="h-4 w-4" />
+              </div>
+            </div>
+            <div className="mt-3">
+              {faturamentoRealizado === 0 && saldoAReceberEmAberto > 0 ? (
+                <>
+                  <p className="text-2xl font-black text-slate-900">
+                    {formatCurrency(saldoAReceberEmAberto)}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formatCurrency(faturamentoRealizado)} liquidados de {formatCurrency(faturamentoPrevisto)} previstos
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-2xl font-black text-slate-900">
+                    {formatCurrency(faturamentoRealizado)}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    {formatCurrency(saldoAReceberEmAberto)} a receber (Total previsto: {formatCurrency(faturamentoPrevisto)})
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* Barra de Progresso de Liquidação */}
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden mt-3">
+              <div
+                className="h-full bg-emerald-600 rounded-full transition-all duration-500"
+                style={{ width: `${percentualQuitado}%` }}
+              />
             </div>
           </div>
-          <div className="mt-3">
-            <p className="text-2xl font-black text-slate-900">
-              {formatCurrency(faturamentoRealizado)}
-            </p>
-            <p className="text-xs text-slate-500 mt-1">
-              De um total previsto de {formatCurrency(faturamentoPrevisto)}
-            </p>
-          </div>
-          <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-700">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            <span>
-              {faturamentoPrevisto > 0
-                ? `${Math.round((faturamentoRealizado / faturamentoPrevisto) * 100)}% liquidado`
-                : '100% liquidado'}
-            </span>
+
+          {/* Legenda Descritiva */}
+          <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+            <div className="flex items-center gap-1.5 font-semibold text-slate-700">
+              {percentualQuitado === 100 ? (
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+              ) : (
+                <Clock className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+              )}
+              <span>
+                {percentualQuitado}% quitado • {titulosPendentesCount} {titulosPendentesCount === 1 ? 'título aguardando pagamento' : 'títulos aguardando pagamento'}
+              </span>
+            </div>
+            <Link
+              href="/admin/financial/receivables"
+              className="text-[11px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline"
+            >
+              Cobrança →
+            </Link>
           </div>
         </div>
 
@@ -493,6 +616,12 @@ export default async function FinancialOverviewPage({
           </div>
         </div>
       </div>
+
+      {/* Radar de Cobranças e Títulos Pendentes */}
+      <DashboardPendingReceivablesList
+        pendingTitles={pendingReceivablesMapped}
+        bankAccounts={bankAccounts}
+      />
 
       {/* Seção Gráfica: Curva de Saldo Acumulado da Safra & Distribuição por Categorias */}
       <FinancialDreCharts
@@ -631,3 +760,16 @@ export default async function FinancialOverviewPage({
     </div>
   )
 }
+
+export default function FinancialOverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ branchId?: string }>
+}) {
+  return (
+    <Suspense fallback={<FinancialOverviewLoading />}>
+      <FinancialOverviewContent searchParams={searchParams} />
+    </Suspense>
+  )
+}
+

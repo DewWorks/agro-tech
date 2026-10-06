@@ -64,4 +64,72 @@ describe('Módulo Financeiro ERP — Streaming, Prefetch e Skeletons de Navegaç
     const skeletons = container.querySelectorAll('.animate-pulse')
     expect(skeletons.length).toBeGreaterThanOrEqual(10)
   })
+
+  test('FinancialNavTabs atualiza estado ativo de forma otimista no milissegundo do clique (< 1ms)', () => {
+    const { fireEvent } = require('@testing-library/react')
+    render(
+      <FinancialNavTabs
+        currentBranchId="branch-1"
+        branches={[{ id: 'branch-1', name: 'Matriz Ponte Alta', city: 'Ponte Alta do Bom Jesus' }]}
+        isExecutive={true}
+      />
+    )
+
+    const receivablesLink = screen.getByRole('link', { name: /Contas a Receber/i })
+    expect(receivablesLink.className).not.toContain('bg-[#113025]')
+    expect(receivablesLink.className).toContain('transition-all duration-150')
+
+    // Dispara o clique na aba Contas a Receber
+    fireEvent.click(receivablesLink)
+
+    // O estado visual ativo transiciona imediatamente antes da rota filha carregar
+    expect(receivablesLink.className).toContain('bg-[#113025]')
+    expect(receivablesLink.className).toContain('text-white')
+  })
+
+  test('serializeDecimals converte instâncias de Decimal (como PartnerCommission) em plain objects sem erros de RSC', () => {
+    const { serializeDecimals } = require('@/lib/utils')
+
+    const mockDecimal = (val: number) => ({
+      toNumber: () => val,
+      toString: () => String(val),
+      d: [val],
+      e: 1,
+      s: 1,
+    })
+
+    const rawCommission = {
+      id: 'comm-1',
+      branchId: 'branch-1',
+      partnerId: 'partner-1',
+      receivableTitleId: 'rec-1',
+      receivableInstallmentId: 'inst-1',
+      calculationBasisAmount: mockDecimal(9000),
+      commissionPercent: mockDecimal(20),
+      totalCommissionAmount: mockDecimal(1800),
+      releasedAmount: mockDecimal(0),
+      paidAmount: mockDecimal(0),
+      status: 'BLOQUEADO',
+      createdAt: new Date('2026-10-06T12:00:00Z'),
+      updatedAt: new Date('2026-10-06T12:00:00Z'),
+      nestedList: [
+        { amount: mockDecimal(500) }
+      ]
+    }
+
+    const serialized = serializeDecimals(rawCommission)
+
+    expect(typeof serialized.commissionPercent).toBe('number')
+    expect(serialized.commissionPercent).toBe(20)
+    expect(typeof serialized.totalCommissionAmount).toBe('number')
+    expect(serialized.totalCommissionAmount).toBe(1800)
+    expect(typeof serialized.releasedAmount).toBe('number')
+    expect(serialized.releasedAmount).toBe(0)
+    expect(typeof serialized.calculationBasisAmount).toBe('number')
+    expect(serialized.calculationBasisAmount).toBe(9000)
+    expect(serialized.nestedList[0].amount).toBe(500)
+    expect(serialized.createdAt).toBeInstanceOf(Date)
+    expect(serialized.id).toBe('comm-1')
+  })
 })
+

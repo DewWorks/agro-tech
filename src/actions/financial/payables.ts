@@ -11,6 +11,7 @@ import {
   SettlePayableInstallmentInput,
 } from '@/lib/validations/financial'
 import { Prisma, PayableStatus, ExpenseType } from '@prisma/client'
+import { serializeDecimals } from '@/lib/utils'
 
 export interface PayableFilters {
   branchId?: string | null
@@ -70,7 +71,7 @@ export async function getPayableTitles(filters: PayableFilters = {}) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return { data: payables }
+    return { data: serializeDecimals(payables) }
   } catch (error) {
     return { error: handleServerError(error, 'getPayableTitles') }
   }
@@ -107,7 +108,7 @@ export async function getPayableTitleById(id: string) {
 
     await requireFinancialAuth(title.branchId)
 
-    return { data: title }
+    return { data: serializeDecimals(title) }
   } catch (error) {
     return { error: handleServerError(error, 'getPayableTitleById') }
   }

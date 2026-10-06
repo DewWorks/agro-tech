@@ -79,3 +79,33 @@ C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr
     at async getBankAccounts (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\[root-of-the-server]__11qvawh._.js:789:26)
     at async Promise.all (index 2)
 
+[2026-10-06T14:38:14.822Z] [ERROR] [Erro ao alterar status da demanda]
+  - Message: Transaction API error: A commit cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 7422 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+  - Stack: PrismaClientKnownRequestError: Transaction API error: A commit cannot be executed on an expired transaction. The timeout for this transaction was 5000 ms, however 7422 ms passed since the start of the transaction. Consider increasing the interactive transaction timeout or doing less work in the transaction.
+    at #c (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\@prisma\client\runtime\client.js:57:14128)
+    at Ut.transaction (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\@prisma\client\runtime\client.js:58:1816)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Proxy._transactionWithCallback (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\@prisma\client\runtime\client.js:99:5050)
+    at async updateDemandStatus (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\[root-of-the-server]__07myjr-._.js:754:25)
+    at async executeActionAndPrepareForRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:168:5395)
+    at async C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:168:2018
+    at async handleAction (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:166:27863)
+    at async renderToHTMLOrFlightImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:173:2883)
+    at async doRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_dist_1-7idrk._.js:595:32)
+    at async AppPageRouteModule.handleResponse (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\compiled\next-server\app-page-turbo.runtime.dev.js:216:75826)
+    at async handleResponse (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_dist_1-7idrk._.js:962:36)
+    at async Module.handler (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\.next\dev\server\chunks\ssr\node_modules_next_dist_1-7idrk._.js:1433:24)
+    at async DevServer.renderToResponseWithComponentsImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1537:9)
+    at async DevServer.renderPageComponent (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1589:24)
+    at async DevServer.renderToResponseImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1639:32)
+    at async DevServer.pipeImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:1088:25)
+    at async NextNodeServer.handleCatchallRenderRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\next-server.js:338:17)
+    at async DevServer.handleRequestImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\base-server.js:979:17)
+    at async C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\dev\next-dev-server.js:426:20
+    at async Span.traceAsyncFn (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\trace\trace.js:164:20)
+    at async DevServer.handleRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\dev\next-dev-server.js:422:24)
+    at async invokeRender (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:306:21)
+    at async handleRequest (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:508:24)
+    at async requestHandlerImpl (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\router-server.js:565:13)
+    at async Server.requestListener (C:\Users\itofr\Documents\Trabalhos\agro-tech\project\node_modules\next\dist\server\lib\start-server.js:225:13)
+

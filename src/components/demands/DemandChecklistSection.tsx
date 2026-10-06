@@ -2,12 +2,14 @@
 
 import React, { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   CheckCircle2,
   Circle,
   FileText,
   Upload,
   Link as LinkIcon,
+  Sparkles,
   Trash2,
   Plus,
   Copy,
@@ -337,14 +339,23 @@ export function DemandChecklistSection({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href={`/admin/documents/credit-projects/new?demandId=${demandId}&producerId=${producerId}${propertyId ? `&propertyId=${propertyId}` : ''}`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#1B4D3E] hover:bg-[#163e32] text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+            title="Emitir Dossiê ou Projeto de Crédito com vinculação automática a esta demanda"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Emitir Projeto BB</span>
+          </Link>
+
           <button
             type="button"
             onClick={handleCopyPendingMessage}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100/80 border border-emerald-200 text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
           >
             {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-emerald-600" />}
-            <span>{copied ? 'Copiado!' : 'Copiar Mensagem de Pendências'}</span>
+            <span>{copied ? 'Copiado!' : 'Copiar Pendências'}</span>
           </button>
         </div>
       </div>

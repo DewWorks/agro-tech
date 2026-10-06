@@ -1,17 +1,18 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import prisma from '@/lib/prisma'
 import { getCommercialPartners } from '@/actions/financial/partners'
-import { requireFinancialAuth, buildFinancialBranchWhere } from '@/lib/financial/auth-guard'
+import { requireFinancialAuth } from '@/lib/financial/auth-guard'
 import PartnersListClient from '@/components/financial/PartnersListClient'
 import { formatCurrency } from '@/lib/utils'
-import { Users2, Lock, Unlock, CheckCircle2, DollarSign } from 'lucide-react'
+import { DollarSign, Lock, Unlock, CheckCircle2 } from 'lucide-react'
+import { MetricCardsSkeleton, TableSkeleton } from '@/components/financial/FinancialSkeletons'
 
 export const metadata = {
   title: 'Parceiros Comerciais & Comissões | AgroTech Financeiro',
   description: 'Gestão de correspondentes bancários, controle da trava de comissões e pagamentos PIX.',
 }
 
-export default async function PartnersPage({
+async function PartnersContent({
   searchParams,
 }: {
   searchParams: Promise<{ branchId?: string }>
@@ -138,5 +139,26 @@ export default async function PartnersPage({
         currentBranchId={branchId}
       />
     </div>
+  )
+}
+
+function PartnersSkeleton() {
+  return (
+    <div className="space-y-6 animate-in fade-in duration-100">
+      <MetricCardsSkeleton count={4} />
+      <TableSkeleton rows={5} />
+    </div>
+  )
+}
+
+export default function PartnersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ branchId?: string }>
+}) {
+  return (
+    <Suspense fallback={<PartnersSkeleton />}>
+      <PartnersContent searchParams={searchParams} />
+    </Suspense>
   )
 }

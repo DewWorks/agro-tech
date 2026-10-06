@@ -14,6 +14,7 @@ import {
 } from '@/lib/validations/financial'
 import { Prisma, ReceivableStatus, InstallmentStatus, CommissionStatus } from '@prisma/client'
 import crypto from 'crypto'
+import { serializeDecimals } from '@/lib/utils'
 
 export interface ReceivableFilters {
   branchId?: string | null
@@ -80,7 +81,7 @@ export async function getReceivableTitles(filters: ReceivableFilters = {}) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return { data: titles }
+    return { data: serializeDecimals(titles) }
   } catch (error) {
     return { error: handleServerError(error, 'getReceivableTitles') }
   }
@@ -129,7 +130,7 @@ export async function getReceivableTitleById(titleId: string) {
 
     await requireFinancialAuth(title.branchId)
 
-    return { data: title }
+    return { data: serializeDecimals(title) }
   } catch (error) {
     return { error: handleServerError(error, 'getReceivableTitleById') }
   }

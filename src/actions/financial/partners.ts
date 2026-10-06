@@ -1,5 +1,6 @@
 'use server'
-
+ 
+import { cache } from 'react'
 import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
@@ -9,6 +10,37 @@ import {
   CommercialPartnerInput,
 } from '@/lib/validations/financial'
 import { Prisma } from '@prisma/client'
+import { serializeDecimals } from '@/lib/utils'
+
+/**
+ * Consulta interna de parceiros com React cache()
+ */
+const fetchCommercialPartnersInternal = cache(async (
+  isGlobalView: boolean,
+  effectiveBranchId: string | null,
+  organizationId: string
+) => {
+  const where: Prisma.CommercialPartnerWhereInput = {}
+
+  if (isGlobalView || !effectiveBranchId) {
+    where.branch = { organizationId }
+  } else {
+    where.branchId = effectiveBranchId
+  }
+
+  return prisma.commercialPartner.findMany({
+    where,
+    include: {
+      branch: {
+        select: { id: true, name: true, city: true, state: true },
+      },
+      _count: {
+        select: { commissions: true, receivableTitles: true },
+      },
+    },
+    orderBy: { name: 'asc' },
+  })
+})
 
 /**
  * Lista todos os parceiros comerciais com suporte a filtro multi-filial.
@@ -16,29 +48,13 @@ import { Prisma } from '@prisma/client'
 export async function getCommercialPartners(targetBranchId?: string | null) {
   try {
     const auth = await requireFinancialAuth(targetBranchId)
+    const partners = await fetchCommercialPartnersInternal(
+      auth.isGlobalView,
+      auth.effectiveBranchId,
+      auth.organizationId
+    )
 
-    const where: Prisma.CommercialPartnerWhereInput = {}
-
-    if (auth.isGlobalView || !auth.effectiveBranchId) {
-      where.branch = { organizationId: auth.organizationId }
-    } else {
-      where.branchId = auth.effectiveBranchId
-    }
-
-    const partners = await prisma.commercialPartner.findMany({
-      where,
-      include: {
-        branch: {
-          select: { id: true, name: true, city: true, state: true },
-        },
-        _count: {
-          select: { commissions: true, receivableTitles: true },
-        },
-      },
-      orderBy: { name: 'asc' },
-    })
-
-    return { data: partners }
+    return { data: serializeDecimals(partners) }
   } catch (error) {
     return { error: handleServerError(error, 'getCommercialPartners') }
   }
@@ -64,7 +80,7 @@ export async function getCommercialPartnerById(partnerId: string) {
 
     await requireFinancialAuth(partner.branchId)
 
-    return { data: partner }
+    return { data: serializeDecimals(partner) }
   } catch (error) {
     return { error: handleServerError(error, 'getCommercialPartnerById') }
   }
@@ -256,7 +272,7 @@ export async function getPartnerCommissionSummary(partnerId: string) {
     const saldoDisponivelSaque = totalLiberado.sub(totalPago)
 
     return {
-      data: {
+      data: serializeDecimals({
         partner,
         metrics: {
           totalVolumeOriginado: totalVolumeOriginado.toNumber(),
@@ -268,7 +284,7 @@ export async function getPartnerCommissionSummary(partnerId: string) {
           totalPropostas: commissions.length,
         },
         commissions,
-      },
+      }),
     }
   } catch (error) {
     return { error: handleServerError(error, 'getPartnerCommissionSummary') }

@@ -16,9 +16,13 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
 
   const initialTemplate = initialTemplateCode || templates[0]?.code || 'CHECKLIST_PROFISSIONAL'
 
-  const [selectedProducerId, setSelectedProducerId] = useState<string>(activeProducers[0]?.id || '')
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(activeProducers[0]?.properties[0]?.id || '')
+  const initialProd = (props.initialProducerId && activeProducers.find(p => p.id === props.initialProducerId)) || activeProducers[0]
+  const initialProp = (props.initialPropertyId && initialProd?.properties.find(p => p.id === props.initialPropertyId)) || initialProd?.properties[0]
+
+  const [selectedProducerId, setSelectedProducerId] = useState<string>(initialProd?.id || '')
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initialProp?.id || '')
   const [selectedTemplateCode, setSelectedTemplateCode] = useState<string>(initialTemplate)
+  const [selectedDemandId, setSelectedDemandId] = useState<string>(props.initialDemandId || '')
 
   const [customOptions, setCustomOptions] = useState<CustomOptions>(() => {
     const initProd = activeProducers[0]
@@ -410,11 +414,14 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
       projectErrors,
       isFormValid,
       documentData,
+      selectedDemandId,
+      linkedDemand: props.linkedDemand,
     },
     actions: {
       setSelectedProducerId: handleSetSelectedProducerId,
       setSelectedPropertyId: handleSetSelectedPropertyId,
       setSelectedTemplateCode,
+      setSelectedDemandId,
       setCustomOptions,
       setIsConfirmModalOpen,
       setIsSaveDraftModalOpen,

@@ -6,6 +6,7 @@ import { DemandCard, DemandCardData } from './DemandCard'
 import { DemandCardSkeleton } from './DemandCardSkeleton'
 import { updateDemandStatus } from '@/actions/demands'
 import { DemandStatusCode, RURAL_SERVICES_CATALOG } from '@/lib/validations/demands'
+import { DemandBillingModal } from './DemandBillingModal'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -114,6 +115,12 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
     targetStatus: DemandStatusCode
     serviceTitle?: string
     producerName?: string
+  } | null>(null)
+
+  // Estado do Modal de Faturamento ao Concluir Cards
+  const [billingTargetDemand, setBillingTargetDemand] = useState<{
+    demandId: string
+    demandTitle: string
   } | null>(null)
 
   // Estado do Modal de Despacho ao Mover Cards
@@ -230,8 +237,19 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
       return
     }
 
-    // Se transição for para AGUARDANDO_DOCUMENTACAO ou CONCLUIDO, abre modal de despacho
-    if (targetStatus === 'AGUARDANDO_DOCUMENTACAO' || targetStatus === 'CONCLUIDO') {
+    // Se transição for para CONCLUIDO, abre o Modal Inteligente de Faturamento
+    if (targetStatus === 'CONCLUIDO') {
+      setBillingTargetDemand({
+        demandId,
+        demandTitle: demandToMove.producer?.name
+          ? `${demandToMove.producer.name} - ${demandToMove.serviceType}`
+          : demandToMove.serviceType,
+      })
+      return
+    }
+
+    // Se transição for para AGUARDANDO_DOCUMENTACAO, abre modal de despacho
+    if (targetStatus === 'AGUARDANDO_DOCUMENTACAO') {
       setPendingDispatch({
         demandId,
         targetStatus,
@@ -501,6 +519,33 @@ export function DemandKanbanBoard({ initialDemands, onRefresh }: DemandKanbanBoa
             </div>
           </div>
         </div>
+      )}
+      {/* Modal Inteligente de Faturamento ao Concluir Cards */}
+      {billingTargetDemand && (
+        <DemandBillingModal
+          isOpen={Boolean(billingTargetDemand)}
+          onClose={() => setBillingTargetDemand(null)}
+          demandId={billingTargetDemand.demandId}
+          demandTitle={billingTargetDemand.demandTitle}
+          onSuccess={() => {
+            const finishedId = billingTargetDemand.demandId
+            setDemands((prev) =>
+              prev.map((d) => (d.id === finishedId ? { ...d, status: 'CONCLUIDO' } : d))
+            )
+            setBillingTargetDemand(null)
+            router.refresh()
+            if (onRefresh) onRefresh()
+          }}
+          onSkipBilling={() => {
+            const finishedId = billingTargetDemand.demandId
+            setDemands((prev) =>
+              prev.map((d) => (d.id === finishedId ? { ...d, status: 'CONCLUIDO' } : d))
+            )
+            setBillingTargetDemand(null)
+            router.refresh()
+            if (onRefresh) onRefresh()
+          }}
+        />
       )}
     </div>
   )
