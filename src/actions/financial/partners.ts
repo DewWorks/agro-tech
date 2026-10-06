@@ -1,8 +1,7 @@
 'use server'
  
-import { cache } from 'react'
 import prisma from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { requireFinancialAuth, assertBranchMutationAllowed } from '@/lib/financial/auth-guard'
 import {
@@ -13,48 +12,54 @@ import { Prisma } from '@prisma/client'
 import { serializeDecimals } from '@/lib/utils'
 
 /**
- * Consulta interna de parceiros com React cache()
+ * Consulta interna de parceiros com unstable_cache em memória (< 50ms)
  */
-const fetchCommercialPartnersInternal = cache(async (
-  isGlobalView: boolean,
-  effectiveBranchId: string | null,
-  organizationId: string
-) => {
-  const where: Prisma.CommercialPartnerWhereInput = {}
+const fetchCachedCommercialPartners = unstable_cache(
+  async (
+    isGlobalView: boolean,
+    effectiveBranchId: string | null,
+    organizationId: string
+  ) => {
+    const where: Prisma.CommercialPartnerWhereInput = {}
 
-  if (isGlobalView || !effectiveBranchId) {
-    where.branch = { organizationId }
-  } else {
-    where.branchId = effectiveBranchId
-  }
+    if (isGlobalView || !effectiveBranchId) {
+      where.branch = { organizationId }
+    } else {
+      where.branchId = effectiveBranchId
+    }
 
-  return prisma.commercialPartner.findMany({
-    where,
-    include: {
-      branch: {
-        select: { id: true, name: true, city: true, state: true },
+    const partners = await prisma.commercialPartner.findMany({
+      where,
+      include: {
+        branch: {
+          select: { id: true, name: true, city: true, state: true },
+        },
+        _count: {
+          select: { commissions: true, receivableTitles: true },
+        },
       },
-      _count: {
-        select: { commissions: true, receivableTitles: true },
-      },
-    },
-    orderBy: { name: 'asc' },
-  })
-})
+      orderBy: { name: 'asc' },
+    })
+
+    return serializeDecimals(partners)
+  },
+  ['financial-partners-data'],
+  { tags: ['financial-data'], revalidate: 3600 }
+)
 
 /**
- * Lista todos os parceiros comerciais com suporte a filtro multi-filial.
+ * Lista todos os parceiros comerciais com suporte a filtro multi-filial (Cache em memória < 50ms).
  */
 export async function getCommercialPartners(targetBranchId?: string | null) {
   try {
     const auth = await requireFinancialAuth(targetBranchId)
-    const partners = await fetchCommercialPartnersInternal(
+    const partners = await fetchCachedCommercialPartners(
       auth.isGlobalView,
       auth.effectiveBranchId,
       auth.organizationId
     )
 
-    return { data: serializeDecimals(partners) }
+    return { data: partners }
   } catch (error) {
     return { error: handleServerError(error, 'getCommercialPartners') }
   }
@@ -126,6 +131,7 @@ export async function createCommercialPartner(data: CommercialPartnerInput) {
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/partners')
     return { data: partner, success: true }
   } catch (error) {
@@ -169,6 +175,7 @@ export async function updateCommercialPartner(
       data: updateData,
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/partners')
     return { data: updated, success: true }
   } catch (error) {
@@ -198,6 +205,7 @@ export async function toggleCommercialPartnerStatus(partnerId: string, isActive:
       data: { isActive },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/partners')
     return { data: updated, success: true }
   } catch (error) {

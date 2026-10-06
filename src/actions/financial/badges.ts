@@ -1,8 +1,8 @@
 'use server'
 
-import { cache } from 'react'
+import { unstable_cache } from 'next/cache'
 import prisma from '@/lib/prisma'
-import { requireFinancialAuth, buildFinancialBranchWhere } from '@/lib/financial/auth-guard'
+import { requireFinancialAuth } from '@/lib/financial/auth-guard'
 
 export interface FinancialBadgeCounts {
   receivablesCount: number
@@ -12,15 +12,17 @@ export interface FinancialBadgeCounts {
 }
 
 /**
- * Consulta interna encapsulada em React cache() para deduplicação automática
- * de requisições no mesmo ciclo de renderização do servidor (Zero Waterfalls/Overhead).
+ * Consulta de contadores dos badges encapsulada em unstable_cache em memória (< 5ms)
+ * com tag 'financial-data' e revalidação de 1 hora.
  */
-const fetchBadgeCountsInternal = cache(async (
-  targetBranchId?: string | null
-): Promise<FinancialBadgeCounts> => {
-  try {
-    const auth = await requireFinancialAuth(targetBranchId)
-    const branchWhere = buildFinancialBranchWhere(auth)
+export const getCachedBadgeCounts = unstable_cache(
+  async (branchKey: string, organizationId?: string): Promise<FinancialBadgeCounts> => {
+    const isGlobal = branchKey === 'ALL' || !branchKey
+    const branchWhere = isGlobal
+      ? organizationId
+        ? { branch: { organizationId } }
+        : {}
+      : { branchId: branchKey }
 
     const now = new Date()
 
@@ -84,6 +86,22 @@ const fetchBadgeCountsInternal = cache(async (
       payablesPendingCount,
       partnersPendingPayoutCount,
     }
+  },
+  ['financial-badge-counts'],
+  { tags: ['financial-data'], revalidate: 3600 }
+)
+
+/**
+ * Obtém os contadores de pendências do ERP Financeiro para os Badges de Alerta das Abas.
+ * Executa em paralelo com projeções de contagem direta no banco de dados e cache em memória.
+ */
+export async function getFinancialBadgeCounts(
+  targetBranchId?: string | null
+): Promise<FinancialBadgeCounts> {
+  try {
+    const auth = await requireFinancialAuth(targetBranchId)
+    const branchKey = auth.isGlobalView || !auth.effectiveBranchId ? 'ALL' : auth.effectiveBranchId
+    return await getCachedBadgeCounts(branchKey, auth.organizationId)
   } catch (err) {
     console.error('[getFinancialBadgeCounts] Erro ao consultar badges:', err)
     return {
@@ -93,23 +111,14 @@ const fetchBadgeCountsInternal = cache(async (
       partnersPendingPayoutCount: 0,
     }
   }
-})
-
-/**
- * Obtém os contadores de pendências do ERP Financeiro para os Badges de Alerta das Abas.
- * Executa em paralelo com projeções de contagem direta no banco de dados e memoização por request.
- */
-export async function getFinancialBadgeCounts(
-  targetBranchId?: string | null
-): Promise<FinancialBadgeCounts> {
-  return fetchBadgeCountsInternal(targetBranchId)
 }
 
 /**
- * Função utilitária de contadores financeiros conforme diretriz de performance React cache().
+ * Função utilitária de contadores financeiros.
  */
 export async function getFinancialCounters(
   targetBranchId?: string | null
 ): Promise<FinancialBadgeCounts> {
-  return fetchBadgeCountsInternal(targetBranchId)
+  return getFinancialBadgeCounts(targetBranchId)
 }
+

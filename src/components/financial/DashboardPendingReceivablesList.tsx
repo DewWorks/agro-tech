@@ -215,8 +215,13 @@ export default function DashboardPendingReceivablesList({
                               : 'A definir'}
                           </span>
                         </div>
-                        <div className="mt-1">
-                          {isOverdue ? (
+                        <div className="mt-1 flex flex-wrap items-center gap-1">
+                          {title.status === 'PARCIALMENTE_RECEBIDO' || (title.totalReceivedAmount > 0 && residual > 0) ? (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-700">
+                              <Clock className="h-2.5 w-2.5" />
+                              PARCIALMENTE_RECEBIDO
+                            </span>
+                          ) : isOverdue ? (
                             <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-bold text-rose-700">
                               <AlertTriangle className="h-2.5 w-2.5" />
                               EM ATRASO
@@ -240,9 +245,19 @@ export default function DashboardPendingReceivablesList({
                         <div className="text-sm font-black text-slate-900">
                           {formatCurrency(residual)}
                         </div>
-                        {title.totalReceivedAmount > 0 && (
-                          <div className="text-[11px] text-slate-500">
-                            Quitado: {formatCurrency(title.totalReceivedAmount)}
+                        {title.totalReceivedAmount > 0 ? (
+                          <div className="text-[11px] text-emerald-700 font-semibold mt-0.5">
+                            {title.netAmount > 0
+                              ? `${((title.totalReceivedAmount / title.netAmount) * 100).toLocaleString('pt-BR', {
+                                  minimumFractionDigits: 1,
+                                  maximumFractionDigits: 1,
+                                })}% liquidado`
+                              : ''}{' '}
+                            ({formatCurrency(title.totalReceivedAmount)} de {formatCurrency(title.netAmount)})
+                          </div>
+                        ) : (
+                          <div className="text-[11px] text-slate-400 mt-0.5">
+                            0% liquidado
                           </div>
                         )}
                       </td>

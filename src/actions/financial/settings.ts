@@ -2,7 +2,7 @@
 
 import { cache } from 'react'
 import prisma from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { requireFinancialAuth, assertBranchMutationAllowed } from '@/lib/financial/auth-guard'
 import {
@@ -80,6 +80,7 @@ export async function updateFinancialSettings(data: FinancialSettingsInput) {
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
     return { data: serializeDecimals(updated), success: true }
   } catch (error) {
@@ -153,6 +154,7 @@ export async function updateBranchFinancialSettings(
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
     return { data: updated, success: true }
   } catch (error) {
@@ -161,57 +163,63 @@ export async function updateBranchFinancialSettings(
 }
 
 /**
- * Consulta interna de contas bancárias com React cache()
+ * Consulta interna de contas bancárias com unstable_cache em memória (< 50ms)
  */
-const fetchBankAccountsInternal = cache(async (
-  isGlobalView: boolean,
-  effectiveBranchId: string | null,
-  organizationId: string
-) => {
-  const where: Prisma.BankAccountWhereInput = {
-    isActive: true,
-  }
-
-  if (isGlobalView || !effectiveBranchId) {
-    where.branch = { organizationId }
-  } else {
-    where.branchId = effectiveBranchId
-  }
-
-  return prisma.bankAccount.findMany({
-    where,
-    select: {
-      id: true,
-      bankCode: true,
-      bankName: true,
-      accountType: true,
-      agency: true,
-      accountNumber: true,
-      initialBalance: true,
-      currentBalance: true,
+const fetchCachedBankAccounts = unstable_cache(
+  async (
+    isGlobalView: boolean,
+    effectiveBranchId: string | null,
+    organizationId: string
+  ) => {
+    const where: Prisma.BankAccountWhereInput = {
       isActive: true,
-      branchId: true,
-      branch: {
-        select: { id: true, name: true, city: true, state: true },
+    }
+
+    if (isGlobalView || !effectiveBranchId) {
+      where.branch = { organizationId }
+    } else {
+      where.branchId = effectiveBranchId
+    }
+
+    const accounts = await prisma.bankAccount.findMany({
+      where,
+      select: {
+        id: true,
+        bankCode: true,
+        bankName: true,
+        accountType: true,
+        agency: true,
+        accountNumber: true,
+        initialBalance: true,
+        currentBalance: true,
+        isActive: true,
+        branchId: true,
+        branch: {
+          select: { id: true, name: true, city: true, state: true },
+        },
       },
-    },
-    orderBy: [{ branchId: 'asc' }, { bankName: 'asc' }],
-  })
-})
+      orderBy: [{ branchId: 'asc' }, { bankName: 'asc' }],
+    })
+
+    return serializeDecimals(accounts)
+  },
+  ['financial-bank-accounts-data'],
+  { tags: ['financial-data'], revalidate: 3600 }
+)
 
 /**
- * Lista as contas bancárias e caixas físicos (com suporte a filtro multi-filial).
+ * Lista as contas bancárias e caixas físicos com cache em memória (< 50ms).
  */
 export async function getBankAccounts(targetBranchId?: string | null) {
   try {
     const auth = await requireFinancialAuth(targetBranchId)
-    const accounts = await fetchBankAccountsInternal(
+    const accounts = await fetchCachedBankAccounts(
       auth.isGlobalView,
       auth.effectiveBranchId,
       auth.organizationId
     )
 
-    return { data: serializeDecimals(accounts) }
+    return { data: accounts }
   } catch (error) {
     return { error: handleServerError(error, 'getBankAccounts') }
   }
@@ -241,6 +249,7 @@ export async function createBankAccount(data: BankAccountInput) {
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
     return { data: account, success: true }
   } catch (error) {
@@ -280,6 +289,7 @@ export async function updateBankAccount(
       },
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/settings')
     return { data: updated, success: true }
   } catch (error) {
@@ -354,6 +364,7 @@ export async function transferBetweenBankAccounts(data: TransferBetweenAccountsI
       return { transaction, updatedSource, updatedDest }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/settings')
     return { data: result, success: true }

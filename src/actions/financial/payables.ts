@@ -1,7 +1,7 @@
 'use server'
 
 import prisma from '@/lib/prisma'
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { requireFinancialAuth, assertBranchMutationAllowed } from '@/lib/financial/auth-guard'
 import {
@@ -22,31 +22,35 @@ export interface PayableFilters {
   search?: string
 }
 
-/**
- * Lista títulos a pagar com suporte a filtros e isolamento multi-filial.
- */
-export async function getPayableTitles(filters: PayableFilters = {}) {
-  try {
-    const auth = await requireFinancialAuth(filters.branchId)
-
+const fetchCachedPayables = unstable_cache(
+  async (
+    branchKey: string,
+    organizationId: string,
+    statusKey: string,
+    expenseTypeKey: string,
+    categoryIdKey: string,
+    cropYearKey: string,
+    searchKey: string
+  ) => {
+    const isGlobal = branchKey === 'ALL'
     const where: Prisma.PayableTitleWhereInput = {}
 
-    if (auth.isGlobalView || !auth.effectiveBranchId) {
-      where.branch = { organizationId: auth.organizationId }
+    if (isGlobal) {
+      where.branch = { organizationId }
     } else {
-      where.branchId = auth.effectiveBranchId
+      where.branchId = branchKey
     }
 
-    if (filters.status && filters.status !== 'ALL') where.status = filters.status
-    if (filters.expenseType && filters.expenseType !== 'ALL') where.expenseType = filters.expenseType
-    if (filters.categoryId) where.categoryId = filters.categoryId
-    if (filters.cropYear) where.cropYear = filters.cropYear
+    if (statusKey && statusKey !== 'ALL') where.status = statusKey as PayableStatus
+    if (expenseTypeKey && expenseTypeKey !== 'ALL') where.expenseType = expenseTypeKey as ExpenseType
+    if (categoryIdKey) where.categoryId = categoryIdKey
+    if (cropYearKey) where.cropYear = cropYearKey
 
-    if (filters.search) {
+    if (searchKey) {
       where.OR = [
-        { supplierName: { contains: filters.search, mode: 'insensitive' } },
-        { documentNumber: { contains: filters.search, mode: 'insensitive' } },
-        { notes: { contains: filters.search, mode: 'insensitive' } },
+        { supplierName: { contains: searchKey, mode: 'insensitive' } },
+        { documentNumber: { contains: searchKey, mode: 'insensitive' } },
+        { notes: { contains: searchKey, mode: 'insensitive' } },
       ]
     }
 
@@ -71,7 +75,31 @@ export async function getPayableTitles(filters: PayableFilters = {}) {
       orderBy: { createdAt: 'desc' },
     })
 
-    return { data: serializeDecimals(payables) }
+    return serializeDecimals(payables)
+  },
+  ['financial-payables-data'],
+  { tags: ['financial-data'], revalidate: 3600 }
+)
+
+/**
+ * Lista títulos a pagar com suporte a filtros e isolamento multi-filial (Cache em memória < 50ms).
+ */
+export async function getPayableTitles(filters: PayableFilters = {}) {
+  try {
+    const auth = await requireFinancialAuth(filters.branchId)
+    const branchKey = auth.isGlobalView || !auth.effectiveBranchId ? 'ALL' : auth.effectiveBranchId
+
+    const payables = await fetchCachedPayables(
+      branchKey,
+      auth.organizationId,
+      filters.status || 'ALL',
+      filters.expenseType || 'ALL',
+      filters.categoryId || '',
+      filters.cropYear || '',
+      filters.search || ''
+    )
+
+    return { data: payables }
   } catch (error) {
     return { error: handleServerError(error, 'getPayableTitles') }
   }
@@ -175,6 +203,7 @@ export async function createDirectPayableTitle(data: CreatePayableTitleInput) {
       return { title, installments }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/payables')
     return { data: result, success: true }
@@ -292,6 +321,7 @@ export async function settlePayableInstallment(data: SettlePayableInstallmentInp
       return { cashTransaction, updatedInstallment, updatedTitle, updatedCommission, updatedAccount }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/payables')
     revalidatePath('/admin/financial/partners')
@@ -416,6 +446,7 @@ export async function reversePayablePayment(transactionId: string, justification
       return { updatedTx, updatedAccount, updatedInstallment, updatedTitle }
     })
 
+    ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial')
     revalidatePath('/admin/financial/payables')
     return { data: result, success: true }
