@@ -15,6 +15,7 @@ import {
 import { Prisma, ReceivableStatus, InstallmentStatus, CommissionStatus } from '@prisma/client'
 import crypto from 'crypto'
 import { serializeDecimals } from '@/lib/utils'
+import { resolveOperators } from '@/lib/financial/audit-operator'
 
 export interface ReceivableFilters {
   branchId?: string | null
@@ -68,6 +69,10 @@ const fetchCachedReceivableTitles = unstable_cache(
           include: {
             bankAccount: { select: { id: true, bankName: true } },
             receipts: { select: { id: true, receiptNumber: true, issuedAt: true, sha256Hash: true } },
+            cashTransactions: {
+              where: { isReversed: false },
+              select: { id: true, operatorId: true, transactionDate: true, amount: true },
+            },
           },
         },
         commissions: {
@@ -83,7 +88,27 @@ const fetchCachedReceivableTitles = unstable_cache(
       orderBy: { createdAt: 'desc' },
     })
 
-    return serializeDecimals(titles)
+    const operatorIds: string[] = []
+    for (const t of titles) {
+      for (const inst of t.installments) {
+        for (const tx of inst.cashTransactions) {
+          if (tx.operatorId) operatorIds.push(tx.operatorId)
+        }
+      }
+    }
+    const operatorsMap = await resolveOperators(operatorIds)
+
+    const titlesWithOperators = titles.map((t) => ({
+      ...t,
+      installments: t.installments.map((inst) => ({
+        ...inst,
+        settlementOperator: inst.cashTransactions[0]?.operatorId
+          ? operatorsMap.get(inst.cashTransactions[0].operatorId) || null
+          : null,
+      })),
+    }))
+
+    return serializeDecimals(titlesWithOperators)
   },
   ['financial-receivables-data'],
   { tags: ['financial-data'], revalidate: 3600 }
@@ -256,6 +281,23 @@ export async function createDirectReceivableTitle(data: CreateReceivableTitleInp
           },
         })
       }
+
+      // 4. Registro de Auditoria de Criação
+      await tx.financialAuditLog.create({
+        data: {
+          branchId: validated.branchId,
+          userId: auth.user.id,
+          action: 'CRIACAO_TITULO',
+          entityName: 'ReceivableTitle',
+          entityId: title.id,
+          justification: 'Cadastro inicial de faturamento direto no módulo financeiro.',
+          newSnapshot: {
+            documentNumber,
+            netAmount: netAmount.toNumber(),
+            installmentsCount: installments.length,
+          },
+        },
+      })
 
       return { title, installments, commission }
     })

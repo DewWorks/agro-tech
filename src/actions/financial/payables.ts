@@ -12,6 +12,7 @@ import {
 } from '@/lib/validations/financial'
 import { Prisma, PayableStatus, ExpenseType } from '@prisma/client'
 import { serializeDecimals } from '@/lib/utils'
+import { resolveOperators } from '@/lib/financial/audit-operator'
 
 export interface PayableFilters {
   branchId?: string | null
@@ -69,13 +70,37 @@ const fetchCachedPayables = unstable_cache(
           orderBy: { installmentNumber: 'asc' },
           include: {
             bankAccount: { select: { id: true, bankName: true } },
+            cashTransactions: {
+              where: { isReversed: false },
+              select: { id: true, operatorId: true, transactionDate: true, amount: true },
+            },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     })
 
-    return serializeDecimals(payables)
+    const operatorIds: string[] = []
+    for (const p of payables) {
+      for (const inst of p.installments) {
+        for (const tx of inst.cashTransactions) {
+          if (tx.operatorId) operatorIds.push(tx.operatorId)
+        }
+      }
+    }
+    const operatorsMap = await resolveOperators(operatorIds)
+
+    const payablesWithOperators = payables.map((p) => ({
+      ...p,
+      installments: p.installments.map((inst) => ({
+        ...inst,
+        settlementOperator: inst.cashTransactions[0]?.operatorId
+          ? operatorsMap.get(inst.cashTransactions[0].operatorId) || null
+          : null,
+      })),
+    }))
+
+    return serializeDecimals(payablesWithOperators)
   },
   ['financial-payables-data'],
   { tags: ['financial-data'], revalidate: 3600 }
@@ -200,6 +225,24 @@ export async function createDirectPayableTitle(data: CreatePayableTitleInput) {
         )
       )
 
+      // 3. Registro de Auditoria de Criação
+      await tx.financialAuditLog.create({
+        data: {
+          branchId: validated.branchId,
+          userId: auth.user.id,
+          action: 'CRIACAO_TITULO',
+          entityName: 'PayableTitle',
+          entityId: title.id,
+          justification: 'Cadastro inicial de despesa / obrigação a pagar no módulo financeiro.',
+          newSnapshot: {
+            documentNumber,
+            supplierName: title.supplierName,
+            totalAmount: totalAmount.toNumber(),
+            installmentsCount: installments.length,
+          },
+        },
+      })
+
       return { title, installments }
     })
 
@@ -302,20 +345,40 @@ export async function settlePayableInstallment(data: SettlePayableInstallmentInp
         },
       })
 
-      // 5. Se for comissão de parceiro, atualiza o acumulado pago na PartnerCommission
+      // 5. Se for comissão de parceiro, atualiza atomicamente a PartnerCommission
       let updatedCommission = null
-      if (title.partnerCommission) {
-        const commission = title.partnerCommission
-        const newCommPaid = commission.paidAmount.add(paidAmount)
-        const isCommFullyPaid = newCommPaid.gte(commission.totalCommissionAmount)
+      let commissionId = title.partnerCommissionId || title.partnerCommission?.id
 
-        updatedCommission = await tx.partnerCommission.update({
-          where: { id: commission.id },
-          data: {
-            paidAmount: newCommPaid,
-            status: isCommFullyPaid ? 'PAGO' : commission.status,
+      if (!commissionId && title.expenseType === 'COMISSAO_PARCEIRO') {
+        const found = await tx.partnerCommission.findFirst({
+          where: {
+            branchId: title.branchId,
+            OR: [
+              { payableTitles: { some: { id: title.id } } },
+              { partner: { name: title.supplierName } },
+            ],
           },
         })
+        if (found) commissionId = found.id
+      }
+
+      if (commissionId) {
+        const commission = await tx.partnerCommission.findUnique({
+          where: { id: commissionId },
+        })
+
+        if (commission) {
+          const newCommPaid = commission.paidAmount.add(paidAmount)
+          const isCommFullyPaid = newCommPaid.gte(commission.totalCommissionAmount)
+
+          updatedCommission = await tx.partnerCommission.update({
+            where: { id: commission.id },
+            data: {
+              paidAmount: newCommPaid,
+              status: isCommFullyPaid ? 'PAGO' : 'LIBERADO_PARCIAL',
+            },
+          })
+        }
       }
 
       return { cashTransaction, updatedInstallment, updatedTitle, updatedCommission, updatedAccount }

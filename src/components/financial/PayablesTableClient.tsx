@@ -16,6 +16,7 @@ import {
   Tractor,
   Building2,
   Users2,
+  History,
 } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -30,6 +31,7 @@ import {
 import { usePayablesFilter } from './hooks/usePayablesFilter'
 import NewPayableModal from './modals/NewPayableModal'
 import SettlePayableModal from './modals/SettlePayableModal'
+import FinancialAuditDrawer from '@/components/financial/audit/FinancialAuditDrawer'
 
 const PAYABLE_STATUS_OPTIONS = [
   { value: 'TODOS', label: 'Status: Todos', icon: ListFilter, iconColor: 'text-slate-500' },
@@ -81,6 +83,17 @@ export default function PayablesTableClient({
   const [settleModalOpen, setSettleModalOpen] = useState(false)
   const [selectedPayable, setSelectedPayable] = useState<any | null>(null)
   const [selectedInstallment, setSelectedInstallment] = useState<any | null>(null)
+
+  // Trilha de Auditoria Integral
+  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false)
+  const [selectedAuditTitleId, setSelectedAuditTitleId] = useState<string | null>(null)
+  const [selectedAuditDocNumber, setSelectedAuditDocNumber] = useState<string | undefined>()
+
+  const handleOpenAudit = (titleId: string, docNumber?: string) => {
+    setSelectedAuditTitleId(titleId)
+    setSelectedAuditDocNumber(docNumber)
+    setAuditDrawerOpen(true)
+  }
 
   const toggleRow = (id: string) => {
     setExpandedRows((prev) => ({ ...prev, [id]: !prev[id] }))
@@ -323,12 +336,23 @@ export default function PayablesTableClient({
                         </td>
 
                         <td className="py-3 px-4 text-center">
-                          <button
-                            onClick={() => toggleRow(payable.id)}
-                            className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 underline"
-                          >
-                            {installments.length} {installments.length === 1 ? 'boleto' : 'boletos'}
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => toggleRow(payable.id)}
+                              className="text-xs font-semibold text-emerald-800 hover:text-emerald-950 underline"
+                            >
+                              {installments.length} {installments.length === 1 ? 'boleto' : 'boletos'}
+                            </button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleOpenAudit(payable.id, payable.documentNumber)}
+                              className="h-7 w-7 p-0 text-slate-400 hover:text-emerald-800 hover:bg-emerald-50 rounded-lg"
+                              title="Abrir Trilha de Auditoria Integral"
+                            >
+                              <History className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
 
@@ -364,7 +388,20 @@ export default function PayablesTableClient({
                                     return (
                                       <tr key={inst.id} className="hover:bg-slate-50">
                                         <td className="py-2.5 px-3 font-semibold text-slate-800">
-                                          Parcela {inst.installmentNumber}/{inst.totalInstallments}
+                                          <div>Parcela {inst.installmentNumber}/{inst.totalInstallments}</div>
+                                          {instPaid > 0 && (
+                                            <div className="text-[10px] text-slate-500 font-normal mt-0.5 flex flex-wrap items-center gap-1">
+                                              <span>👤 Baixa: <strong className="text-slate-700">{inst.settlementOperator?.name || 'Operador'}</strong></span>
+                                              <span>•</span>
+                                              <span>{inst.bankAccount?.bankName || 'Caixa'}</span>
+                                              {inst.paidAt && (
+                                                <>
+                                                  <span>•</span>
+                                                  <span>{new Date(inst.paidAt).toLocaleDateString('pt-BR')}</span>
+                                                </>
+                                              )}
+                                            </div>
+                                          )}
                                         </td>
 
                                         <td className="py-2.5 px-3 text-slate-600">
@@ -450,6 +487,19 @@ export default function PayablesTableClient({
           onSuccess={() => router.refresh()}
         />
       )}
+
+      {/* Gaveta Lateral de Trilha de Auditoria Integral */}
+      <FinancialAuditDrawer
+        isOpen={auditDrawerOpen}
+        onClose={() => {
+          setAuditDrawerOpen(false)
+          setSelectedAuditTitleId(null)
+          setSelectedAuditDocNumber(undefined)
+        }}
+        titleId={selectedAuditTitleId}
+        type="PAYABLE"
+        initialDocumentNumber={selectedAuditDocNumber}
+      />
     </div>
   )
 }

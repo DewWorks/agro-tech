@@ -1,9 +1,40 @@
 import { unstable_cache } from 'next/cache'
 import prisma from '@/lib/prisma'
 import { serializeDecimals } from '@/lib/utils'
+import { resolveOperators, type OperatorInfo } from '@/lib/financial/audit-operator'
 import type { CropYearMonthData, CategoryComparisonData } from '@/components/financial/FinancialDreCharts'
 import type { DreExportData } from '@/components/financial/FinancialExportModal'
 import type { DashboardPendingReceivable } from '@/components/financial/DashboardPendingReceivablesList'
+
+export interface FuturePayableMonthData {
+  monthKey: string
+  monthLabel: string
+  custosFixos: number
+  boletosFuturos: number
+  total: number
+}
+
+export interface ServiceMarginData {
+  service: string
+  faturamento: number
+  custosDiretos: number
+  margemLiquida: number
+  margemPercent: number
+}
+
+export interface PartnerRankingData {
+  partnerName: string
+  volumeFinanciado: number
+  comissaoPaga: number
+  comissaoTotal: number
+}
+
+export interface CropTargetData {
+  metaSafra: number
+  faturadoContratado: number
+  liquidadoCaixa: number
+  percentualAtingido: number
+}
 
 export interface FinancialOverviewData {
   metrics: {
@@ -35,6 +66,10 @@ export interface FinancialOverviewData {
     receitas: CategoryComparisonData[]
     despesas: CategoryComparisonData[]
   }
+  futurePayablesData: FuturePayableMonthData[]
+  serviceMarginData: ServiceMarginData[]
+  partnerRankingData: PartnerRankingData[]
+  cropTargetData: CropTargetData
   pendingReceivables: DashboardPendingReceivable[]
   exportData: DreExportData
   bankAccounts: Array<{
@@ -67,6 +102,7 @@ export interface FinancialOverviewData {
     description: string
     transactionDate: string
     bankAccount: { bankName: string }
+    operator?: OperatorInfo
   }>
 }
 
@@ -99,6 +135,8 @@ export async function fetchFinancialOverview(
     branchesRaw,
     demandsRaw,
     pendingReceivablesRaw,
+    futurePayablesRaw,
+    commercialPartnersRaw,
   ] = await Promise.all([
     // 1. Totalizadores de Recebíveis
     prisma.receivableTitle.findMany({
@@ -107,6 +145,7 @@ export async function fetchFinancialOverview(
         status: { not: 'CANCELADO' },
       },
       select: {
+        originType: true,
         grossAmount: true,
         discountAmount: true,
         netAmount: true,
@@ -143,6 +182,7 @@ export async function fetchFinancialOverview(
         agency: true,
         accountNumber: true,
         accountType: true,
+        initialBalance: true,
         currentBalance: true,
       },
       orderBy: { bankName: 'asc' },
@@ -174,7 +214,9 @@ export async function fetchFinancialOverview(
         type: true,
         amount: true,
         description: true,
+        isReversed: true,
         transactionDate: true,
+        operatorId: true,
         bankAccount: { select: { bankName: true } },
         receivableInstallment: {
           select: {
@@ -193,7 +235,8 @@ export async function fetchFinancialOverview(
               select: {
                 documentNumber: true,
                 supplierName: true,
-                category: { select: { name: true, code: true } },
+                expenseType: true,
+                category: { select: { name: true, code: true, isDirectProjectCost: true } },
               },
             },
           },
@@ -286,6 +329,47 @@ export async function fetchFinancialOverview(
       },
       orderBy: { createdAt: 'desc' },
       take: 5,
+    }),
+
+    // 11. Boletos e Compras a Prazo Futuras
+    prisma.payableInstallment.findMany({
+      where: {
+        payableTitle: {
+          ...branchWhere,
+          status: { not: 'CANCELADO' },
+        },
+        status: { in: ['A_VENCER', 'EM_ATRASO'] },
+      },
+      select: {
+        amount: true,
+        paidAmount: true,
+        dueDate: true,
+        payableTitle: {
+          select: { expenseType: true },
+        },
+      },
+    }),
+
+    // 12. Ranking de Parceiros Comerciais
+    prisma.commercialPartner.findMany({
+      where: {
+        ...branchWhere,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        commissions: {
+          where: { status: { not: 'CANCELADO' } },
+          select: {
+            calculationBasisAmount: true,
+            totalCommissionAmount: true,
+            releasedAmount: true,
+            paidAmount: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
     }),
   ])
 
@@ -381,14 +465,18 @@ export async function fetchFinancialOverview(
     { key: '2026-12', label: 'Dez/26' },
   ]
 
-  let runningCumulative = 0
+  const totalInitialBalance = bankAccountsRaw.reduce((sum, b) => sum + Number(b.initialBalance || 0), 0)
+  let runningCumulative = totalInitialBalance
   const monthlyData: CropYearMonthData[] = monthNames.map((m) => {
     let rec = 0
     let desp = 0
 
     cashTransactionsRaw.forEach((tx) => {
+      if (tx.isReversed) return
       const txDate = new Date(tx.transactionDate)
-      const txMonth = txDate.toISOString().slice(0, 7)
+      const txYear = txDate.getUTCFullYear()
+      const txMonthNum = String(txDate.getUTCMonth() + 1).padStart(2, '0')
+      const txMonth = `${txYear}-${txMonthNum}`
       if (txMonth === m.key) {
         if (tx.type === 'ENTRADA') rec += Number(tx.amount)
         if (tx.type === 'SAIDA') desp += Number(tx.amount)
@@ -447,16 +535,14 @@ export async function fetchFinancialOverview(
     })),
   }
 
-  if (categoryData.receitas.length === 0) {
+  if (categoryData.receitas.length === 0 && faturamentoRealizado > 0) {
     categoryData.receitas = [
-      { categoryName: 'Honorários de Crédito', code: '1.1.01', type: 'RECEITA', realizado: faturamentoRealizado },
-      { categoryName: 'Pacotes CAR & AUI', code: '1.2.01', type: 'RECEITA', realizado: 0 },
+      { categoryName: 'Honorários e Serviços Técnicos', code: '1.1.01', type: 'RECEITA', realizado: faturamentoRealizado },
     ]
   }
-  if (categoryData.despesas.length === 0) {
+  if (categoryData.despesas.length === 0 && despesasRealizadas > 0) {
     categoryData.despesas = [
-      { categoryName: 'Custos Diretos Projetos', code: '2.1.01', type: 'DESPESA', realizado: custosDiretosRealizados },
-      { categoryName: 'Despesas Fixas Filial', code: '2.2.01', type: 'DESPESA', realizado: despesasFixasRealizadas },
+      { categoryName: 'Custos e Despesas Operacionais', code: '2.1.01', type: 'DESPESA', realizado: despesasRealizadas },
     ]
   }
 
@@ -560,6 +646,119 @@ export async function fetchFinancialOverview(
     producer: { name: d.producer.name },
   }))
 
+  // 4. Projeção Cronológica de Compras a Prazo (Próximos 6 meses)
+  const futurePayablesMap = new Map<string, { label: string; boletos: number }>()
+  const monthNamesPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+  
+  const currentDate = new Date()
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1)
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const key = `${y}-${m}`
+    const label = `${monthNamesPt[d.getMonth()]}/${String(y).slice(2)}`
+    futurePayablesMap.set(key, { label, boletos: 0 })
+  }
+
+  for (const inst of futurePayablesRaw) {
+    const d = new Date(inst.dueDate)
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    if (futurePayablesMap.has(key)) {
+      const remaining = Math.max(0, Number(inst.amount) - Number(inst.paidAmount))
+      futurePayablesMap.get(key)!.boletos += remaining
+    }
+  }
+
+  const futurePayablesData: FuturePayableMonthData[] = Array.from(futurePayablesMap.entries()).map(([monthKey, val]) => {
+    return {
+      monthKey,
+      monthLabel: val.label,
+      custosFixos: despesasFixasRealizadas,
+      boletosFuturos: Math.round(val.boletos * 100) / 100,
+      total: Math.round((despesasFixasRealizadas + val.boletos) * 100) / 100,
+    }
+  })
+
+  // 5. Margem Líquida por Linha de Serviço: Crédito Rural vs. Pacotes Ambientais (Dados Reais)
+  let creditoFaturamento = 0
+  let creditoCustos = 0
+  let ambientalFaturamento = 0
+  let ambientalCustos = 0
+
+  for (const r of receivables) {
+    const val = Number(r.grossAmount)
+    const isCredito = r.originType === 'ESTEIRA_CREDITO' || !r.category?.code?.startsWith('REC-02')
+    if (isCredito) {
+      creditoFaturamento += val
+    } else {
+      ambientalFaturamento += val
+    }
+  }
+
+  for (const tx of cashTransactionsRaw) {
+    if (tx.type === 'SAIDA' && !tx.isReversed) {
+      const isDirect =
+        tx.payableInstallment?.payableTitle?.category?.isDirectProjectCost ||
+        tx.payableInstallment?.payableTitle?.expenseType === 'COMISSAO_PARCEIRO'
+      if (isDirect) {
+        creditoCustos += Number(tx.amount)
+      } else {
+        ambientalCustos += Number(tx.amount)
+      }
+    }
+  }
+
+  const creditoMargem = Math.max(0, creditoFaturamento - creditoCustos)
+  const ambientalMargem = Math.max(0, ambientalFaturamento - ambientalCustos)
+
+  const serviceMarginData: ServiceMarginData[] = [
+    {
+      service: 'Crédito Rural Bancário',
+      faturamento: creditoFaturamento,
+      custosDiretos: creditoCustos,
+      margemLiquida: creditoMargem,
+      margemPercent: creditoFaturamento > 0 ? Math.round((creditoMargem / creditoFaturamento) * 1000) / 10 : 0,
+    },
+    {
+      service: 'Pacotes Ambientais (CAR/AUI)',
+      faturamento: ambientalFaturamento,
+      custosDiretos: ambientalCustos,
+      margemLiquida: ambientalMargem,
+      margemPercent: ambientalFaturamento > 0 ? Math.round((ambientalMargem / ambientalFaturamento) * 1000) / 10 : 0,
+    },
+  ]
+
+  // 6. Ranking de Parceiros Comerciais (Volume Financiado vs. Comissão Paga - Dados Reais)
+  const partnerRankingData: PartnerRankingData[] = commercialPartnersRaw.map((p) => {
+    let vol = 0
+    let paid = 0
+    let totalComm = 0
+    for (const c of p.commissions) {
+      vol += Number(c.calculationBasisAmount)
+      paid += Number(c.paidAmount)
+      totalComm += Number(c.totalCommissionAmount)
+    }
+    return {
+      partnerName: p.name,
+      volumeFinanciado: vol,
+      comissaoPaga: paid,
+      comissaoTotal: totalComm,
+    }
+  }).sort((a, b) => b.volumeFinanciado - a.volumeFinanciado)
+
+  // 7. Termômetro da Safra (Previsto vs. Faturado vs. Liquidado)
+  const metaSafra = monthlyTarget > 0 ? monthlyTarget * 12 : 120000
+  const cropTargetData: CropTargetData = {
+    metaSafra,
+    faturadoContratado: faturamentoBruto,
+    liquidadoCaixa: faturamentoRealizado,
+    percentualAtingido: metaSafra > 0 ? Math.round((faturamentoRealizado / metaSafra) * 1000) / 10 : 0,
+  }
+
+  // Resolução de operadores para trilha de auditoria e lançamentos recentes
+  const operatorIds = cashTransactionsRaw.map((tx) => tx.operatorId).filter(Boolean)
+  const operatorsMap = await resolveOperators(operatorIds)
+
   const cashTransactions = cashTransactionsRaw.map((tx) => ({
     id: tx.id,
     type: tx.type,
@@ -567,6 +766,12 @@ export async function fetchFinancialOverview(
     description: tx.description,
     transactionDate: tx.transactionDate.toISOString(),
     bankAccount: { bankName: tx.bankAccount.bankName },
+    operator: operatorsMap.get(tx.operatorId) || {
+      id: tx.operatorId,
+      name: 'Operador Financeiro',
+      email: 'financeiro@agrotech.com',
+      avatarUrl: null,
+    },
   }))
 
   return serializeDecimals({
@@ -596,6 +801,10 @@ export async function fetchFinancialOverview(
     },
     monthlyData,
     categoryData,
+    futurePayablesData,
+    serviceMarginData,
+    partnerRankingData,
+    cropTargetData,
     pendingReceivables,
     exportData,
     bankAccounts,
@@ -612,6 +821,6 @@ export async function fetchFinancialOverview(
 export const getCachedFinancialOverview = unstable_cache(
   async (branchId: string = 'ALL', organizationId?: string) =>
     fetchFinancialOverview(branchId, organizationId),
-  ['financial-overview-data'],
+  ['financial-overview-data-v5'],
   { tags: ['financial-data'], revalidate: 3600 }
 )

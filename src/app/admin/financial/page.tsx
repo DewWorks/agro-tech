@@ -13,7 +13,7 @@ import {
   FileSpreadsheet,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import FinancialDreCharts from '@/components/financial/FinancialDreCharts'
+import FinancialSafraChartsHub from '@/components/financial/dashboard/FinancialSafraChartsHub'
 import FinancialOverviewHeaderClient from '@/components/financial/FinancialOverviewHeaderClient'
 import DashboardPendingReceivablesList from '@/components/financial/DashboardPendingReceivablesList'
 import FinancialOverviewLoading from './loading'
@@ -206,10 +206,14 @@ async function FinancialOverviewContent({
         bankAccounts={bankAccounts}
       />
 
-      {/* Seção Gráfica: Curva de Saldo Acumulado da Safra & Distribuição por Categorias */}
-      <FinancialDreCharts
+      {/* Hub Multi-Gráficos Explicativo da Safra (7 Visões Analíticas) */}
+      <FinancialSafraChartsHub
         monthlyData={monthlyData}
         categoryData={categoryData}
+        futurePayablesData={overview.futurePayablesData}
+        serviceMarginData={overview.serviceMarginData}
+        partnerRankingData={overview.partnerRankingData}
+        cropTargetData={overview.cropTargetData}
         cropYear={metrics.activeCrop}
         branchName={metrics.branchDisplayName}
       />
@@ -264,7 +268,8 @@ async function FinancialOverviewContent({
                       </div>
                       <div>
                         <p className="text-xs font-bold text-slate-800">{tx.description}</p>
-                        <p className="text-[10px] text-slate-400">
+                        <p className="text-[10px] text-slate-500 font-medium">
+                          👤 Operador: <span className="font-semibold text-slate-700">{tx.operator?.name || 'Operador Financeiro'}</span> •{' '}
                           {tx.bankAccount.bankName} •{' '}
                           {new Date(tx.transactionDate).toLocaleDateString('pt-BR')} às{' '}
                           {new Date(tx.transactionDate).toLocaleTimeString('pt-BR', {
