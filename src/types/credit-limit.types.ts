@@ -166,6 +166,12 @@ export interface PropertySelectOption {
 
 export interface CreditRiskSimulatorProps {
   initialPropertyId?: string
+  initialProducerId?: string
+  initialAmount?: number
+  initialCreditLine?: string
+  initialTargetBank?: string
+  initialPropertiesList?: PropertySelectOption[]
+  initialSimulationData?: PropertySimulationData | null
   onPropertyChange?: (propertyId: string) => void
 }
 

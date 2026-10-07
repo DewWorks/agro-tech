@@ -93,6 +93,7 @@ export interface CreditProjectWizardProps {
   initialProducerId?: string
   initialPropertyId?: string
   initialDemandId?: string
+  initialAmount?: number
   linkedDemand?: {
     id: string
     serviceType: string

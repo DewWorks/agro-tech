@@ -16,7 +16,7 @@ export function ChecklistParams({ customOptions, setCustomOptions }: ParamsProps
         <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
           Parâmetros do Atendimento
         </span>
-        <span className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200">
+        <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
           Esteira & Dossiê
         </span>
       </div>

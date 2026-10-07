@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Search,
   FileText,
@@ -17,25 +18,54 @@ import {
   CheckCircle2,
   Clock,
   Sparkles,
+  ChevronDown,
+  Kanban,
+  Calculator,
+  CreditCard,
+  Link2,
+  AlertTriangle,
+  Loader2,
+  Layers,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CreditProjectHistoryItem } from '@/actions/credit-projects'
+import {
+  CreditProjectHistoryItem,
+  createDemandFromCreditProject,
+} from '@/actions/credit-projects'
 import { UniversalDocumentPreviewModal } from '@/components/documents/UniversalDocumentPreviewModal'
 import { A4DocumentPreview } from '../new/components/preview/A4DocumentPreview'
 import { CREDIT_TEMPLATES_REGISTRY } from '@/lib/document-templates'
+import { CreditProjectDetailsDrawer } from './CreditProjectDetailsDrawer'
+import { BillProjectFeeModal } from './BillProjectFeeModal'
+import { LinkDemandModal } from './LinkDemandModal'
+import { formatCurrency, cn } from '@/lib/utils'
 
 interface CreditProjectsHistoryTableProps {
   initialProjects: CreditProjectHistoryItem[]
 }
 
 export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHistoryTableProps) {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [axisFilter, setAxisFilter] = useState<'TODOS' | 'CUSTEIO' | 'INVESTIMENTO' | 'OUTROS'>('TODOS')
+
+  // Modais e Gavetas
   const [previewProject, setPreviewProject] = useState<CreditProjectHistoryItem | null>(null)
+  const [drawerProject, setDrawerProject] = useState<CreditProjectHistoryItem | null>(null)
+  const [billFeeProject, setBillFeeProject] = useState<CreditProjectHistoryItem | null>(null)
+  const [linkDemandProject, setLinkDemandProject] = useState<CreditProjectHistoryItem | null>(null)
+  const [creatingDemandId, setCreatingDemandId] = useState<string | null>(null)
 
   const filteredProjects = useMemo(() => {
     let list = initialProjects
@@ -96,6 +126,42 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
     }
   }, [previewProject])
 
+  // Ação de Criar Demanda Técnica a partir do Projeto
+  const handleCreateDemand = async (project: CreditProjectHistoryItem) => {
+    if (project.demandId) {
+      router.push(`/admin/demands/${project.demandId}`)
+      return
+    }
+
+    setCreatingDemandId(project.id)
+    try {
+      const res = await createDemandFromCreditProject({
+        formId: project.id,
+        producerId: project.producerId,
+        propertyId: project.propertyId || undefined,
+        templateCode: project.templateCode,
+        financedAmount: project.financedAmount || 0,
+        documentId: project.documentId || undefined,
+        storagePdfPath: project.storagePdfPath || undefined,
+        fileName: project.fileName || undefined,
+        financialAgent: project.technicalDetails?.targetBank,
+        interestRate: project.technicalDetails?.interestRate,
+        cropYear: project.technicalDetails?.cropYear,
+      })
+
+      if (res.success && res.demandId) {
+        router.refresh()
+        router.push(`/admin/demands/${res.demandId}`)
+      } else {
+        alert(res.error || 'Erro ao criar demanda a partir do projeto.')
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Falha de comunicação ao criar demanda.')
+    } finally {
+      setCreatingDemandId(null)
+    }
+  }
+
   return (
     <div className="bg-white border border-gray-200 rounded-2xl shadow-2xs overflow-hidden">
       {/* Header da Seção de Histórico */}
@@ -106,7 +172,7 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
             Histórico de Projetos Técnicos Elaborados
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Consulte, visualize ou continue a elaboração dos projetos de crédito gerados na sua organização.
+            Hub de Continuidade: conecte projetos a Demandas no Kanban, simulação de Limite MCR e faturamento ERP.
           </p>
         </div>
 
@@ -208,9 +274,9 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
                 <th className="py-3 px-4">Data / Emissão</th>
                 <th className="py-3 px-4">Proponente (Produtor)</th>
                 <th className="py-3 px-4">Imóvel Beneficiado</th>
-                <th className="py-3 px-4">Eixo & Linha Oficial</th>
-                <th className="py-3 px-4 text-right">Investimento / Custeio</th>
-                <th className="py-3 px-4 text-center">Ações</th>
+                <th className="py-3 px-4">Eixo, Linha & Rastreabilidade</th>
+                <th className="py-3 px-4 text-right">Investimento / Financiado</th>
+                <th className="py-3 px-4 text-center">Ações Operacionais</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -223,18 +289,23 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
                 const isInvestimento = project.axis === 'INVESTIMENTO'
 
                 return (
-                  <tr key={project.id} className="hover:bg-slate-50/70 transition-colors">
+                  <tr
+                    key={project.id}
+                    onClick={() => setDrawerProject(project)}
+                    className="hover:bg-emerald-50/30 cursor-pointer transition-colors group"
+                    title="Clique em qualquer linha para abrir a gaveta de detalhes técnicos e desdobramentos"
+                  >
                     {/* Data */}
-                    <td className="py-3 px-4 whitespace-nowrap text-gray-600 font-medium">
+                    <td className="py-3.5 px-4 whitespace-nowrap text-gray-600 font-medium">
                       <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                        <span>{formattedDate}</span>
+                        <Calendar className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 transition-colors" />
+                        <span suppressHydrationWarning>{formattedDate}</span>
                       </div>
                     </td>
 
                     {/* Produtor */}
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-gray-900 truncate max-w-[200px]">
+                    <td className="py-3.5 px-4">
+                      <div className="font-bold text-gray-900 group-hover:text-[#1B4D3E] transition-colors truncate max-w-[200px]">
                         {project.producerName}
                       </div>
                       <div className="text-[11px] text-gray-500 font-mono">
@@ -243,7 +314,7 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
                     </td>
 
                     {/* Imóvel */}
-                    <td className="py-3 px-4">
+                    <td className="py-3.5 px-4">
                       <div className="font-semibold text-gray-800 truncate max-w-[200px]">
                         {project.propertyName}
                       </div>
@@ -252,9 +323,9 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
                       </div>
                     </td>
 
-                    {/* Eixo & Linha */}
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5">
+                    {/* Eixo, Linha & Badges de Rastreabilidade */}
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         {isCusteio ? (
                           <Badge
                             variant="outline"
@@ -281,27 +352,121 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
                         )}
 
                         {project.creditLineName && (
-                          <span className="text-[11px] text-gray-700 font-medium truncate max-w-[150px]">
+                          <span className="text-xs text-gray-900 font-bold truncate max-w-[220px]">
                             {project.creditLineName}
                           </span>
                         )}
                       </div>
-                      <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[220px]">
+
+                      <div className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[260px]">
                         {project.templateName}
+                      </div>
+
+                      {/* BADGES DE RASTREABILIDADE (CICLO DE VIDA DO PROJETO) */}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-2 pt-1.5 border-t border-dashed border-gray-100">
+                        {/* 1. Vínculo com Demanda Operacional */}
+                        {project.demandId ? (
+                          <Link
+                            href={`/admin/demands/${project.demandId}`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Acessar Demanda Técnica vinculada no Kanban"
+                          >
+                            <Badge className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100 gap-1.5 cursor-pointer transition-colors shadow-2xs">
+                              <Kanban className="w-3 h-3 text-emerald-700 shrink-0" />
+                              <span>Demanda #{project.demandCode} • {project.demandStatusLabel || project.demandStatus}</span>
+                            </Badge>
+                          </Link>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-medium bg-amber-50/70 text-amber-800 border-amber-300 gap-1.5"
+                            title="Nenhuma demanda operacional associada a este projeto"
+                          >
+                            <AlertTriangle className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span>Sem Demanda Vinculada</span>
+                          </Badge>
+                        )}
+
+                        {/* 2. Vínculo com Limite de Crédito MCR */}
+                        {project.mcrAnalysis ? (
+                          <Link
+                            href={`/admin/credit-limit?producerId=${project.producerId}&propertyId=${
+                              project.propertyId || ''
+                            }&amount=${project.financedAmount || 0}&creditLine=${encodeURIComponent(
+                              project.creditLineName || project.templateName
+                            )}&tab=simulator`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Simular capacidade de pagamento no módulo Limite MCR"
+                          >
+                            <Badge
+                              className={`text-[10px] font-bold gap-1.5 cursor-pointer transition-colors shadow-2xs ${
+                                project.mcrAnalysis.icsdValue >= 1.2
+                                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                                  : 'bg-rose-50 text-rose-800 border-rose-300 hover:bg-rose-100'
+                              }`}
+                            >
+                              <Calculator className="w-3 h-3 shrink-0" />
+                              <span>
+                                ICSD: {project.mcrAnalysis.icsdValue.toFixed(2)}x (
+                                {project.mcrAnalysis.icsdValue >= 1.2 ? 'Apto' : 'Reprovado'})
+                              </span>
+                            </Badge>
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/admin/credit-limit?producerId=${project.producerId}&propertyId=${
+                              project.propertyId || ''
+                            }&amount=${project.financedAmount || 0}&creditLine=${encodeURIComponent(
+                              project.creditLineName || project.templateName
+                            )}&tab=simulator`}
+                            onClick={(e) => e.stopPropagation()}
+                            title="Simular Limite MCR para este projeto"
+                          >
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] font-medium bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 gap-1.5 cursor-pointer transition-colors"
+                            >
+                              <Calculator className="w-3 h-3 text-slate-500 shrink-0" />
+                              <span>Simular MCR</span>
+                            </Badge>
+                          </Link>
+                        )}
+
+                        {/* 3. Vínculo com Financeiro (ERP) */}
+                        {project.financialTitle ? (
+                          <Link
+                            href="/admin/financial/receivables"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Ver Título a Receber no ERP"
+                          >
+                            <Badge className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 gap-1.5 cursor-pointer transition-colors shadow-2xs">
+                              <CreditCard className="w-3 h-3 text-emerald-700 shrink-0" />
+                              <span>Faturado ({project.financialTitle.documentNumber})</span>
+                            </Badge>
+                          </Link>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] font-medium bg-amber-50/60 text-amber-700 border-amber-200 gap-1.5"
+                            title="Honorários técnicos pendentes de emissão no ERP"
+                          >
+                            <Clock className="w-3 h-3 text-amber-600 shrink-0" />
+                            <span>Honorários a Faturar</span>
+                          </Badge>
+                        )}
                       </div>
                     </td>
 
                     {/* Valores */}
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       {project.totalAmount && project.totalAmount > 0 ? (
                         <>
                           <div className="font-bold text-gray-900">
-                            R$ {project.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            {formatCurrency(project.totalAmount)}
                           </div>
                           {project.financedAmount && project.financedAmount > 0 ? (
-                            <div className="text-[10px] text-emerald-700 font-semibold">
-                              Financiado: R${' '}
-                              {project.financedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                            <div className="text-[11px] text-emerald-700 font-extrabold">
+                              Financiado: {formatCurrency(project.financedAmount)}
                             </div>
                           ) : null}
                         </>
@@ -310,38 +475,117 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
                       )}
                     </td>
 
-                    {/* Ações */}
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setPreviewProject(project)}
-                          className="h-8 px-2.5 text-emerald-700 hover:text-emerald-900 hover:bg-emerald-50 text-xs font-semibold gap-1"
-                          title="Visualizar documento em formato A4 oficial"
+                    {/* Menu de Desdobramentos Operacionais */}
+                    <td
+                      className="py-3.5 px-4 text-center whitespace-nowrap"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          className={cn(
+                            buttonVariants({ variant: 'outline', size: 'sm' }),
+                            'h-8 px-2.5 text-xs font-bold text-[#1B4D3E] border-[#1B4D3E]/30 hover:bg-emerald-50 gap-1.5 shadow-2xs cursor-pointer'
+                          )}
                         >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Visualizar</span>
-                        </Button>
-
-                        <Link
-                          href={`/admin/documents/credit-projects/new?template=${project.templateCode}&axis=${
-                            isCusteio ? 'custeio' : 'investimento'
-                          }`}
+                          <span>Ações Operacionais</span>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="w-64 p-1.5 shadow-xl bg-white border-gray-200"
                         >
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2.5 text-blue-700 hover:text-blue-900 hover:bg-blue-50 text-xs font-semibold gap-1"
-                            title="Reabrir esteira para novo preenchimento ou edição"
+                          {/* 1. Visualizar PDF Oficial */}
+                          <DropdownMenuItem
+                            onClick={() => setPreviewProject(project)}
+                            className="text-xs font-semibold py-2 px-2.5 cursor-pointer text-emerald-800 hover:bg-emerald-50 rounded-lg gap-2"
                           >
-                            <Edit3 className="w-3.5 h-3.5" />
-                            <span>Reabrir</span>
-                          </Button>
-                        </Link>
-                      </div>
+                            <Eye className="w-4 h-4 text-emerald-700" />
+                            <span>Visualizar PDF Oficial</span>
+                          </DropdownMenuItem>
+
+                          {/* 2. Criar Demanda Técnica no Kanban */}
+                          <DropdownMenuItem
+                            onClick={() => handleCreateDemand(project)}
+                            disabled={creatingDemandId === project.id}
+                            className="text-xs font-semibold py-2 px-2.5 cursor-pointer text-slate-800 hover:bg-slate-50 rounded-lg gap-2"
+                          >
+                            {creatingDemandId === project.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin text-[#1B4D3E]" />
+                            ) : (
+                              <Kanban className="w-4 h-4 text-[#1B4D3E]" />
+                            )}
+                            <span>
+                              {project.demandId
+                                ? 'Abrir Demanda no Kanban'
+                                : 'Criar Demanda Técnica no Kanban'}
+                            </span>
+                          </DropdownMenuItem>
+
+                          {/* 3. Vincular a uma Demanda Aberta */}
+                          {!project.demandId && (
+                            <DropdownMenuItem
+                              onClick={() => setLinkDemandProject(project)}
+                              className="text-xs font-semibold py-2 px-2.5 cursor-pointer text-slate-800 hover:bg-slate-50 rounded-lg gap-2"
+                            >
+                              <Link2 className="w-4 h-4 text-slate-600" />
+                              <span>Vincular a uma Demanda Aberta</span>
+                            </DropdownMenuItem>
+                          )}
+
+                          {/* 4. Simular Limite MCR para este Valor */}
+                          <DropdownMenuItem
+                            onClick={() => {
+                              router.push(
+                                `/admin/credit-limit?producerId=${project.producerId}&propertyId=${
+                                  project.propertyId || ''
+                                }&amount=${project.financedAmount || 0}&creditLine=${encodeURIComponent(
+                                  project.creditLineName || project.templateName
+                                )}&tab=simulator`
+                              )
+                            }}
+                            className="text-xs font-semibold py-2 px-2.5 cursor-pointer text-slate-800 hover:bg-slate-50 rounded-lg gap-2"
+                          >
+                            <Calculator className="w-4 h-4 text-emerald-700" />
+                            <span>Simular Limite MCR para este Valor</span>
+                          </DropdownMenuItem>
+
+                          {/* 5. Faturar Honorários no ERP */}
+                          <DropdownMenuItem
+                            onClick={() => {
+                              if (project.financialTitle) {
+                                router.push('/admin/financial/receivables')
+                              } else {
+                                setBillFeeProject(project)
+                              }
+                            }}
+                            className="text-xs font-semibold py-2 px-2.5 cursor-pointer text-[#1B4D3E] hover:bg-emerald-50 rounded-lg gap-2"
+                          >
+                            <CreditCard className="w-4 h-4 text-[#1B4D3E]" />
+                            <span>
+                              {project.financialTitle ? 'Ver Título no ERP' : 'Faturar Honorários no ERP'}
+                            </span>
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+
+                          {/* 6. Reabrir / Editar Parâmetros */}
+                          <DropdownMenuItem
+                            onClick={() => {
+                              router.push(
+                                `/admin/documents/credit-projects/new?template=${project.templateCode}&axis=${
+                                  isCusteio ? 'custeio' : 'investimento'
+                                }&producerId=${project.producerId}&propertyId=${
+                                  project.propertyId || ''
+                                }&formId=${project.id}`
+                              )
+                            }}
+                            className="text-xs font-semibold py-2 px-2.5 cursor-pointer text-[#1B4D3E] hover:bg-emerald-50 rounded-lg gap-2"
+                          >
+                            <Edit3 className="w-4 h-4 text-[#1B4D3E]" />
+                            <span>Reabrir / Editar Parâmetros</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </td>
                   </tr>
                 )
@@ -350,6 +594,52 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
           </table>
         </div>
       )}
+
+      {/* Gaveta Lateral de Detalhes Técnicos */}
+      <CreditProjectDetailsDrawer
+        isOpen={!!drawerProject}
+        onClose={() => setDrawerProject(null)}
+        project={drawerProject}
+        onOpenPreview={(proj) => {
+          setDrawerProject(null)
+          setPreviewProject(proj)
+        }}
+        onCreateDemand={(proj) => {
+          setDrawerProject(null)
+          handleCreateDemand(proj)
+        }}
+        onLinkDemand={(proj) => {
+          setDrawerProject(null)
+          setLinkDemandProject(proj)
+        }}
+        onBillFee={(proj) => {
+          setDrawerProject(null)
+          setBillFeeProject(proj)
+        }}
+      />
+
+      {/* Modal de Faturamento de Honorários no ERP */}
+      <BillProjectFeeModal
+        isOpen={!!billFeeProject}
+        onClose={() => setBillFeeProject(null)}
+        project={billFeeProject}
+        onSuccess={() => {
+          router.refresh()
+        }}
+      />
+
+      {/* Modal de Vínculo com Demanda Aberta */}
+      <LinkDemandModal
+        isOpen={!!linkDemandProject}
+        onClose={() => setLinkDemandProject(null)}
+        project={linkDemandProject}
+        onSuccess={() => {
+          router.refresh()
+        }}
+        onCreateNewDemand={(proj) => {
+          handleCreateDemand(proj)
+        }}
+      />
 
       {/* Modal Universal de Pré-Visualização */}
       {previewProject && previewDocData && (

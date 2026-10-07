@@ -17,6 +17,7 @@ import {
   MapPin,
   TrendingUp,
   Percent,
+  Sprout,
 } from 'lucide-react'
 
 export interface ShowcaseTab {
@@ -443,24 +444,26 @@ export function LoginShowcaseCarousel() {
                 <button
                   type="button"
                   onClick={() => setProjectType('custeio')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     projectType === 'custeio'
                       ? 'bg-emerald-500 text-slate-950 shadow-xs ring-1 ring-emerald-400'
                       : 'bg-white/[0.06] text-white/70 hover:text-white border border-white/10'
                   }`}
                 >
-                  🌾 Custeio
+                  <Sprout className="w-3.5 h-3.5" />
+                  <span>Custeio</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setProjectType('investimento')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     projectType === 'investimento'
                       ? 'bg-emerald-500 text-slate-950 shadow-xs ring-1 ring-emerald-400'
                       : 'bg-white/[0.06] text-white/70 hover:text-white border border-white/10'
                   }`}
                 >
-                  🚜 Investimento
+                  <Tractor className="w-3.5 h-3.5" />
+                  <span>Investimento</span>
                 </button>
               </div>
             </div>

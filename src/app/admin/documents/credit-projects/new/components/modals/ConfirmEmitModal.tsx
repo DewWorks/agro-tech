@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +18,12 @@ import {
   Compass,
   FileText,
   AlertTriangle,
+  Layers,
+  PlusCircle,
+  Link2,
+  Zap,
+  ArrowRight,
+  ExternalLink,
 } from 'lucide-react'
 import {
   maskCPF,
@@ -31,6 +38,11 @@ import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  getActiveDemandsForProducer,
+  createDemandFromCreditProject,
+  linkProjectToExistingDemand,
+} from '@/actions/credit-projects'
 
 interface ConfirmEmitModalProps {
   isOpen: boolean
@@ -63,6 +75,7 @@ export function ConfirmEmitModal({
   isFormValid = true,
   validationErrors = [],
 }: ConfirmEmitModalProps) {
+  const router = useRouter()
   const [isSuccess, setIsSuccess] = useState(false)
   const [isEmitting, setIsEmitting] = useState(false)
   const [governanceData, setGovernanceData] = useState<{
@@ -71,15 +84,47 @@ export function ConfirmEmitModal({
     emittedAt: Date
     fileName?: string
     responsibleName: string
+    documentId?: string
+    financedAmount: number
+    interestRate: number
+    financialAgent: string
+    cropYear: string
   } | null>(null)
+
+  // Estados da Continuidade Operacional
+  const [isCreatingDemand, setIsCreatingDemand] = useState(false)
+  const [createdDemandId, setCreatedDemandId] = useState<string | null>(null)
+  const [isLoadingDemands, setIsLoadingDemands] = useState(false)
+  const [activeDemands, setActiveDemands] = useState<any[]>([])
+  const [selectedTargetDemandId, setSelectedTargetDemandId] = useState<string>('')
+  const [isLinkingDemand, setIsLinkingDemand] = useState(false)
+  const [linkedDemandSuccess, setLinkedDemandSuccess] = useState(false)
 
   useEffect(() => {
     if (isOpen) {
       setIsSuccess(false)
       setIsEmitting(false)
       setGovernanceData(null)
+      setCreatedDemandId(null)
+      setSelectedTargetDemandId('')
+      setLinkedDemandSuccess(false)
     }
   }, [isOpen])
+
+  // Carregar demandas ativas do produtor quando a emissão concluir com sucesso
+  useEffect(() => {
+    if (isSuccess && currentProducer?.id) {
+      setIsLoadingDemands(true)
+      getActiveDemandsForProducer(currentProducer.id)
+        .then((res) => {
+          if (res.success && res.demands) {
+            setActiveDemands(res.demands)
+          }
+        })
+        .catch((err) => console.error('Erro ao buscar demandas abertas:', err))
+        .finally(() => setIsLoadingDemands(false))
+    }
+  }, [isSuccess, currentProducer?.id])
 
   const onConfirm = async () => {
     if (isFormValid === false || (validationErrors && validationErrors.length > 0)) {
@@ -98,12 +143,46 @@ export function ConfirmEmitModal({
       const sha256 = res.sha256 || 'SHA256-PENDING'
       const storagePath = res.storagePath || `ged/credit-projects/${selectedTemplateCode}/${Date.now()}.pdf`
 
+      const resolvedFinanced =
+        Number(res?.financedAmount) ||
+        Number(customOptions?.financedAmount) ||
+        Number(customOptions?.renovagroFinanced) ||
+        Number(customOptions?.inovagroFinanced) ||
+        (Number(customOptions?.custeioAreaHa || 0) * Number(customOptions?.custeioCostPerHa || 0)) ||
+        (Number(customOptions?.custeioQuantity || 0) * Number(customOptions?.custeioUnitPrice || 0)) ||
+        0
+
+      const resolvedInterest =
+        Number(res?.interestRate) ||
+        Number(customOptions?.interestRate) ||
+        Number(customOptions?.renovagroInterestRate) ||
+        Number(customOptions?.inovagroInterestRate) ||
+        Number(customOptions?.custeioInterestRate) ||
+        5.0
+
+      const resolvedAgent =
+        res?.financialAgent ||
+        customOptions?.financialAgent ||
+        customOptions?.targetBank ||
+        'Banco do Brasil'
+
+      const resolvedCrop =
+        res?.cropYear ||
+        customOptions?.cropYear ||
+        customOptions?.custeioSafraYear ||
+        '2025/2026'
+
       setGovernanceData({
         sha256,
         storagePath,
         emittedAt,
         fileName: res?.fileName,
         responsibleName: customOptions?.responsibleName || 'Responsável Técnico',
+        documentId: res?.documentId || undefined,
+        financedAmount: resolvedFinanced,
+        interestRate: resolvedInterest,
+        financialAgent: resolvedAgent,
+        cropYear: resolvedCrop,
       })
       setIsSuccess(true)
       toast.success('Documento emitido e baixado com sucesso!')
@@ -112,6 +191,71 @@ export function ConfirmEmitModal({
       toast.error(err?.message || 'Falha ao emitir e baixar o documento.')
     } finally {
       setIsEmitting(false)
+    }
+  }
+
+  // Ação da Opção 1: Criar Nova Demanda Técnica
+  const handleCreateDemand = async () => {
+    if (!currentProducer?.id || !governanceData) return
+
+    try {
+      setIsCreatingDemand(true)
+      const res = await createDemandFromCreditProject({
+        producerId: currentProducer.id,
+        propertyId: currentProperty?.id,
+        templateCode: selectedTemplateCode,
+        financedAmount: governanceData.financedAmount,
+        documentId: governanceData.documentId,
+        storagePdfPath: governanceData.storagePath,
+        fileName: governanceData.fileName,
+        financialAgent: governanceData.financialAgent,
+        interestRate: governanceData.interestRate,
+        cropYear: governanceData.cropYear,
+      })
+
+      if (!res.success || !res.demandId) {
+        throw new Error(res.error || 'Falha ao criar demanda')
+      }
+
+      setCreatedDemandId(res.demandId)
+      toast.success(`Demanda #${res.demandId.slice(-6).toUpperCase()} criada com sucesso com o PDF anexado!`)
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao criar nova demanda técnica.')
+    } finally {
+      setIsCreatingDemand(false)
+    }
+  }
+
+  // Ação da Opção 2: Vincular a uma Demanda Aberta
+  const handleLinkToExistingDemand = async () => {
+    if (!selectedTargetDemandId || !governanceData) {
+      toast.error('Selecione uma demanda em andamento para vincular.')
+      return
+    }
+
+    try {
+      setIsLinkingDemand(true)
+      const res = await linkProjectToExistingDemand({
+        demandId: selectedTargetDemandId,
+        documentId: governanceData.documentId,
+        templateCode: selectedTemplateCode,
+        financedAmount: governanceData.financedAmount,
+        fileName: governanceData.fileName,
+        financialAgent: governanceData.financialAgent,
+        interestRate: governanceData.interestRate,
+        cropYear: governanceData.cropYear,
+      })
+
+      if (!res.success) {
+        throw new Error(res.error || 'Falha ao vincular projeto')
+      }
+
+      setLinkedDemandSuccess(true)
+      toast.success('Projeto técnico vinculado à demanda com sucesso!')
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao vincular à demanda.')
+    } finally {
+      setIsLinkingDemand(false)
     }
   }
 
@@ -281,6 +425,172 @@ export function ConfirmEmitModal({
               </div>
             </div>
 
+            {/* PAINEL DE CONTINUIDADE OPERACIONAL (INTERCONEXÃO DA ESTEIRA) */}
+            <div className="w-full max-w-2xl bg-white border border-emerald-300 rounded-2xl p-5 text-left space-y-4 shadow-sm">
+              <div className="flex items-center justify-between border-b border-emerald-100 pb-2.5">
+                <div className="flex items-center gap-2 text-xs font-bold text-[#1B4D3E] uppercase tracking-wider">
+                  <Layers className="w-4 h-4 text-emerald-600" />
+                  <span>Diálogo de Continuidade Operacional</span>
+                </div>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                  Hub de Integração Bidirecional
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Avance a esteira operacional vinculando este projeto técnico emitido (
+                <strong className="text-emerald-950 font-bold">
+                  R$ {governanceData.financedAmount > 0 ? governanceData.financedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '103.950,00'}
+                </strong>
+                ) ao Kanban de Demandas ou simulando a capacidade de pagamento no MCR:
+              </p>
+
+              <div className="grid grid-cols-1 gap-3.5 pt-1">
+                {/* OPÇÃO 1: Criar Nova Demanda Técnica */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <PlusCircle className="w-4 h-4 text-[#1B4D3E]" />
+                      <span className="text-xs font-bold text-slate-900">
+                        Opção 1: Criar Nova Demanda Técnica
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Cria uma OS no Kanban com o valor financiado e o PDF já anexado ao checklist documental.
+                    </p>
+                  </div>
+
+                  {createdDemandId ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        setIsOpen(false)
+                        router.push(`/admin/demands/${createdDemandId}`)
+                      }}
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold h-9 px-4 rounded-xl shadow-xs shrink-0 cursor-pointer"
+                    >
+                      <span>Acessar Demanda Criada</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={handleCreateDemand}
+                      disabled={isCreatingDemand}
+                      className="bg-[#1B4D3E] hover:bg-[#13382D] text-white text-xs font-bold h-9 px-4 rounded-xl shadow-xs shrink-0 cursor-pointer"
+                    >
+                      {isCreatingDemand ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          <span>Criando OS...</span>
+                        </>
+                      ) : (
+                        <>
+                          <PlusCircle className="w-3.5 h-3.5 mr-1.5" />
+                          <span>Criar Demanda Técnica</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                {/* OPÇÃO 2: Vincular a uma Demanda Aberta */}
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-50 transition-all space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Link2 className="w-4 h-4 text-[#1B4D3E]" />
+                      <span className="text-xs font-bold text-slate-900">
+                        Opção 2: Vincular a uma Demanda Aberta
+                      </span>
+                    </div>
+                    {linkedDemandSuccess && (
+                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Vinculado com Sucesso
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Selecione uma demanda em andamento deste produtor para associar este documento ao checklist existente.
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <select
+                      value={selectedTargetDemandId}
+                      onChange={(e) => setSelectedTargetDemandId(e.target.value)}
+                      disabled={isLinkingDemand || activeDemands.length === 0}
+                      className="flex-1 h-9 rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
+                    >
+                      <option value="">
+                        {isLoadingDemands
+                          ? 'Carregando demandas em aberto...'
+                          : activeDemands.length === 0
+                          ? 'Nenhuma demanda em aberto para este produtor'
+                          : 'Selecione uma demanda em andamento...'}
+                      </option>
+                      {activeDemands.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          Demanda #{d.id.slice(-6).toUpperCase()} • {d.serviceType} {d.property?.name ? `(${d.property.name})` : ''} • {d.status}
+                        </option>
+                      ))}
+                    </select>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleLinkToExistingDemand}
+                      disabled={!selectedTargetDemandId || isLinkingDemand}
+                      className="text-xs font-bold h-9 px-4 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 shrink-0 cursor-pointer"
+                    >
+                      {isLinkingDemand ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                          <span>Vinculando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Link2 className="w-3.5 h-3.5 mr-1.5" />
+                          <span>Vincular Projeto</span>
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* OPÇÃO 3: Simular Capacidade de Pagamento / Limite */}
+                <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-emerald-700" />
+                      <span className="text-xs font-bold text-emerald-950">
+                        Opção 3: Simular Capacidade de Pagamento / Limite MCR
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-emerald-800/80">
+                      Redireciona para o simulador MCR herdando o valor de{' '}
+                      <strong>
+                        R$ {governanceData.financedAmount > 0 ? governanceData.financedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) : '103.950,00'}
+                      </strong>{' '}
+                      para teste de estresse do ICSD.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false)
+                      router.push(
+                        `/admin/credit-limit?propertyId=${currentProperty?.id || ''}&producerId=${currentProducer?.id || ''}&amount=${governanceData.financedAmount || 103950}&tab=simulator`
+                      )
+                    }}
+                    className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold h-9 px-4 rounded-xl shadow-xs shrink-0 cursor-pointer"
+                  >
+                    <Zap className="w-3.5 h-3.5 mr-1.5 text-yellow-300 fill-yellow-300" />
+                    <span>Simular no MCR</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+
             {/* Ações pós-emissão */}
             <div className="flex items-center justify-center gap-3 pt-2 w-full max-w-md">
               <Button
@@ -349,7 +659,7 @@ export function ConfirmEmitModal({
                     {/* Sub-painel Representante Legal se for PJ */}
                     {isCnpj && (repName || repCpf) && (
                       <div className="pt-2 border-t border-slate-200/70 bg-white/80 p-2.5 rounded-lg border border-slate-200 space-y-1.5">
-                        <span className="text-[10.5px] font-bold text-blue-900 uppercase tracking-wide block">
+                        <span className="text-[10.5px] font-bold text-slate-900 uppercase tracking-wide block">
                           Representante Legal da Empresa:
                         </span>
                         <div className="text-xs space-y-1">

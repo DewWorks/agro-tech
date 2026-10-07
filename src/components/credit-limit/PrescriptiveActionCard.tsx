@@ -1,7 +1,9 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import {
   ShieldCheck,
   AlertTriangle,
@@ -11,12 +13,18 @@ import {
   ArrowRight,
   Calculator,
   Calendar,
+  Rocket,
+  ClipboardList,
+  Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatBRL } from '@/lib/utils/formatters'
+import { createProtocolDemandFromAnalysis } from '@/actions/credit-analysis'
 
 export interface PrescriptiveActionCardProps {
   propertyId: string
+  producerId?: string
   requestedAmount: number
   annualDebtService: number
   paymentCapacity: number
@@ -25,6 +33,8 @@ export interface PrescriptiveActionCardProps {
   totalCollateral: number
   acceptableCollateral: number
   creditLineName: string
+  creditLineCode?: string
+  targetBank?: string
   termMonths: number
   amortizationSystem: 'PRICE' | 'SAC' | string
   purpose?: string
@@ -39,6 +49,7 @@ export interface PrescriptiveActionCardProps {
 
 export function PrescriptiveActionCard({
   propertyId,
+  producerId,
   requestedAmount,
   annualDebtService,
   paymentCapacity,
@@ -46,6 +57,8 @@ export function PrescriptiveActionCard({
   ltvPercent,
   acceptableCollateral,
   creditLineName,
+  creditLineCode,
+  targetBank = 'BANCO_DO_BRASIL',
   termMonths,
   amortizationSystem,
   purpose = '',
@@ -56,6 +69,36 @@ export function PrescriptiveActionCard({
   onSetAmortizationSystem,
   onSetTermMonths,
 }: PrescriptiveActionCardProps) {
+  const router = useRouter()
+  const [isCreatingDemand, setIsCreatingDemand] = useState(false)
+
+  const handleCreateProtocolDemand = async () => {
+    try {
+      setIsCreatingDemand(true)
+      const res = await createProtocolDemandFromAnalysis({
+        propertyId,
+        producerId,
+        requestedAmount,
+        creditLineName,
+        targetBank,
+        icsd,
+        ltv: ltvPercent,
+        summaryOpinion,
+      })
+
+      if (!res.success || !res.demandId) {
+        throw new Error(res.error || 'Falha ao criar demanda de protocolo bancário.')
+      }
+
+      toast.success(`Demanda #${res.demandId.slice(-6).toUpperCase()} criada com sucesso com o Dossiê MCR anexado!`)
+      router.push(`/admin/demands/${res.demandId}`)
+    } catch (err: any) {
+      console.error('Erro ao abrir demanda bancária:', err)
+      toast.error(err?.message || 'Erro ao abrir demanda de protocolo bancário.')
+    } finally {
+      setIsCreatingDemand(false)
+    }
+  }
   // Cálculos de Prescrição Financeira
   const targetCPForApproval = annualDebtService * 1.20
   const cpDeficit = Math.max(0, targetCPForApproval - paymentCapacity)
@@ -376,6 +419,78 @@ export function PrescriptiveActionCard({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* =================================================================== */}
+      {/* F. DESDOBRAMENTO OPERACIONAL DA ESTEIRA (AÇÕES DIRETAS)             */}
+      {/* =================================================================== */}
+      <div className="bg-gradient-to-r from-emerald-950 via-[#1B4D3E] to-emerald-900 text-white rounded-xl p-5 shadow-sm space-y-4 border border-emerald-700/50">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold shrink-0 border border-emerald-400/30">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <div>
+              <h5 className="text-sm font-bold text-white flex items-center gap-2">
+                Desdobramentos Operacionais da Análise
+                <span className="text-[10px] font-semibold bg-emerald-800 text-emerald-200 border border-emerald-600/40 px-2 py-0.5 rounded-full">
+                  Esteira Integrada
+                </span>
+              </h5>
+              <p className="text-xs text-emerald-100/80">
+                Avance com o parecer e os parâmetros apurados para emissão do projeto técnico ou abertura de protocolo bancário.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          {/* Ação 1: Montar Projeto Técnico de Crédito */}
+          <Link
+            href={`/admin/documents/credit-projects/new?propertyId=${propertyId || ''}&producerId=${producerId || ''}&amount=${requestedAmount}&axis=${isCusteio ? 'custeio' : 'investimento'}${creditLineCode ? `&template=${creditLineCode}` : ''}`}
+            className="group flex flex-col justify-between p-4 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 transition-all text-left shadow-2xs hover:border-emerald-300/40"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-white font-bold text-xs mb-1">
+                <Rocket className="w-4 h-4 text-emerald-300 group-hover:translate-x-0.5 transition-transform" />
+                <span>Montar Projeto Técnico de Crédito</span>
+              </div>
+              <p className="text-[11px] text-emerald-100/70 leading-relaxed">
+                Carrega o gerador de documentos com o valor apurado de <strong>{formatBRL(requestedAmount)}</strong>, produtor e imóvel selecionados.
+              </p>
+            </div>
+            <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-300 group-hover:text-white transition-colors">
+              <span>Iniciar Elaboração do Projeto</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </div>
+          </Link>
+
+          {/* Ação 2: Abrir Demanda de Protocolo Bancário */}
+          <button
+            type="button"
+            onClick={handleCreateProtocolDemand}
+            disabled={isCreatingDemand}
+            className="group flex flex-col justify-between p-4 rounded-xl bg-emerald-800/80 hover:bg-emerald-800 border border-emerald-500/40 transition-all text-left shadow-2xs hover:border-emerald-300/60 disabled:opacity-50 cursor-pointer"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-white font-bold text-xs mb-1">
+                {isCreatingDemand ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-300" />
+                ) : (
+                  <ClipboardList className="w-4 h-4 text-yellow-300" />
+                )}
+                <span>Abrir Demanda de Protocolo Bancário</span>
+              </div>
+              <p className="text-[11px] text-emerald-100/70 leading-relaxed">
+                Cria demanda no Kanban com o parecer analítico, notas de enquadramento MCR e o Dossiê Técnico anexado automaticamente.
+              </p>
+            </div>
+            <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-yellow-300 group-hover:text-yellow-200 transition-colors">
+              <span>{isCreatingDemand ? 'Criando Demanda...' : 'Criar Demanda no Kanban'}</span>
+              {!isCreatingDemand && <ArrowRight className="w-3.5 h-3.5" />}
+            </div>
+          </button>
         </div>
       </div>
     </div>

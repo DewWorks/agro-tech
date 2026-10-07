@@ -14,7 +14,9 @@ import { Landmark, Plus, ShieldAlert } from 'lucide-react'
 import {
   CreditLimitPortfolioKPIs,
   CreditLimitPropertyItem,
+  PropertySimulationData,
 } from '@/actions/credit-limit'
+import { PropertySelectOption } from '@/types/credit-limit.types'
 import { WorkflowStepsGuideCard } from '@/components/documents'
 
 const CREDIT_LIMIT_WORKFLOW_STEPS = [
@@ -51,6 +53,12 @@ interface CreditLimitContainerProps {
   branches: Array<{ id: string; name: string }>
   initialTab?: 'overview' | 'simulator'
   initialPropertyId?: string
+  initialProducerId?: string
+  initialAmount?: number
+  initialCreditLine?: string
+  initialTargetBank?: string
+  initialPropertiesList?: PropertySelectOption[]
+  initialSimulationData?: PropertySimulationData | null
   isFinancialModuleDisabledForOrg?: boolean
 }
 
@@ -60,17 +68,30 @@ export function CreditLimitContainer({
   branches,
   initialTab = 'overview',
   initialPropertyId,
+  initialProducerId,
+  initialAmount,
+  initialCreditLine,
+  initialTargetBank,
+  initialPropertiesList,
+  initialSimulationData,
   isFinancialModuleDisabledForOrg = false,
 }: CreditLimitContainerProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'simulator'>(
-    initialTab || (searchParams.get('tab') === 'simulator' ? 'simulator' : 'overview')
-  )
-  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(
-    initialPropertyId || searchParams.get('propertyId') || ''
-  )
+  // Inicialização síncrona dos parâmetros de URL via lazy initializers (sem piscar tela vazia)
+  const [activeTab, setActiveTab] = useState<'overview' | 'simulator'>(() => {
+    const tabParam = searchParams?.get('tab')
+    if (tabParam === 'simulator' || tabParam === 'overview') return tabParam
+    if (searchParams?.get('propertyId') || searchParams?.get('producerId')) return 'simulator'
+    return initialTab || 'overview'
+  })
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(() => {
+    return searchParams?.get('propertyId') || initialPropertyId || ''
+  })
+  const [selectedProducerId, setSelectedProducerId] = useState<string | null>(() => {
+    return searchParams?.get('producerId') || initialProducerId || null
+  })
   const [isNewAnalysisModalOpen, setIsNewAnalysisModalOpen] = useState(false)
 
   // Sincronizar parâmetros de URL quando tabs ou propertyId mudam
@@ -171,6 +192,12 @@ export function CreditLimitContainer({
           {/* Simulador de Risco Bancário MCR */}
           <CreditRiskSimulator
             initialPropertyId={selectedPropertyId}
+            initialProducerId={selectedProducerId || undefined}
+            initialAmount={initialAmount}
+            initialCreditLine={initialCreditLine}
+            initialTargetBank={initialTargetBank}
+            initialPropertiesList={initialPropertiesList}
+            initialSimulationData={initialSimulationData}
             onPropertyChange={(id) => {
               setSelectedPropertyId(id)
               const params = new URLSearchParams(searchParams.toString())

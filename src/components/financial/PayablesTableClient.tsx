@@ -17,6 +17,7 @@ import {
   Building2,
   Users2,
   History,
+  User,
 } from 'lucide-react'
 import { formatCurrency, cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -391,7 +392,10 @@ export default function PayablesTableClient({
                                           <div>Parcela {inst.installmentNumber}/{inst.totalInstallments}</div>
                                           {instPaid > 0 && (
                                             <div className="text-[10px] text-slate-500 font-normal mt-0.5 flex flex-wrap items-center gap-1">
-                                              <span>👤 Baixa: <strong className="text-slate-700">{inst.settlementOperator?.name || 'Operador'}</strong></span>
+                                              <span className="inline-flex items-center gap-1">
+                                                <User className="w-3 h-3 text-slate-400 shrink-0" />
+                                                <span>Baixa: <strong className="text-slate-700">{inst.settlementOperator?.name || 'Operador'}</strong></span>
+                                              </span>
                                               <span>•</span>
                                               <span>{inst.bankAccount?.bankName || 'Caixa'}</span>
                                               {inst.paidAt && (

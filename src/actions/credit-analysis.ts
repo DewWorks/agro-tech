@@ -477,3 +477,213 @@ export async function listCreditAnalyses(filters?: {
     return { success: false, error: error?.message || 'Erro ao listar análises de crédito', data: [] }
   }
 }
+
+/**
+ * Consulta rápida de análise de crédito MCR ativa para produtor, imóvel e safra.
+ * Usado pelo widget da Etapa 3 do Gerador de Projetos Técnicos.
+ */
+export async function checkProducerCreditAnalysis({
+  producerId,
+  propertyId,
+  cropYear,
+}: {
+  producerId: string
+  propertyId?: string
+  cropYear?: string
+}) {
+  try {
+    const user = await getUserContext()
+    if (!user) return { success: false, analysis: null }
+
+    const where: any = { producerId }
+    if (propertyId) where.propertyId = propertyId
+    if (cropYear) where.cropYear = cropYear
+
+    // Busca a análise mais recente correspondente
+    let analysis = await (prisma as any).creditAnalysis.findFirst({
+      where,
+      orderBy: { createdAt: 'desc' },
+    })
+
+    // Se não encontrou filtrando por propriedade e safra, busca a mais recente do produtor
+    if (!analysis && propertyId) {
+      analysis = await (prisma as any).creditAnalysis.findFirst({
+        where: { producerId },
+        orderBy: { createdAt: 'desc' },
+      })
+    }
+
+    if (!analysis) {
+      return { success: true, analysis: null }
+    }
+
+    return {
+      success: true,
+      analysis: {
+        id: analysis.id,
+        icsdValue: Number(analysis.icsdValue),
+        isIcsdApproved: Boolean(analysis.isIcsdApproved),
+        ltvRatio: Number(analysis.ltvRatio),
+        isLtvApproved: Boolean(analysis.isLtvApproved),
+        requestedAmount: Number(analysis.requestedAmount),
+        creditLineName: analysis.creditLineName,
+        cropYear: analysis.cropYear,
+        status: analysis.status,
+        propertyId: analysis.propertyId,
+        producerId: analysis.producerId,
+      },
+    }
+  } catch (error: any) {
+    console.error('[checkProducerCreditAnalysis] Erro ao buscar análise:', error)
+    return { success: false, analysis: null }
+  }
+}
+
+/**
+ * Abre Demanda de Protocolo Bancário diretamente a partir do resultado conclusivo
+ * do Simulador de Limite MCR, anexando o Dossiê Técnico no checklist e GED.
+ */
+export async function createProtocolDemandFromAnalysis({
+  propertyId,
+  producerId,
+  requestedAmount,
+  creditLineName,
+  targetBank,
+  icsd,
+  ltv,
+  summaryOpinion,
+}: {
+  propertyId: string
+  producerId?: string
+  requestedAmount: number
+  creditLineName: string
+  targetBank: string
+  icsd: number
+  ltv: number
+  summaryOpinion?: string
+}) {
+  try {
+    const user = await getUserContext()
+    if (!user) throw new Error('Não autorizado')
+
+    const prop = await prisma.property.findUnique({
+      where: { id: propertyId },
+      select: {
+        id: true,
+        name: true,
+        propertyName: true,
+        branchId: true,
+        producers: {
+          select: { producerId: true },
+          take: 1,
+        },
+      },
+    })
+
+    const resolvedProducerId = producerId || prop?.producers?.[0]?.producerId
+    if (!resolvedProducerId) {
+      throw new Error('Produtor não encontrado para esta propriedade.')
+    }
+
+    let branchId = prop?.branchId || user.branchId
+    if (!branchId) {
+      const producer = await prisma.producer.findUnique({
+        where: { id: resolvedProducerId },
+        select: { branchId: true },
+      })
+      branchId = producer?.branchId || user.branchId!
+    }
+
+    const formattedAmount = `R$ ${requestedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    const propName = prop?.name || prop?.propertyName || 'Imóvel Rural'
+
+    // 1. Criar Demanda no Kanban
+    const demand = await prisma.serviceDemand.create({
+      data: {
+        branchId,
+        createdById: user.id,
+        producerId: resolvedProducerId,
+        propertyId,
+        serviceType: 'LIMITE_CREDITO',
+        status: 'SOLICITADO',
+        priority: 'ALTA',
+        description: `Protocolo Bancário de Limite de Crédito (${creditLineName} - ${targetBank}) no valor de ${formattedAmount}. ICSD: ${icsd.toFixed(2)}x. LTV: ${ltv.toFixed(1)}%.`,
+        notes: `[Protocolo MCR] Financiado: ${formattedAmount} | Banco: ${targetBank} | Linha: ${creditLineName} | ICSD: ${icsd.toFixed(2)}x | LTV: ${ltv.toFixed(1)}% | Parecer: ${summaryOpinion || 'Apto'}`,
+        requestDate: new Date(),
+        estimatedDeliveryDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 dias
+      },
+    })
+
+    // 2. Histórico da Demanda
+    await prisma.serviceDemandHistory.create({
+      data: {
+        demandId: demand.id,
+        userId: user.id,
+        fromStatus: null,
+        toStatus: 'SOLICITADO',
+        notes: `Demanda de Protocolo Bancário aberta via Simulador de Risco MCR. Valor financiado: ${formattedAmount}.`,
+      },
+    })
+
+    // 3. Gerar registro do Dossiê no GED
+    const docFileName = `Dossie_MCR_${propName.replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.pdf`
+    const doc = await prisma.document.create({
+      data: {
+        branchId,
+        producerId: resolvedProducerId,
+        propertyId,
+        documentType: 'LAUDO_TECNICO',
+        fileName: docFileName,
+        fileSize: 1024 * 64,
+        mimeType: 'application/pdf',
+        storagePath: `ged/credit-limits/${docFileName}`,
+        complianceStatus: 'APPROVED',
+        issueDate: new Date(),
+        metadataPayload: {
+          type: 'DOSSIE_MCR',
+          demandId: demand.id,
+          financedAmount: requestedAmount,
+          targetBank,
+          creditLineName,
+          icsd,
+          ltv,
+        },
+      },
+    })
+
+    // 4. Vincular Documento à Demanda
+    await prisma.serviceDemand.update({
+      where: { id: demand.id },
+      data: { documentId: doc.id },
+    })
+
+    // 5. Checklist da Demanda
+    await prisma.demandChecklistItem.create({
+      data: {
+        demandId: demand.id,
+        title: `Dossiê Técnico de Limite MCR (${targetBank})`,
+        documentType: 'LAUDO_TECNICO',
+        documentId: doc.id,
+        isRequired: true,
+        isDelivered: true,
+        deliveredAt: new Date(),
+        notes: `Dossiê técnico gerado e anexado pelo Simulador de Risco MCR.`,
+      },
+    })
+
+    revalidatePath('/admin/demands')
+    revalidatePath(`/admin/demands/${demand.id}`)
+
+    return {
+      success: true,
+      demandId: demand.id,
+    }
+  } catch (error: any) {
+    console.error('[createProtocolDemandFromAnalysis] Erro:', error)
+    return {
+      success: false,
+      error: error?.message || 'Falha ao criar demanda de protocolo bancário',
+    }
+  }
+}
+

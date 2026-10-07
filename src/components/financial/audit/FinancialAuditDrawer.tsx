@@ -97,9 +97,9 @@ export default function FinancialAuditDrawer({
       case 'CRIACAO':
         return {
           icon: FilePlus2,
-          bg: 'bg-purple-100 text-purple-700 border-purple-200',
-          dot: 'bg-purple-600',
-          badge: 'bg-purple-50 text-purple-700 border-purple-200',
+          bg: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          dot: 'bg-[#1B4D3E]',
+          badge: 'bg-emerald-50 text-emerald-800 border-emerald-200',
           badgeLabel: 'Criação / Origem',
         }
       case 'LIQUIDACAO':

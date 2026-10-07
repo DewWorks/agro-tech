@@ -1,11 +1,23 @@
-import React from 'react'
-import { Coins, ArrowLeft, ArrowRight } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
+import {
+  Coins,
+  ArrowLeft,
+  ArrowRight,
+  Sparkles,
+  FileSpreadsheet,
+  ExternalLink,
+  AlertCircle,
+  Zap,
+  Loader2,
+} from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { TechnicalResponsibleForm } from '../TechnicalResponsibleForm'
 import { CustomOptions } from '../../../types/wizard-types'
+import { checkProducerCreditAnalysis } from '@/actions/credit-analysis'
 
 interface StepFinanceAndResponsibleProps {
   customOptions: CustomOptions
@@ -16,6 +28,9 @@ interface StepFinanceAndResponsibleProps {
   hasParamsStep: boolean
   stepRTPending: string[]
   selectedTemplateCode?: string
+  producerId?: string
+  propertyId?: string
+  cropYear?: string
 }
 
 export function StepFinanceAndResponsible({
@@ -25,7 +40,10 @@ export function StepFinanceAndResponsible({
   onAdvance,
   isLimiteCredito,
   stepRTPending,
-  selectedTemplateCode
+  selectedTemplateCode,
+  producerId,
+  propertyId,
+  cropYear,
 }: StepFinanceAndResponsibleProps) {
   const isCreaRequired = [
     'PROJETO_INOVAGRO',
@@ -37,6 +55,150 @@ export function StepFinanceAndResponsible({
   const exp = Number(customOptions.annualExpenses) || 0
   const debts = Number(customOptions.existingDebts) || 0
   const netCapacity = Math.max(0, rev - exp - debts)
+
+  // Consulta do Limite MCR / ICSD ativo
+  const activeCropYear =
+    cropYear || customOptions.custeioSafraYear || customOptions.cropYear || '2025/2026'
+
+  const currentFinancedAmount =
+    Number(customOptions.financedAmount) ||
+    Number(customOptions.renovagroFinanced) ||
+    Number(customOptions.inovagroFinanced) ||
+    (Number(customOptions.custeioAreaHa || 0) * Number(customOptions.custeioCostPerHa || 0)) ||
+    (Number(customOptions.custeioQuantity || 0) * Number(customOptions.custeioUnitPrice || 0)) ||
+    Number(customOptions.requestedAmount) ||
+    0
+
+  const [analysis, setAnalysis] = useState<{
+    id: string
+    icsdValue: number
+    isIcsdApproved: boolean
+    ltvRatio: number
+    isLtvApproved: boolean
+    requestedAmount: number
+    creditLineName: string
+    cropYear: string
+    status: string
+    propertyId?: string | null
+    producerId: string
+  } | null>(null)
+  const [isLoadingAnalysis, setIsLoadingAnalysis] = useState(false)
+
+  useEffect(() => {
+    if (!producerId) return
+    let isMounted = true
+    setIsLoadingAnalysis(true)
+
+    checkProducerCreditAnalysis({
+      producerId,
+      propertyId,
+      cropYear: activeCropYear,
+    })
+      .then((res) => {
+        if (!isMounted) return
+        if (res.success && res.analysis) {
+          setAnalysis(res.analysis)
+        } else {
+          setAnalysis(null)
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return
+        console.error('Erro ao consultar análise MCR:', err)
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingAnalysis(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [producerId, propertyId, activeCropYear])
+
+  const renderMcrLookupWidget = () => (
+    <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4.5 space-y-3 shadow-2xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200/70 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">
+            <Sparkles className="w-4 h-4 text-emerald-700" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-slate-900 flex items-center gap-2">
+              Consulta Rápida de Limite MCR & Balanço Financeiro
+              <span className="text-[10px] font-semibold text-slate-600 bg-white border border-slate-200 px-2 py-0.5 rounded-full">
+                Safra {activeCropYear}
+              </span>
+            </h4>
+            <p className="text-[11px] text-slate-500">
+              Verificação em tempo real de capacidade de pagamento e índice de cobertura do serviço da dívida (ICSD).
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {isLoadingAnalysis ? (
+        <div className="flex items-center gap-2 text-xs text-slate-500 py-2">
+          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+          <span>Consultando Análise de Limite MCR ativa no banco de dados...</span>
+        </div>
+      ) : analysis ? (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-700">ICSD Apurado:</span>
+              <span
+                className={cn(
+                  "text-xs font-extrabold px-2.5 py-0.5 rounded-md border inline-flex items-center gap-1",
+                  analysis.isIcsdApproved
+                    ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                    : "bg-amber-50 text-amber-800 border-amber-300"
+                )}
+              >
+                ICSD: {analysis.icsdValue.toFixed(2)}x — {analysis.isIcsdApproved ? 'Apto' : 'Com Restrições'}
+              </span>
+              <span className="text-[11px] text-slate-500">
+                (Trava mínima BACEN: 1.20x)
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-600">
+              Limite analisado: <strong>R$ {analysis.requestedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</strong> • Linha: {analysis.creditLineName} • LTV: {analysis.ltvRatio.toFixed(1)}%
+            </p>
+          </div>
+
+          <Link
+            href={`/admin/credit-limit?propertyId=${analysis.propertyId || propertyId || ''}&tab=overview`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-all shrink-0 cursor-pointer border border-slate-300 shadow-2xs"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-slate-600" />
+            <span>[Ver Balanço]</span>
+            <ExternalLink className="w-3 h-3 text-slate-400" />
+          </Link>
+        </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span>Nenhuma Análise de Limite MCR registrada para esta propriedade na safra {activeCropYear}.</span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Você pode simular agora a viabilidade deste projeto e apurar o ICSD oficial antes de submeter ao banco.
+            </p>
+          </div>
+
+          <Link
+            href={`/admin/credit-limit?propertyId=${propertyId || ''}&producerId=${producerId || ''}&amount=${currentFinancedAmount}&tab=simulator`}
+            target="_blank"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-all shrink-0 shadow-2xs cursor-pointer active:scale-95"
+          >
+            <Zap className="w-3.5 h-3.5 text-yellow-300 fill-yellow-300" />
+            <span>Simular Limite MCR para este Valor</span>
+          </Link>
+        </div>
+      )}
+    </div>
+  )
 
   if (isLimiteCredito) {
     return (
@@ -50,6 +212,9 @@ export function StepFinanceAndResponsible({
             Informe as receitas brutas, custos operacionais e dívidas bancárias do proponente para o cálculo da margem líquida de endividamento.
           </p>
         </div>
+
+        {/* Widget de Consulta Rápida MCR */}
+        {renderMcrLookupWidget()}
 
         {/* Cartão de Indicador em Destaque */}
         <div className={cn(
@@ -194,6 +359,9 @@ export function StepFinanceAndResponsible({
           </span>
         )}
       </div>
+
+      {/* Widget de Consulta Rápida: Limite MCR & Balanço Financeiro da Safra Ativa */}
+      {renderMcrLookupWidget()}
 
       <TechnicalResponsibleForm
         customOptions={customOptions}

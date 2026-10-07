@@ -76,6 +76,7 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
     initialProducerId,
     initialPropertyId,
     initialDemandId: initialDemandId || searchParams.get('demandId') || undefined,
+    initialAmount: props.initialAmount || (searchParams?.get('amount') ? Number(searchParams.get('amount')) : undefined),
     linkedDemand: propLinkedDemand,
     initialSavedData,
   })
@@ -146,6 +147,11 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
     storagePath?: string
     fileName?: string
     emittedAt?: string
+    documentId?: string | null
+    financedAmount?: number
+    interestRate?: number
+    financialAgent?: string
+    cropYear?: string
   }> => {
     if (!contentRef.current || !documentData) {
       toast.error('Pré-visualização do documento não encontrada para compilação do PDF.')
@@ -234,8 +240,9 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
       }
 
       // Registrar evento de emissão formal no banco de dados e sincronizar rascunho
+      let emissionRes: any = null
       if (selectedProducerId && selectedTemplateCode) {
-        await recordDocumentEmission({
+        emissionRes = await recordDocumentEmission({
           producerId: selectedProducerId,
           propertyId: selectedPropertyId,
           templateCode: selectedTemplateCode,
@@ -244,7 +251,10 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
           sha256Hash: sha256,
           demandId: selectedDemandId || undefined,
           fileName,
-        }).catch((err) => console.error('Erro ao contabilizar emissão no banco:', err))
+        }).catch((err) => {
+          console.error('Erro ao contabilizar emissão no banco:', err)
+          return null
+        })
       }
 
       return {
@@ -253,6 +263,11 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
         storagePath: storagePdfPath,
         fileName,
         emittedAt: new Date().toISOString(),
+        documentId: emissionRes?.documentId || null,
+        financedAmount: emissionRes?.financedAmount || enrichedOptions.financedAmount || 0,
+        interestRate: emissionRes?.interestRate || enrichedOptions.interestRate || 5.0,
+        financialAgent: emissionRes?.financialAgent || enrichedOptions.financialAgent || 'Banco do Brasil',
+        cropYear: emissionRes?.cropYear || enrichedOptions.cropYear || '2025/2026',
       }
     } catch (err: any) {
       console.error('PDF error:', err)
@@ -313,17 +328,17 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
                   onClick={handleOpenSaveModal}
                   disabled={isSavingDraft || isLoadingSavedData || !selectedProducerId}
                   className={cn(
-                    "border-blue-300 text-blue-700 bg-white hover:bg-blue-50 flex items-center gap-1.5 text-xs font-semibold cursor-pointer h-9 px-3 rounded-xl",
+                    "border-emerald-300 text-[#1B4D3E] bg-white hover:bg-emerald-50 flex items-center gap-1.5 text-xs font-semibold cursor-pointer h-9 px-3 rounded-xl",
                     (!isFormValid || isLoadingSavedData) && "border-amber-300 text-amber-800 bg-amber-50/50 hover:bg-amber-100/50"
                   )}
                   title={isLoadingSavedData ? "Carregando dados salvos..." : !isFormValid ? "Revisar dados e pendências para gravação" : "Conferir e salvar dados deste projeto"}
                 >
                   {isSavingDraft || isLoadingSavedData ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-700" />
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#1B4D3E]" />
                   ) : !isFormValid ? (
                     <AlertTriangle className="h-3.5 w-3.5 text-amber-600" />
                   ) : (
-                    <Save className="h-3.5 w-3.5 text-blue-700" />
+                    <Save className="h-3.5 w-3.5 text-[#1B4D3E]" />
                   )}
                   Salvar Dados
                   {!isLoadingSavedData && !isFormValid && (
