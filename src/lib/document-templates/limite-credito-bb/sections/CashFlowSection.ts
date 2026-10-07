@@ -116,7 +116,7 @@ export function renderCashFlowSection({
           ` : `
           <tr>
             <td colspan="6" style="padding: 8px 6px; text-align: center; color: #92400e; background: #fffbeb; font-style: italic;">
-              ⚠️ Nenhuma receita agropecuária comprovada cadastrada no exercício. O limite de crédito dependerá do aditamento das notas de venda ou contratos futuros.
+              Atenção: Nenhuma receita agropecuária comprovada cadastrada no exercício. O limite de crédito dependerá do aditamento das notas de venda ou contratos futuros.
             </td>
           </tr>
           `)}

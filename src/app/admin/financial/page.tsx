@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   FileSpreadsheet,
+  User,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import FinancialSafraChartsHub from '@/components/financial/dashboard/FinancialSafraChartsHub'
@@ -268,14 +269,18 @@ async function FinancialOverviewContent({
                       </div>
                       <div>
                         <p className="text-xs font-bold text-slate-800">{tx.description}</p>
-                        <p className="text-[10px] text-slate-500 font-medium">
-                          👤 Operador: <span className="font-semibold text-slate-700">{tx.operator?.name || 'Operador Financeiro'}</span> •{' '}
-                          {tx.bankAccount.bankName} •{' '}
-                          {new Date(tx.transactionDate).toLocaleDateString('pt-BR')} às{' '}
+                        <p className="text-[10px] text-slate-500 font-medium flex items-center gap-1">
+                          <User className="w-3 h-3 text-slate-400 shrink-0" />
+                          <span>Operador:</span>
+                          <span className="font-semibold text-slate-700">{tx.operator?.name || 'Operador Financeiro'}</span>
+                          <span>•</span>
+                          <span>{tx.bankAccount.bankName}</span>
+                          <span>•</span>
+                          <span>{new Date(tx.transactionDate).toLocaleDateString('pt-BR')} às{' '}
                           {new Date(tx.transactionDate).toLocaleTimeString('pt-BR', {
                             hour: '2-digit',
                             minute: '2-digit',
-                          })}
+                          })}</span>
                         </p>
                       </div>
                     </div>

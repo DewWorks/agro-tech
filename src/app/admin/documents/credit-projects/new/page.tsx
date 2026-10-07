@@ -7,7 +7,14 @@ import CreditProjectWizard from './credit-project-wizard'
 export default async function NewCreditProjectPage({
   searchParams
 }: {
-  searchParams?: Promise<{ template?: string; demandId?: string; axis?: string }>
+  searchParams?: Promise<{
+    template?: string
+    demandId?: string
+    axis?: string
+    producerId?: string
+    propertyId?: string
+    amount?: string
+  }>
 }) {
   const user = await getUserContext()
   if (!user) redirect('/login')
@@ -38,11 +45,26 @@ export default async function NewCreditProjectPage({
     }) : null
   ])
 
-  const initialProducerId = linkedDemand?.producerId || producers[0]?.id
+  const initialProducerId =
+    resolvedSearchParams?.producerId || linkedDemand?.producerId || producers[0]?.id
   const matchedProducer = producers.find(p => p.id === initialProducerId)
-  const initialPropertyId = linkedDemand?.propertyId || matchedProducer?.properties?.[0]?.id
+  const initialPropertyId =
+    resolvedSearchParams?.propertyId ||
+    linkedDemand?.propertyId ||
+    matchedProducer?.properties?.[0]?.id
 
   let requestedTemplateCode = resolvedSearchParams?.template
+  if (!requestedTemplateCode && resolvedSearchParams?.axis) {
+    const ax = resolvedSearchParams.axis.toLowerCase()
+    if (ax === 'custeio') {
+      requestedTemplateCode = 'PROJETO_CUSTEIO_SAFRA'
+    } else if (ax === 'investimento') {
+      requestedTemplateCode = 'PROJETO_RENOVAGRO'
+    } else if (ax === 'patrimonial') {
+      requestedTemplateCode = 'LIMITE_CREDITO_BB'
+    }
+  }
+
   if (!requestedTemplateCode && linkedDemand) {
     if (linkedDemand.serviceType === 'PROJETO_CUSTEIO') {
       requestedTemplateCode = 'PROJETO_CUSTEIO_SAFRA'
@@ -65,6 +87,8 @@ export default async function NewCreditProjectPage({
   const defaultOrgName = user.organization?.name || ''
   const defaultOrgCnpj = user.organization?.cnpj || ''
 
+  const initialAmount = resolvedSearchParams?.amount ? Number(resolvedSearchParams.amount) : undefined
+
   return (
     <CreditProjectWizard 
       producers={producers} 
@@ -76,6 +100,7 @@ export default async function NewCreditProjectPage({
       initialProducerId={initialProducerId}
       initialPropertyId={initialPropertyId}
       initialDemandId={demandId}
+      initialAmount={initialAmount}
       linkedDemand={linkedDemand ? {
         id: linkedDemand.id,
         serviceType: linkedDemand.serviceType,

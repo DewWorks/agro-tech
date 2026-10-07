@@ -26,10 +26,12 @@ import {
 } from 'lucide-react'
 import { PURPOSE_OPTIONS, BANK_OPTIONS } from './options'
 import { calculatePaymentCapacity } from '@/lib/financial-engine'
+import { ProducerCreditLimitSummaryCard } from '@/components/credit-limit/ProducerCreditLimitSummaryCard'
 
 interface QuickLimitSummaryProps {
   activeForm: UseFormReturn<any>
   propertyId?: string
+  producerId?: string
   formatBRL: (val: number) => string
   onSaveAndSimulate?: () => void
 }
@@ -37,6 +39,7 @@ interface QuickLimitSummaryProps {
 export function QuickLimitSummary({
   activeForm,
   propertyId,
+  producerId,
   formatBRL,
   onSaveAndSimulate,
 }: QuickLimitSummaryProps) {
@@ -263,31 +266,13 @@ export function QuickLimitSummary({
         </div>
       </div>
 
-      {/* BANNER INFORMATIVO E BOTÃO DE ATALHO PARA O MÓDULO DE LIMITES */}
-      <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50/40 to-slate-50 dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-slate-900 border border-emerald-200 dark:border-emerald-800/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-xs">
-        <div className="flex items-start gap-3 max-w-2xl">
-          <div className="w-9 h-9 rounded-lg bg-[#1B4D3E] text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
-            <ShieldCheck className="w-5 h-5 text-emerald-300" />
-          </div>
-          <div className="space-y-1">
-            <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-              Central Autônoma de Limite de Crédito Rural (MCR)
-            </h4>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Os dados patrimoniais e de fluxo de caixa acima alimentam automaticamente o motor de crédito rural. Para simular taxas, amortização (Price/SAC), índice ICSD e emitir o Dossiê Técnico do Banco do Brasil/Sicredi, utilize o Módulo de Limite de Crédito.
-            </p>
-          </div>
-        </div>
-
-        <Button
-          type="button"
-          onClick={onSaveAndSimulate}
-          className="bg-[#1B4D3E] hover:bg-[#13382D] text-white font-bold text-xs h-10 px-4 shrink-0 shadow-sm flex items-center gap-2 self-stretch md:self-auto justify-center"
-        >
-          <span>Salvar e Abrir Simulação</span>
-          <ArrowUpRight className="w-4 h-4" />
-        </Button>
-      </div>
+      {/* WIDGET OFICIAL DE LIMITES MCR DO PRODUTOR (INTERCONEXÃO DE ESTEIRA) */}
+      <ProducerCreditLimitSummaryCard
+        activeForm={activeForm}
+        producerId={producerId}
+        propertyId={propertyId}
+        onSaveAndSimulate={onSaveAndSimulate}
+      />
     </div>
   )
 }

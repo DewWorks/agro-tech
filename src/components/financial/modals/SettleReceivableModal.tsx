@@ -5,7 +5,7 @@ import { Landmark, Clock } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { settleReceivableInstallment } from '@/actions/financial/receivables'
 import { toast } from 'sonner'
-import { FinancialModal, InputField, SelectField } from './FinancialModal'
+import { FinancialModal, CurrencyField, DateField, SelectField } from './FinancialModal'
 
 export default function SettleReceivableModal({
   isOpen, onClose, selectedTitle, selectedInstallment, bankAccounts, onSuccess,
@@ -57,15 +57,24 @@ export default function SettleReceivableModal({
     >
       {selectedInstallment && selectedTitle && (
         <>
-          <div className="rounded-lg bg-slate-50 p-2.5 space-y-1 border border-slate-200">
-            <div className="font-bold text-slate-800">{selectedTitle.producer?.name} • {selectedTitle.documentNumber}</div>
-            <div className="text-slate-500">Parcela {selectedInstallment.installmentNumber}/{selectedInstallment.totalInstallments} • Vencimento: {new Date(selectedInstallment.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
-            <div className="text-slate-700 font-semibold pt-0.5">Saldo devedor desta parcela: <span className="text-rose-600 font-bold">{formatCurrency(residual)}</span></div>
+          <div className="rounded-xl bg-slate-50 p-3 space-y-1 border border-slate-200">
+            <div className="font-bold text-slate-800 text-sm">{selectedTitle.producer?.name} • {selectedTitle.documentNumber}</div>
+            <div className="text-slate-500 text-xs">Parcela {selectedInstallment.installmentNumber}/{selectedInstallment.totalInstallments} • Vencimento: {new Date(selectedInstallment.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
+            <div className="text-slate-700 font-semibold pt-0.5 text-xs">Saldo devedor desta parcela: <span className="text-rose-600 font-bold">{formatCurrency(residual)}</span></div>
           </div>
           <SelectField label="Conta Bancária de Crédito:" value={bankAccountId} onChange={setBankAccountId} options={bankAccounts.map((b) => ({ value: b.id, label: `${b.bankName} (Ag. ${b.agency || 'S/A'} - CC ${b.accountNumber || 'S/N'})` }))} />
-          <div className="grid grid-cols-2 gap-2">
-            <InputField label="Valor a Baixar (R$):" type="number" step="0.01" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} className="font-bold text-emerald-900" />
-            <InputField label="Data da Liquidação:" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3 items-end">
+            <CurrencyField
+              label="Valor a Baixar (R$):"
+              value={amount}
+              onChangeValue={(val) => setAmount(val)}
+              className="font-bold text-emerald-800"
+            />
+            <DateField
+              label="Data da Liquidação:"
+              value={date}
+              onChange={(val) => setDate(val || new Date().toISOString().slice(0, 10))}
+            />
           </div>
           {commissionPreview && (
             <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-2.5 space-y-1">

@@ -212,7 +212,7 @@ export function DatePicker({
         align={align}
         side="bottom"
         sideOffset={6}
-        className="w-[320px] p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95"
+        className="w-[320px] p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[100] animate-in fade-in zoom-in-95"
       >
         {/* BARRA SUPERIOR DE PRESETS RÁPIDOS */}
         {showPresets && (

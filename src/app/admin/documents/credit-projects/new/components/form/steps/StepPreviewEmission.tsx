@@ -86,10 +86,10 @@ export function StepPreviewEmission({
             size="sm"
             onClick={handleOpenSaveModal}
             disabled={isSavingDraft}
-            className="text-xs text-blue-700 border-blue-200 hover:bg-blue-50 h-9 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
+            className="text-xs text-emerald-800 border-emerald-300 hover:bg-emerald-50 h-9 px-3 rounded-xl flex items-center gap-1.5 cursor-pointer"
             title="Salvar rascunho dos dados deste projeto"
           >
-            <Save className="h-3.5 w-3.5 text-blue-600" />
+            <Save className="h-3.5 w-3.5 text-[#1B4D3E]" />
             Salvar Dados
           </Button>
 
@@ -174,9 +174,9 @@ export function StepPreviewEmission({
             <span className="text-[10.5px] text-emerald-800 block font-semibold">Patrimônio Total</span>
             <strong className="text-xs text-[#1B4D3E] font-extrabold">R$ {totalPatrimony.toLocaleString('pt-BR')}</strong>
           </div>
-          <div className="p-3 bg-blue-50 border border-blue-300 rounded-xl">
-            <span className="text-[10.5px] text-blue-800 block font-semibold">Capacidade Líquida</span>
-            <strong className="text-xs text-blue-900 font-extrabold">R$ {netCapacity.toLocaleString('pt-BR')}</strong>
+          <div className="p-3 bg-emerald-50/80 border border-emerald-300 rounded-xl">
+            <span className="text-[10.5px] text-emerald-800 block font-semibold">Capacidade Líquida</span>
+            <strong className="text-xs text-emerald-950 font-extrabold">R$ {netCapacity.toLocaleString('pt-BR')}</strong>
           </div>
         </div>
       )}

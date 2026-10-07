@@ -380,18 +380,18 @@ export function SaveDraftModal({
             {/* ETAPA 3: PARÂMETROS TÉCNICOS & RT */}
             {saveModalStep === 3 && (
               <div className="space-y-4 animate-in fade-in duration-200">
-                <div className="p-3.5 bg-blue-50/60 border border-blue-200 rounded-xl flex items-start justify-between gap-3">
+                <div className="p-3.5 bg-emerald-50/70 border border-emerald-200 rounded-xl flex items-start justify-between gap-3">
                   <div className="space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-blue-950 uppercase tracking-wide">
+                      <span className="text-xs font-bold text-emerald-950 uppercase tracking-wide">
                         Etapa 3 de 3 • Parâmetros Técnicos do Projeto & Responsabilidade Técnica
                       </span>
                     </div>
-                    <p className="text-xs text-blue-800">
+                    <p className="text-xs text-emerald-800">
                       Condições financeiras, especificações e responsável técnico que serão registrados no rascunho oficial.
                     </p>
                   </div>
-                  <span className="text-[10px] text-blue-700 bg-blue-100 px-2.5 py-1 rounded-md font-semibold shrink-0">
+                  <span className="text-[10px] text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-md font-semibold shrink-0">
                     Rascunho Oficial
                   </span>
                 </div>
@@ -402,7 +402,7 @@ export function SaveDraftModal({
                       <h4 className="font-bold text-gray-900 text-sm">{currentTemplate?.title || 'Projeto de Crédito'}</h4>
                       <p className="text-xs text-gray-500">Normas SICOR / Banco do Brasil</p>
                     </div>
-                    <span className="text-xs text-purple-700 bg-purple-50 px-2.5 py-1 rounded-md font-semibold border border-purple-200">
+                    <span className="text-xs text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md font-semibold border border-emerald-200">
                       {currentTemplate?.category || 'CRÉDITO RURAL'}
                     </span>
                   </div>

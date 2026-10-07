@@ -67,7 +67,7 @@ const CHART_VISIONS: ChartVisionConfig[] = [
     shortLabel: 'Curva de Saldo',
     icon: TrendingUp,
     explanation:
-      '💡 **Como Interpretar:** Demonstra a evolução do caixa acumulado da consultoria ao longo do ano agrícola. Permite prever com segurança se o faturamento concentrado no pico da safra bancária cobrirá as despesas fixas durante os meses de entressafra sem necessidade de capital de terceiros.',
+      '**Como Interpretar:** Demonstra a evolução do caixa acumulado da consultoria ao longo do ano agrícola. Permite prever com segurança se o faturamento concentrado no pico da safra bancária cobrirá as despesas fixas durante os meses de entressafra sem necessidade de capital de terceiros.',
   },
   {
     id: 'fluxo_mensal',
@@ -75,7 +75,7 @@ const CHART_VISIONS: ChartVisionConfig[] = [
     shortLabel: 'Fluxo Operacional',
     icon: ArrowUpDown,
     explanation:
-      '💡 **Como Interpretar:** Confronta a movimentação real de caixa mês a mês. Barras verdes superiores às vermelhas indicam geração líquida positiva no período; barras vermelhas superiores apontam momentos de queima de reserva ou investimentos pontuais.',
+      '**Como Interpretar:** Confronta a movimentação real de caixa mês a mês. Barras verdes superiores às vermelhas indicam geração líquida positiva no período; barras vermelhas superiores apontam momentos de queima de reserva ou investimentos pontuais.',
   },
   {
     id: 'dre_categorias',
@@ -83,7 +83,7 @@ const CHART_VISIONS: ChartVisionConfig[] = [
     shortLabel: 'Centros de Custo',
     icon: PieChartIcon,
     explanation:
-      '💡 **Como Interpretar:** Expõe os principais centros de custo da consultoria. Ajuda a calibrar se as despesas de deslocamento e vistorias de campo estão compatíveis com os honorários cobrados.',
+      '**Como Interpretar:** Expõe os principais centros de custo da consultoria. Ajuda a calibrar se as despesas de deslocamento e vistorias de campo estão compatíveis com os honorários cobrados.',
   },
   {
     id: 'boletos_futuros',
@@ -91,7 +91,7 @@ const CHART_VISIONS: ChartVisionConfig[] = [
     shortLabel: 'Boletos Futuros',
     icon: CalendarClock,
     explanation:
-      '💡 **Como Interpretar:** Visão antecipada das saídas financeiras já contratadas. Mostra exatamente o montante de dinheiro novo que a filial precisa gerar a cada mês para cobrir suas obrigações com folga de caixa.',
+      '**Como Interpretar:** Visão antecipada das saídas financeiras já contratadas. Mostra exatamente o montante de dinheiro novo que a filial precisa gerar a cada mês para cobrir suas obrigações com folga de caixa.',
   },
   {
     id: 'margem_servicos',
@@ -99,7 +99,7 @@ const CHART_VISIONS: ChartVisionConfig[] = [
     shortLabel: 'Margem por Serviço',
     icon: Scale,
     explanation:
-      '💡 **Como Interpretar:** Avalia qual linha de serviço gera maior rentabilidade líquida para o escritório após a dedução de taxas governamentais, cartórios e comissões.',
+      '**Como Interpretar:** Avalia qual linha de serviço gera maior rentabilidade líquida para o escritório após a dedução de taxas governamentais, cartórios e comissões.',
   },
   {
     id: 'ranking_parceiros',
@@ -107,7 +107,7 @@ const CHART_VISIONS: ChartVisionConfig[] = [
     shortLabel: 'Ranking Parceiros',
     icon: Users2,
     explanation:
-      '💡 **Como Interpretar:** Ranking de originação comercial. Identifica os intermediadores de campo mais produtivos e a relação entre o volume aprovado no banco e as comissões pagas pela consultoria.',
+      '**Como Interpretar:** Ranking de originação comercial. Identifica os intermediadores de campo mais produtivos e a relação entre o volume aprovado no banco e as comissões pagas pela consultoria.',
   },
   {
     id: 'metas_safra',
@@ -115,7 +115,7 @@ const CHART_VISIONS: ChartVisionConfig[] = [
     shortLabel: 'Termômetro da Safra',
     icon: Target,
     explanation:
-      '💡 **Como Interpretar:** Mede o atingimento da meta da filial e a eficiência de cobrança, confrontando os honorários pactuados com o valor efetivamente liquidado pelos produtores.',
+      '**Como Interpretar:** Mede o atingimento da meta da filial e a eficiência de cobrança, confrontando os honorários pactuados com o valor efetivamente liquidado pelos produtores.',
   },
 ]
 
@@ -633,7 +633,7 @@ export default function FinancialSafraChartsHub({
         <Sparkles className="h-4 w-4 text-emerald-700 shrink-0 mt-0.5" />
         <div className="leading-relaxed">
           <p className="font-normal text-emerald-900">
-            {currentVisionConfig.explanation.replace('💡 **Como Interpretar:** ', '')}
+            {currentVisionConfig.explanation.replace('**Como Interpretar:** ', '')}
           </p>
         </div>
       </div>

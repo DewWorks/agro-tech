@@ -1,8 +1,10 @@
 'use server'
 
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { getUserContext } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { DEMAND_STATUS_METAS } from '@/lib/validations/demands'
 import {
   CREDIT_TEMPLATES_REGISTRY,
   generateChecklistProfissionalHtml,
@@ -489,6 +491,37 @@ export async function saveCreditProjectData(
 
   const sanitized = sanitizePayload(payload)
 
+  // Resolução estruturada dos valores financeiros oficiais
+  const resolvedFinancedAmount = Number(
+    sanitized.financedAmount ||
+    sanitized.renovagroFinanced ||
+    sanitized.inovagroFinanced ||
+    (Number(sanitized.custeioAreaHa || 0) * Number(sanitized.custeioCostPerHa || 0)) ||
+    (Number(sanitized.custeioQuantity || 0) * Number(sanitized.custeioUnitPrice || 0)) ||
+    sanitized.amount ||
+    sanitized.valorFinanciado ||
+    sanitized.machineryValue ||
+    sanitized.totalInvestment ||
+    sanitized.requestedAmount ||
+    0
+  )
+  if (resolvedFinancedAmount > 0) sanitized.financedAmount = resolvedFinancedAmount
+  if (!sanitized.interestRate) {
+    sanitized.interestRate = Number(
+      sanitized.renovagroInterestRate ||
+      sanitized.inovagroInterestRate ||
+      sanitized.custeioInterestRate ||
+      sanitized.interestRateAnnual ||
+      5.0
+    )
+  }
+  if (!sanitized.financialAgent) {
+    sanitized.financialAgent = sanitized.targetBank || sanitized.creditLimitTargetBank || 'Banco do Brasil'
+  }
+  if (!sanitized.cropYear) {
+    sanitized.cropYear = sanitized.custeioSafraYear || '2025/2026'
+  }
+
   // Se o usuário preencheu/corrigiu dados cadastrais do imóvel no formulário, sincroniza com o cadastro da propriedade
   if (propertyId) {
     try {
@@ -758,7 +791,7 @@ export async function recordDocumentEmission({
     branchId = producer.branchId
   }
 
-  // Resolver valor financiado a partir do payload
+  // Resolver valores financeiros estruturados a partir do payload
   const resolvedFinancedAmount = Number(
     payload.financedAmount ||
     payload.renovagroFinanced ||
@@ -769,12 +802,36 @@ export async function recordDocumentEmission({
     payload.valorFinanciado ||
     payload.machineryValue ||
     payload.totalInvestment ||
+    payload.requestedAmount ||
     0
   )
+
+  const resolvedInterestRate = Number(
+    payload.interestRate ||
+    payload.renovagroInterestRate ||
+    payload.inovagroInterestRate ||
+    payload.custeioInterestRate ||
+    payload.interestRateAnnual ||
+    5.0
+  )
+
+  const resolvedFinancialAgent =
+    payload.financialAgent ||
+    payload.targetBank ||
+    payload.creditLimitTargetBank ||
+    'Banco do Brasil'
+
+  const resolvedCropYear =
+    payload.cropYear ||
+    payload.custeioSafraYear ||
+    '2025/2026'
 
   const enrichedPayload = {
     ...payload,
     financedAmount: resolvedFinancedAmount > 0 ? resolvedFinancedAmount : payload.financedAmount,
+    interestRate: resolvedInterestRate,
+    financialAgent: resolvedFinancialAgent,
+    cropYear: resolvedCropYear,
   }
 
   // Criar registro permanente de emissão
@@ -794,7 +851,7 @@ export async function recordDocumentEmission({
   // Criar registro correspondente no GED (documents) se a entidade estiver disponível
   const resolvedFileName =
     fileName || storagePdfPath?.split('/').pop() || `${templateCode}_${Date.now()}.pdf`
-  const targetBank = payload.targetBank || payload.financialAgent || 'Banco do Brasil'
+  const targetBank = resolvedFinancialAgent
 
   let doc: any = null
   if (prisma.document?.create) {
@@ -815,7 +872,9 @@ export async function recordDocumentEmission({
           sha256Hash: sha256Hash || emission.sha256Hash,
           emissionId: emission.id,
           financedAmount: resolvedFinancedAmount,
+          interestRate: resolvedInterestRate,
           financialAgent: targetBank,
+          cropYear: resolvedCropYear,
           demandId: demandId || null,
         },
       },
@@ -951,6 +1010,10 @@ export async function recordDocumentEmission({
     documentId: doc?.id || null,
     sha256Hash: emission.sha256Hash,
     linkedDemandId: targetDemand?.id || null,
+    financedAmount: resolvedFinancedAmount,
+    interestRate: resolvedInterestRate,
+    financialAgent: resolvedFinancialAgent,
+    cropYear: resolvedCropYear,
   }
 }
 
@@ -959,8 +1022,10 @@ export interface CreditProjectHistoryItem {
   templateCode: string
   templateName: string
   axis: 'CUSTEIO' | 'INVESTIMENTO' | 'PATRIMONIAL' | 'CHECKLIST'
+  producerId: string
   producerName: string
   producerDocument: string
+  propertyId?: string | null
   propertyName: string
   propertyCity?: string
   propertyState?: string
@@ -971,10 +1036,53 @@ export interface CreditProjectHistoryItem {
   totalAmount?: number
   financedAmount?: number
   creditLineName?: string
+
+  // Vínculo e Rastreabilidade de Documento Oficial
+  documentId?: string | null
+  fileName?: string | null
+
+  // 1. Vínculo com Demanda Operacional (Kanban)
+  demandId?: string | null
+  demandCode?: string | null
+  demandStatus?: string | null
+  demandStatusLabel?: string | null
+
+  // 2. Vínculo com Limite de Crédito MCR
+  mcrAnalysis?: {
+    id: string
+    cropYear: string
+    icsdValue: number
+    isIcsdApproved: boolean
+    requestedAmount: number
+  } | null
+
+  // 3. Vínculo com Financeiro (ERP)
+  financialTitle?: {
+    id: string
+    documentNumber: string
+    status: string
+    grossAmount: number
+    financedAmount: number
+    successFeePercent: number
+  } | null
+
+  // Detalhes Técnicos Expandidos para o Drawer
+  technicalDetails?: {
+    responsibleName?: string
+    creaNumber?: string
+    artNumber?: string
+    interestRate?: number
+    termYears?: number
+    graceMonths?: number
+    ownResources?: number
+    targetBank?: string
+    cropYear?: string
+  }
 }
 
 /**
  * Lista o histórico de projetos de crédito emitidos ou salvos com suporte a filtros e busca.
+ * Conecta cada projeto aos módulos de Demanda (Kanban), Limite MCR e Financeiro (ERP).
  */
 export async function listCreditProjects(filters: {
   search?: string
@@ -1020,6 +1128,125 @@ export async function listCreditProjects(filters: {
     take: 100
   })
 
+  if (forms.length === 0) return []
+
+  // Coleta IDs únicos para consultas paralelas de alto desempenho
+  const formIds = forms.map(f => f.id)
+  const producerIds = Array.from(new Set(forms.map(f => f.producerId).filter(Boolean)))
+  const propertyIds = Array.from(new Set(forms.map(f => f.propertyId).filter(Boolean))) as string[]
+
+  // Identifica produtores relacionados (PF e PJ do mesmo titular/representante)
+  const formProducerNames = Array.from(new Set(forms.map(f => f.producer?.name).filter(Boolean))) as string[]
+  const formRepCpfs = Array.from(
+    new Set(
+      forms
+        .map(f => (f.payloadSnapshot as any)?.representativeCpf?.replace(/\D/g, ''))
+        .filter(Boolean)
+    )
+  )
+
+  const relatedProducers = await prisma.producer.findMany({
+    where: {
+      OR: [
+        { id: { in: producerIds } },
+        ...(formProducerNames.length > 0 ? [{ name: { in: formProducerNames, mode: 'insensitive' as const } }] : []),
+        ...(formRepCpfs.length > 0 ? [{ document: { in: formRepCpfs } }] : []),
+      ],
+    },
+    select: { id: true, name: true, document: true },
+  })
+
+  const allRelatedProducerIds = Array.from(new Set([
+    ...producerIds,
+    ...relatedProducers.map(p => p.id),
+  ]))
+
+  // Helper de normalização de nomes de arquivos para correspondência precisa
+  function normalizeDocName(pathOrName?: string | null): string {
+    if (!pathOrName) return ''
+    const filename = pathOrName.split('/').pop() || ''
+    return filename
+      .replace(/^\d+_/, '')
+      .replace(/\.pdf$/i, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '')
+  }
+
+  // Consultas complementares em paralelo para enriquecer o histórico sem N+1 queries
+  const [documents, demands, analyses, titles] = await Promise.all([
+    prisma.document.findMany({
+      where: {
+        producerId: { in: allRelatedProducerIds },
+      },
+      select: {
+        id: true,
+        fileName: true,
+        producerId: true,
+        propertyId: true,
+        metadataPayload: true,
+        storagePath: true,
+        documentType: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.serviceDemand.findMany({
+      where: {
+        producerId: { in: allRelatedProducerIds },
+      },
+      include: {
+        producer: { select: { id: true, name: true, document: true } },
+        checklistItems: {
+          include: {
+            document: {
+              select: {
+                id: true,
+                fileName: true,
+                storagePath: true,
+                documentType: true,
+                metadataPayload: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.creditAnalysis.findMany({
+      where: {
+        producerId: { in: allRelatedProducerIds },
+      },
+      select: {
+        id: true,
+        producerId: true,
+        propertyId: true,
+        cropYear: true,
+        icsdValue: true,
+        isIcsdApproved: true,
+        requestedAmount: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.receivableTitle.findMany({
+      where: {
+        producerId: { in: allRelatedProducerIds },
+        status: { not: 'CANCELADO' },
+      },
+      select: {
+        id: true,
+        documentNumber: true,
+        producerId: true,
+        propertyId: true,
+        demandId: true,
+        status: true,
+        grossAmount: true,
+        financedAmount: true,
+        successFeePercent: true,
+        notes: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ])
+
   const results: CreditProjectHistoryItem[] = forms.map(f => {
     const payload = (f.payloadSnapshot as any) || {}
     let axis: 'CUSTEIO' | 'INVESTIMENTO' | 'PATRIMONIAL' | 'CHECKLIST' = 'INVESTIMENTO'
@@ -1028,28 +1255,162 @@ export async function listCreditProjects(filters: {
     else if (f.templateCode === 'CHECKLIST_PROFISSIONAL') axis = 'CHECKLIST'
 
     const tmplMeta = CREDIT_TEMPLATES_REGISTRY.find(t => t.code === f.templateCode)
+
+    // Cálculo universal de orçamento / valores projetados e financiados
+    const custeioTotal = Number(
+      (payload.custeioAreaHa && (payload.custeioCostPerHa || payload.custeioUnitPrice)
+        ? payload.custeioAreaHa * (payload.custeioCostPerHa || payload.custeioUnitPrice)
+        : 0) ||
+      (payload.cropAreaHa && payload.costPerHa
+        ? payload.cropAreaHa * payload.costPerHa
+        : 0) ||
+      payload.custeioTotalInvestment ||
+      0
+    )
+
     const totalAmount = Number(
       payload.totalInvestment ||
       payload.renovagroTotalInvestment ||
       payload.inovagroTotalInvestment ||
-      (payload.cropAreaHa && payload.costPerHa ? payload.cropAreaHa * payload.costPerHa : 0) ||
+      custeioTotal ||
       0
     )
+
     const financedAmount = Number(
       payload.financedAmount ||
       payload.renovagroFinanced ||
       payload.inovagroFinanced ||
+      payload.custeioFinanced ||
+      (f.templateCode === 'PROJETO_CUSTEIO_SAFRA' ? custeioTotal : 0) ||
       0
     )
-    const creditLineName = payload.creditLineName || payload.renovagroSubline || payload.inovagroEquipment || undefined
+
+    const creditLineName =
+      payload.creditLineName ||
+      payload.renovagroSubline ||
+      payload.inovagroEquipment ||
+      (f.templateCode === 'PROJETO_CUSTEIO_SAFRA'
+        ? `Custeio Agrícola (${payload.custeioCropName || 'Grãos'}) • Safra ${payload.custeioSafraYear || '2026/2027'}`
+        : undefined)
+
+    const formDocNorm = normalizeDocName(f.storagePdfPath)
+
+    // 1. Identificar Documento emitido correspondente
+    const matchingDoc = documents.find(d => {
+      const meta = (d.metadataPayload as any) || {}
+      if (meta.emissionId === f.id || meta.formId === f.id) return true
+      if (f.storagePdfPath && d.storagePath === f.storagePdfPath) return true
+      if (f.sha256Hash && meta.sha256Hash === f.sha256Hash) return true
+      const docNorm = normalizeDocName(d.fileName)
+      if (formDocNorm && docNorm && (formDocNorm === docNorm || formDocNorm.includes(docNorm) || docNorm.includes(formDocNorm))) return true
+      return false
+    }) || documents.find(d => d.producerId === f.producerId && (d.metadataPayload as any)?.templateCode === f.templateCode)
+
+    const documentId = matchingDoc?.id || payload.documentId || null
+    const fileName = matchingDoc?.fileName || (f.storagePdfPath ? f.storagePdfPath.split('/').pop()?.replace(/^\d+_/, '') : null)
+
+    // 2. Identificar Vínculo com Demanda Operacional
+    let matchedDemand = demands.find(d => {
+      // Vínculo explícito por ID
+      if (payload.demandId && d.id === payload.demandId) return true
+      if (payload.linkedDemandId && d.id === payload.linkedDemandId) return true
+      if (matchingDoc && (matchingDoc.metadataPayload as any)?.demandId === d.id) return true
+      if (documentId && d.documentId === documentId) return true
+      if (documentId && d.checklistItems?.some(ci => ci.documentId === documentId)) return true
+
+      // Vínculo por anexo do checklist de documentos
+      if (formDocNorm) {
+        for (const item of d.checklistItems) {
+          if (item.document?.fileName) {
+            const itemDocNorm = normalizeDocName(item.document.fileName)
+            if (itemDocNorm && (itemDocNorm === formDocNorm || itemDocNorm.includes(formDocNorm) || formDocNorm.includes(itemDocNorm))) {
+              return true
+            }
+          }
+        }
+      }
+
+      // Vínculo contextual por Produtor (PF/PJ) + Tipo de Serviço
+      const sameProducerName = d.producer?.name && f.producer?.name &&
+        d.producer.name.trim().toLowerCase() === f.producer.name.trim().toLowerCase()
+      const repCpf = (payload.representativeCpf || '').replace(/\D/g, '')
+      const prodDoc = (d.producer?.document || '').replace(/\D/g, '')
+      const sameRep = Boolean(repCpf && prodDoc && repCpf === prodDoc)
+
+      const isCusteio = f.templateCode === 'PROJETO_CUSTEIO_SAFRA' && d.serviceType === 'PROJETO_CUSTEIO'
+      const isRenovAgro = f.templateCode === 'PROJETO_RENOVAGRO' && (d.serviceType === 'LAUDO_TECNICO' || (d.serviceType as string) === 'PROJETO_INVESTIMENTO' || (d.serviceType as string) === 'RENOVAGRO' || (d.customServiceType && d.customServiceType.toLowerCase().includes('renovagro')))
+
+      if ((sameProducerName || sameRep) && (isCusteio || isRenovAgro)) {
+        return true
+      }
+
+      return false
+    })
+
+    const demandId = matchedDemand?.id || payload.demandId || null
+    const demandCode = demandId ? demandId.slice(-6).toUpperCase() : null
+    const demandStatus = matchedDemand?.status || null
+    const demandStatusLabel = demandStatus ? (DEMAND_STATUS_METAS as any)[demandStatus]?.label || demandStatus : null
+
+    // 3. Identificar Limite MCR / ICSD recente
+    const matchedAnalysis =
+      analyses.find(a => (a.producerId === f.producerId || allRelatedProducerIds.includes(a.producerId)) && a.propertyId === f.propertyId) ||
+      analyses.find(a => a.producerId === f.producerId || allRelatedProducerIds.includes(a.producerId))
+
+    const mcrAnalysis = matchedAnalysis ? {
+      id: matchedAnalysis.id,
+      cropYear: matchedAnalysis.cropYear,
+      icsdValue: Number(matchedAnalysis.icsdValue),
+      isIcsdApproved: Boolean(matchedAnalysis.isIcsdApproved),
+      requestedAmount: Number(matchedAnalysis.requestedAmount),
+    } : null
+
+    // 4. Identificar Vínculo com Financeiro (ERP)
+    const matchedTitle = titles.find(t => {
+      if (payload.receivableTitleId && t.id === payload.receivableTitleId) return true
+      if (demandId && t.demandId === demandId) return true
+      if (t.notes?.includes(f.id)) return true
+      if ((t.producerId === f.producerId || allRelatedProducerIds.includes(t.producerId)) && financedAmount > 0 && Math.abs(Number(t.financedAmount || 0) - financedAmount) < 1) return true
+      return false
+    })
+
+    const financialTitle = matchedTitle ? {
+      id: matchedTitle.id,
+      documentNumber: matchedTitle.documentNumber,
+      status: matchedTitle.status,
+      grossAmount: Number(matchedTitle.grossAmount),
+      financedAmount: Number(matchedTitle.financedAmount || 0),
+      successFeePercent: Number(matchedTitle.successFeePercent || 0),
+    } : null
+
+    // 5. Detalhes Técnicos Expandidos para o Drawer
+    const ownResources = Number(
+      payload.renovagroOwnResources ||
+      payload.inovagroOwnResources ||
+      (totalAmount > 0 && financedAmount > 0 ? Math.max(0, totalAmount - financedAmount) : 0)
+    )
+
+    const technicalDetails = {
+      responsibleName: payload.responsibleName || payload.technicalResponsibleName || 'Não informado',
+      creaNumber: payload.creaNumber || payload.crea || 'Não informado',
+      artNumber: payload.artNumber || payload.art || 'Não informado',
+      interestRate: Number(payload.renovagroInterestRate || payload.inovagroInterestRate || payload.custeioInterestRate || payload.interestRate || 5),
+      termYears: Number(payload.renovagroTermYears || payload.inovagroTermYears || (payload.custeioTermMonths ? Math.round(payload.custeioTermMonths / 12) : 1) || 10),
+      graceMonths: Number(payload.renovagroGraceMonths || payload.inovagroGraceMonths || 0),
+      ownResources,
+      targetBank: payload.targetBank || payload.financialAgent || 'Banco do Brasil',
+      cropYear: payload.custeioSafraYear || payload.cropYear || '2025/2026',
+    }
 
     return {
       id: f.id,
       templateCode: f.templateCode,
       templateName: tmplMeta?.title || f.templateCode,
       axis,
+      producerId: f.producerId,
       producerName: f.producer?.name || 'Produtor',
       producerDocument: f.producer?.document || '',
+      propertyId: f.propertyId,
       propertyName: f.property?.propertyName || f.property?.name || 'Imóvel Rural',
       propertyCity: f.property?.city || undefined,
       propertyState: f.property?.state || undefined,
@@ -1059,7 +1420,16 @@ export async function listCreditProjects(filters: {
       payloadSnapshot: payload,
       totalAmount,
       financedAmount,
-      creditLineName
+      creditLineName,
+      documentId,
+      fileName,
+      demandId,
+      demandCode,
+      demandStatus,
+      demandStatusLabel,
+      mcrAnalysis,
+      financialTitle,
+      technicalDetails,
     }
   })
 
@@ -1082,4 +1452,564 @@ export async function listCreditProjects(filters: {
 
   return filtered
 }
+
+/**
+ * Consulta demandas ativas de um produtor para vincular a um projeto emitido.
+ */
+export async function getActiveDemandsForProducer(producerId: string) {
+  try {
+    const user = await getUserContext()
+    if (!user) throw new Error('Não autorizado')
+
+    // Encontra o produtor e eventuais produtores correlatos (ex: PF do representante da PJ ou mesmo nome)
+    const baseProducer = await prisma.producer.findUnique({
+      where: { id: producerId },
+      select: { id: true, name: true, document: true, representativeCpf: true },
+    })
+
+    const relatedIds = [producerId]
+    if (baseProducer) {
+      const cleanRepCpf = (baseProducer.representativeCpf || '').replace(/\D/g, '')
+      const related = await prisma.producer.findMany({
+        where: {
+          OR: [
+            { name: { equals: baseProducer.name, mode: 'insensitive' } },
+            ...(cleanRepCpf ? [{ document: cleanRepCpf }] : []),
+          ],
+        },
+        select: { id: true },
+      })
+      for (const r of related) {
+        if (!relatedIds.includes(r.id)) relatedIds.push(r.id)
+      }
+    }
+
+    const demands = await prisma.serviceDemand.findMany({
+      where: {
+        producerId: { in: relatedIds },
+        status: { in: ['SOLICITADO', 'EM_EXECUCAO', 'AGUARDANDO_DOCUMENTACAO', 'CONCLUIDO'] },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        serviceType: true,
+        customServiceType: true,
+        status: true,
+        notes: true,
+        proposalId: true,
+        createdAt: true,
+        property: {
+          select: { id: true, name: true, propertyName: true },
+        },
+      },
+    })
+
+    return { success: true, demands }
+  } catch (error: any) {
+    console.error('[getActiveDemandsForProducer] Erro:', error)
+    return { success: false, error: error?.message || 'Falha ao buscar demandas ativas', demands: [] }
+  }
+}
+
+/**
+ * Cria uma nova Demanda Técnica no Kanban a partir do projeto emitido,
+ * anexando o PDF ao checklist com financedAmount registrado e vínculo bidirecional no histórico.
+ */
+export async function createDemandFromCreditProject({
+  formId,
+  producerId,
+  propertyId,
+  templateCode,
+  financedAmount,
+  documentId,
+  storagePdfPath,
+  fileName,
+  financialAgent,
+  interestRate,
+  cropYear,
+}: {
+  formId?: string
+  producerId: string
+  propertyId?: string
+  templateCode: string
+  financedAmount: number
+  documentId?: string
+  storagePdfPath?: string
+  fileName?: string
+  financialAgent?: string
+  interestRate?: number
+  cropYear?: string
+}) {
+  try {
+    const user = await getUserContext()
+    if (!user) throw new Error('Não autorizado')
+
+    const producer = await prisma.producer.findUnique({
+      where: { id: producerId },
+      select: { branchId: true, branch: { select: { organizationId: true } } },
+    })
+    if (!producer) throw new Error('Produtor não encontrado')
+
+    let branchId = user.branchId || producer.branchId
+
+    // Mapeamento do templateCode para o tipo de serviço rural
+    let serviceType: 'PROJETO_CUSTEIO' | 'PROJETO_INVESTIMENTO' | 'LIMITE_CREDITO' = 'PROJETO_INVESTIMENTO'
+    if (templateCode.includes('CUSTEIO')) {
+      serviceType = 'PROJETO_CUSTEIO'
+    } else if (templateCode.includes('LIMITE')) {
+      serviceType = 'LIMITE_CREDITO'
+    }
+
+    const formattedAmount =
+      financedAmount > 0
+        ? `R$ ${financedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        : 'R$ 0,00'
+
+    const noteText = `[Projeto Emitido] Financiado: ${formattedAmount} | Taxa: ${interestRate || 5.0}% a.a. | Banco: ${financialAgent || 'Banco do Brasil'} | Safra: ${cropYear || '2025/2026'}`
+
+    // Se documentId não foi explicitado, busca documento emitido correspondente ao formId
+    let resolvedDocId = documentId
+    let resolvedFileName = fileName
+    if (!resolvedDocId && formId) {
+      const candidateDocs = await prisma.document.findMany({
+        where: { producerId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      })
+      const foundDoc = candidateDocs.find(d => {
+        const meta = (d.metadataPayload as any) || {}
+        return meta.emissionId === formId || meta.templateCode === templateCode
+      })
+      if (foundDoc) {
+        resolvedDocId = foundDoc.id
+        if (!resolvedFileName) resolvedFileName = foundDoc.fileName
+      }
+    }
+
+    // 1. Criar Demanda no Kanban
+    const demand = await prisma.serviceDemand.create({
+      data: {
+        branchId,
+        createdById: user.id,
+        producerId,
+        propertyId: propertyId || null,
+        serviceType,
+        status: 'SOLICITADO',
+        priority: 'MEDIA',
+        documentId: resolvedDocId || null,
+        description: `Elaboração e protocolo de projeto de crédito rural (${templateCode}) no valor de ${formattedAmount}.`,
+        notes: noteText,
+        requestDate: new Date(),
+        estimatedDeliveryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000), // 15 dias
+      },
+    })
+
+    // 2. Histórico da Demanda
+    await prisma.serviceDemandHistory.create({
+      data: {
+        demandId: demand.id,
+        userId: user.id,
+        fromStatus: null,
+        toStatus: 'SOLICITADO',
+        notes: `Demanda criada automaticamente a partir do Histórico de Projetos de Crédito (${templateCode}). Valor financiado: ${formattedAmount}.`,
+      },
+    })
+
+    // 3. Adicionar item no checklist com o PDF anexado
+    await prisma.demandChecklistItem.create({
+      data: {
+        demandId: demand.id,
+        title: `Projeto Técnico Emitido (${templateCode})`,
+        documentType: 'LAUDO_TECNICO',
+        documentId: resolvedDocId || null,
+        isRequired: true,
+        isDelivered: Boolean(resolvedDocId),
+        deliveredAt: resolvedDocId ? new Date() : null,
+        notes: `Documento "${resolvedFileName || 'Projeto.pdf'}" anexado automaticamente na emissão.`,
+      },
+    })
+
+    // 4. Se o Document existe, sincroniza o demandId em seu metadataPayload
+    if (resolvedDocId) {
+      const doc = await prisma.document.findUnique({ where: { id: resolvedDocId } })
+      if (doc) {
+        const existingMeta = (doc.metadataPayload as any) || {}
+        await prisma.document.update({
+          where: { id: resolvedDocId },
+          data: {
+            metadataPayload: {
+              ...existingMeta,
+              demandId: demand.id,
+            },
+          },
+        })
+      }
+    }
+
+    // 5. Se o formId foi fornecido, persiste o demandId no GeneratedForm para rastreabilidade imediata
+    if (formId) {
+      const form = await prisma.generatedForm.findUnique({ where: { id: formId } })
+      if (form) {
+        const existingSnap = (form.payloadSnapshot as any) || {}
+        await prisma.generatedForm.update({
+          where: { id: formId },
+          data: {
+            payloadSnapshot: {
+              ...existingSnap,
+              demandId: demand.id,
+            },
+          },
+        })
+      }
+    }
+
+    revalidatePath('/admin/documents/credit-projects')
+    revalidatePath('/admin/demands')
+    revalidatePath(`/admin/demands/${demand.id}`)
+
+    return {
+      success: true,
+      demandId: demand.id,
+    }
+  } catch (error: any) {
+    console.error('[createDemandFromCreditProject] Erro:', error)
+    return {
+      success: false,
+      error: error?.message || 'Falha ao criar demanda a partir do projeto',
+    }
+  }
+}
+
+/**
+ * Vincula o projeto emitido a uma demanda em aberto.
+ */
+export async function linkProjectToExistingDemand({
+  formId,
+  demandId,
+  documentId,
+  templateCode,
+  financedAmount,
+  fileName,
+  financialAgent,
+  interestRate,
+  cropYear,
+}: {
+  formId?: string
+  demandId: string
+  documentId?: string
+  templateCode: string
+  financedAmount: number
+  fileName?: string
+  financialAgent?: string
+  interestRate?: number
+  cropYear?: string
+}) {
+  try {
+    const user = await getUserContext()
+    if (!user) throw new Error('Não autorizado')
+
+    const demand = await prisma.serviceDemand.findUnique({
+      where: { id: demandId },
+    })
+    if (!demand) throw new Error('Demanda não encontrada')
+
+    const formattedAmount =
+      financedAmount > 0
+        ? `R$ ${financedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+        : 'R$ 0,00'
+
+    const noteText = `[Projeto Vinculado] Financiado: ${formattedAmount} | Taxa: ${interestRate || 5.0}% a.a. | Banco: ${financialAgent || 'Banco do Brasil'} | Safra: ${cropYear || '2025/2026'}`
+    const updatedNotes = demand.notes ? `${demand.notes}\n${noteText}` : noteText
+
+    // Se documentId não foi explicitado, busca documento correspondente
+    let resolvedDocId = documentId
+    let resolvedFileName = fileName
+    if (!resolvedDocId && formId) {
+      const candidateDocs = await prisma.document.findMany({
+        where: { producerId: demand.producerId },
+        orderBy: { createdAt: 'desc' },
+        take: 10,
+      })
+      const foundDoc = candidateDocs.find(d => {
+        const meta = (d.metadataPayload as any) || {}
+        return meta.emissionId === formId || meta.templateCode === templateCode
+      })
+      if (foundDoc) {
+        resolvedDocId = foundDoc.id
+        if (!resolvedFileName) resolvedFileName = foundDoc.fileName
+      }
+    }
+
+    await prisma.serviceDemand.update({
+      where: { id: demandId },
+      data: {
+        documentId: resolvedDocId || demand.documentId,
+        notes: updatedNotes,
+      },
+    })
+
+    // Vincular ou criar item de checklist
+    if (resolvedDocId) {
+      const existingItem = await prisma.demandChecklistItem.findFirst({
+        where: {
+          demandId,
+          OR: [
+            { title: { contains: 'Projeto', mode: 'insensitive' } },
+            { title: { contains: 'Dossiê', mode: 'insensitive' } },
+            { documentType: 'LAUDO_TECNICO' },
+          ],
+        },
+      })
+
+      if (existingItem) {
+        await prisma.demandChecklistItem.update({
+          where: { id: existingItem.id },
+          data: {
+            documentId: resolvedDocId,
+            isDelivered: true,
+            deliveredAt: new Date(),
+            notes: `Projeto vinculado automaticamente (${templateCode}).`,
+          },
+        })
+      } else {
+        await prisma.demandChecklistItem.create({
+          data: {
+            demandId,
+            title: `Projeto Técnico Emitido (${templateCode})`,
+            documentType: 'LAUDO_TECNICO',
+            documentId: resolvedDocId,
+            isRequired: true,
+            isDelivered: true,
+            deliveredAt: new Date(),
+            notes: `Documento "${resolvedFileName || 'Projeto.pdf'}" vinculado automaticamente.`,
+          },
+        })
+      }
+
+      // Atualizar metadados do documento com demandId
+      const doc = await prisma.document.findUnique({ where: { id: resolvedDocId } })
+      if (doc) {
+        const existingMeta = (doc.metadataPayload as any) || {}
+        await prisma.document.update({
+          where: { id: resolvedDocId },
+          data: {
+            metadataPayload: {
+              ...existingMeta,
+              demandId,
+            },
+          },
+        })
+      }
+    }
+
+    // Persistir demandId no GeneratedForm se formId fornecido
+    if (formId) {
+      const form = await prisma.generatedForm.findUnique({ where: { id: formId } })
+      if (form) {
+        const existingSnap = (form.payloadSnapshot as any) || {}
+        await prisma.generatedForm.update({
+          where: { id: formId },
+          data: {
+            payloadSnapshot: {
+              ...existingSnap,
+              demandId,
+            },
+          },
+        })
+      }
+    }
+
+    // Histórico da demanda
+    await prisma.serviceDemandHistory.create({
+      data: {
+        demandId,
+        userId: user.id,
+        fromStatus: demand.status,
+        toStatus: demand.status,
+        notes: `Projeto Técnico (${templateCode}) de ${formattedAmount} vinculado à demanda com sucesso.`,
+      },
+    })
+
+    revalidatePath('/admin/documents/credit-projects')
+    revalidatePath('/admin/demands')
+    revalidatePath(`/admin/demands/${demandId}`)
+
+    return { success: true, demandId }
+  } catch (error: any) {
+    console.error('[linkProjectToExistingDemand] Erro:', error)
+    return {
+      success: false,
+      error: error?.message || 'Falha ao vincular projeto à demanda',
+    }
+  }
+}
+
+/**
+ * Fatura honorários de êxito diretamente no ERP a partir do Projeto Técnico de Crédito.
+ * Cria o Título a Receber com documentNumber FAT-YYYY-XXXX e parcela a vencer.
+ */
+export async function createProjectReceivableTitle({
+  formId,
+  producerId,
+  propertyId,
+  demandId,
+  templateCode,
+  financedAmount,
+  successFeePercent = 2.0,
+  dueDate,
+  notes,
+}: {
+  formId?: string
+  producerId: string
+  propertyId?: string
+  demandId?: string
+  templateCode: string
+  financedAmount: number
+  successFeePercent?: number
+  dueDate?: string
+  notes?: string
+}) {
+  try {
+    const user = await getUserContext()
+    if (!user) throw new Error('Não autorizado')
+
+    const producer = await prisma.producer.findUnique({
+      where: { id: producerId },
+      include: {
+        branch: {
+          include: {
+            organization: true,
+          },
+        },
+      },
+    })
+    if (!producer) throw new Error('Produtor não encontrado')
+
+    const branchId = user.branchId || producer.branchId
+    const organizationId = producer.branch.organizationId
+
+    // 1. Categoria Financeira Padrão (Honorários de Crédito Rural)
+    let category = await prisma.financialCategory.findFirst({
+      where: {
+        organizationId,
+        code: '1.1.01',
+        isActive: true,
+      },
+    })
+
+    if (!category) {
+      category = await prisma.financialCategory.findFirst({
+        where: {
+          organizationId,
+          type: 'RECEITA',
+          isActive: true,
+        },
+      })
+    }
+
+    if (!category) {
+      category = await prisma.financialCategory.create({
+        data: {
+          organizationId,
+          code: '1.1.01',
+          name: 'Honorários de Crédito Rural',
+          type: 'RECEITA',
+          isActive: true,
+        },
+      })
+    }
+
+    // 2. Cálculo dos Honorários
+    const safeFeePercent = successFeePercent > 0 ? successFeePercent : 2.0
+    const calculatedGross = financedAmount > 0 ? financedAmount * (safeFeePercent / 100) : 1000
+    const grossAmount = calculatedGross > 0 ? calculatedGross : 1000
+
+    // 3. Sequencial do Documento (FAT-YYYY-XXXX)
+    const currentYear = new Date().getFullYear()
+    const titlesCount = await prisma.receivableTitle.count({
+      where: { branchId },
+    })
+    const docSeq = String(titlesCount + 1).padStart(4, '0')
+    const documentNumber = `FAT-${currentYear}-${docSeq}`
+
+    const parsedDueDate = dueDate ? new Date(dueDate) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+
+    // 4. Criação atômica no banco de dados
+    const result = await prisma.$transaction(async (tx) => {
+      const title = await tx.receivableTitle.create({
+        data: {
+          branchId,
+          producerId,
+          propertyId: propertyId || null,
+          demandId: demandId || null,
+          categoryId: category!.id,
+          originType: 'ESTEIRA_CREDITO',
+          serviceSubtype: templateCode,
+          documentNumber,
+          cropYear: '2025/2026',
+          financedAmount: financedAmount > 0 ? new Prisma.Decimal(financedAmount) : null,
+          successFeePercent: new Prisma.Decimal(safeFeePercent),
+          grossAmount: new Prisma.Decimal(grossAmount),
+          discountAmount: new Prisma.Decimal(0),
+          netAmount: new Prisma.Decimal(grossAmount),
+          totalReceivedAmount: new Prisma.Decimal(0),
+          status: 'PENDENTE',
+          notes:
+            notes ||
+            `Faturamento direto do Projeto Técnico (${templateCode}). Honorários de ${safeFeePercent}% sobre R$ ${financedAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+        },
+      })
+
+      const installment = await tx.receivableInstallment.create({
+        data: {
+          receivableTitleId: title.id,
+          installmentNumber: 1,
+          totalInstallments: 1,
+          dueDate: parsedDueDate,
+          amount: new Prisma.Decimal(grossAmount),
+          receivedAmount: new Prisma.Decimal(0),
+          status: 'A_VENCER',
+        },
+      })
+
+      return { title, installment }
+    })
+
+    // 5. Vincular no GeneratedForm se formId fornecido
+    if (formId) {
+      const form = await prisma.generatedForm.findUnique({ where: { id: formId } })
+      if (form) {
+        const snap = (form.payloadSnapshot as any) || {}
+        await prisma.generatedForm.update({
+          where: { id: formId },
+          data: {
+            payloadSnapshot: {
+              ...snap,
+              receivableTitleId: result.title.id,
+              receivableDocumentNumber: result.title.documentNumber,
+            },
+          },
+        })
+      }
+    }
+
+    revalidatePath('/admin/documents/credit-projects')
+    revalidatePath('/admin/financial/receivables')
+    revalidatePath('/admin/financial/overview')
+
+    return {
+      success: true,
+      titleId: result.title.id,
+      documentNumber: result.title.documentNumber,
+      grossAmount,
+    }
+  } catch (error: any) {
+    console.error('[createProjectReceivableTitle] Erro:', error)
+    return {
+      success: false,
+      error: error?.message || 'Falha ao faturar honorários no ERP',
+    }
+  }
+}
+
 

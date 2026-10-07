@@ -13,8 +13,9 @@ import {
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { ArrowUpDown, Eye, Download, Replace, MoreHorizontal, FileText, GitBranch, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Table,
@@ -214,10 +215,13 @@ export default function DocumentTable({
         const doc = row.original
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
+            <DropdownMenuTrigger
+              className={cn(
+                buttonVariants({ variant: 'ghost', size: 'icon' }),
+                'h-8 w-8 cursor-pointer'
+              )}
+            >
+              <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <DropdownMenuItem onClick={() => onView(doc)} className="cursor-pointer">

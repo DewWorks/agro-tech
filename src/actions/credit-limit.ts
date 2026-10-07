@@ -7,7 +7,7 @@ import {
   generateLimiteCreditoBbHtml,
   LimiteCreditoDocumentData,
 } from '@/lib/document-templates/limite-credito-bb'
-import { saveCreditAnalysis } from '@/actions/credit-analysis'
+import { saveCreditAnalysis, checkProducerCreditAnalysis } from '@/actions/credit-analysis'
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
 import { COLLATERAL_WEIGHTS, calculatePaymentCapacity } from '@/lib/financial-engine'
 import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
@@ -55,13 +55,14 @@ export async function fetchPropertyFinancialSnapshot(propertyId: string) {
   const primaryProducer = property.producers[0]?.producer
   if (!primaryProducer) return null
 
-  const urbanProperties = await prisma.urbanProperty.findMany({
-    where: { producerId: primaryProducer.id },
-  })
-
-  const vehicles = await prisma.vehicle.findMany({
-    where: { producerId: primaryProducer.id },
-  })
+  const [urbanProperties, vehicles] = await Promise.all([
+    prisma.urbanProperty.findMany({
+      where: { producerId: primaryProducer.id },
+    }),
+    prisma.vehicle.findMany({
+      where: { producerId: primaryProducer.id },
+    }),
+  ])
 
   const poss = (property.possessionData as any) || {}
   const latestAnalysis = property.creditAnalyses[0]
@@ -406,6 +407,7 @@ export async function getCreditLimitPortfolioData(
         totalArea,
         branchId: prop.branchId,
         branchName: prop.branch.name,
+        producerId: primaryProducer?.id || null,
         primaryProducerName: primaryProducer?.name || 'Não vinculado',
         primaryProducerDocument: primaryProducer?.document || null,
         landValue,
@@ -608,9 +610,12 @@ export async function getPropertySimulationData(
         latestAnalysis?.targetBank ||
         poss.creditLimitTargetBank ||
         'BANCO_DO_BRASIL',
-      requestedAmount: latestAnalysis
-        ? Number(latestAnalysis.requestedAmount)
-        : Number(poss.creditLimitRequested) || 250000,
+      requestedAmount:
+        latestAnalysis && Number(latestAnalysis.requestedAmount) > 100
+          ? Number(latestAnalysis.requestedAmount)
+          : Number(poss.creditLimitRequested) > 100
+          ? Number(poss.creditLimitRequested)
+          : 250000,
       termMonths:
         latestAnalysis?.termMonths ||
         Number(poss.creditLimitTermMonths) ||
@@ -929,5 +934,106 @@ export async function generateCreditLimitDossierHtml(
       success: false,
       error: error?.message || 'Erro ao gerar dossiê de limite de crédito',
     }
+  }
+}
+
+/**
+ * Agrupa e paraleliza todas as consultas necessárias para inicializar o Simulador MCR
+ * quando parâmetros como producerId, propertyId, amount ou creditLine são fornecidos na URL.
+ * Elimina buscas sequenciais em cascata com Promise.all.
+ */
+export async function getSimulationInitialBundle({
+  producerId,
+  propertyId,
+  cropYear,
+}: {
+  producerId?: string | null
+  propertyId?: string | null
+  cropYear?: string
+}): Promise<{
+  success: boolean
+  producer?: any
+  properties?: any[]
+  resolvedPropertyId?: string | null
+  simulationData?: PropertySimulationData | null
+  analysis?: any
+  error?: string
+}> {
+  try {
+    const dbUser = await getUserContext()
+    if (!dbUser) return { success: false, error: 'Usuário não autenticado' }
+
+    // Paraleliza as consultas independentes
+    const [producer, producerProperties, propertySimulationResult, creditAnalysisResult] =
+      await Promise.all([
+        producerId
+          ? prisma.producer.findUnique({
+              where: { id: producerId },
+              select: {
+                id: true,
+                name: true,
+                document: true,
+                type: true,
+                phone: true,
+                branchId: true,
+              },
+            })
+          : Promise.resolve(null),
+        producerId
+          ? prisma.producerProperty.findMany({
+              where: { producerId },
+              include: {
+                property: {
+                  select: {
+                    id: true,
+                    name: true,
+                    propertyName: true,
+                    city: true,
+                    state: true,
+                    totalArea: true,
+                    branchId: true,
+                  },
+                },
+              },
+            })
+          : Promise.resolve([]),
+        propertyId
+          ? getPropertySimulationData(propertyId)
+          : Promise.resolve(null),
+        producerId
+          ? checkProducerCreditAnalysis({
+              producerId,
+              propertyId: propertyId || undefined,
+              cropYear,
+            })
+          : Promise.resolve(null),
+      ])
+
+    let simulationData = propertySimulationResult?.success ? propertySimulationResult.data : null
+    let resolvedPropertyId = propertyId || null
+
+    // Se propertyId não foi fornecido mas o produtor possui propriedades vinculadas
+    if (!simulationData && producerProperties && producerProperties.length > 0) {
+      const firstProp = (producerProperties[0] as any)?.property
+      if (firstProp) {
+        resolvedPropertyId = firstProp.id
+        const autoFetch = await getPropertySimulationData(firstProp.id)
+        if (autoFetch.success && autoFetch.data) {
+          simulationData = autoFetch.data
+        }
+      }
+    }
+
+    return {
+      success: true,
+      producer,
+      properties: (producerProperties as any[]).map((pp: any) => pp.property).filter(Boolean),
+      resolvedPropertyId,
+      simulationData,
+      analysis: creditAnalysisResult?.success ? creditAnalysisResult.analysis : null,
+    }
+  } catch (error: any) {
+    console.error('[getSimulationInitialBundle] Erro:', error)
+    return { success: false, error: error?.message || 'Erro ao carregar pacote de simulação' }
   }
 }

@@ -96,9 +96,9 @@ export default function GlobalSettingsForm({
       <div className="grid grid-cols-1 gap-5">
         {/* Card 1: Taxa Padrão de Êxito em Crédito Rural */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-200/60">
                 <Percent className="w-4 h-4" />
               </div>
               <div>
@@ -108,45 +108,53 @@ export default function GlobalSettingsForm({
                 <p className="text-xs text-slate-500">Honorários cobrados sobre o valor do crédito liberado pelo banco</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-200/60">
-              <Sparkles className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200/70 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
               Herança Automática na Esteira
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700">Percentual Aplicado:</Label>
-              <div className="relative flex items-center">
-                <Input
-                  id="successFee"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={successFee}
-                  onChange={(e) => setSuccessFee(parseFloat(e.target.value) || 0)}
-                  disabled={!isExecutive}
-                  className="pr-8 text-sm font-bold text-slate-900 bg-slate-50/50 focus:bg-white"
-                />
-                <span className="absolute right-3 text-xs font-bold text-slate-400 select-none pointer-events-none">
-                  %
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch pt-1">
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="successFee" className="text-xs font-bold text-slate-700 block">
+                  Percentual Aplicado
+                </Label>
+                <div className="flex h-10 w-full rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/20 transition-all">
+                  <input
+                    id="successFee"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={successFee}
+                    onChange={(e) => setSuccessFee(parseFloat(e.target.value) || 0)}
+                    disabled={!isExecutive}
+                    className="w-full h-full px-3 text-sm font-bold text-slate-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:text-slate-400"
+                  />
+                  <span className="flex items-center justify-center h-full px-3.5 text-xs font-bold text-slate-600 bg-slate-50 border-l border-slate-200 select-none shrink-0">
+                    %
+                  </span>
+                </div>
               </div>
-            </div>
-
-            <div className="sm:col-span-2 space-y-2">
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-[11px] text-slate-500 leading-relaxed">
                 Percentual padrão sugerido na abertura de propostas bancárias (admitindo override pontual por contrato).
               </p>
-              {/* Simulação Dinâmica em Tempo Real */}
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-3 text-xs text-emerald-950 flex items-start gap-2.5">
-                <Calculator className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                <div className="leading-snug">
-                  <strong>Simulação em Tempo Real:</strong> Para um crédito de{' '}
-                  <span className="font-semibold">{formatCurrency(simulatedCredit)}</span> liberado no banco, o honorário sugerido será de{' '}
-                  <strong className="text-emerald-900 font-bold">{successFee}%</strong>{' '}
-                  ({formatCurrency(simulatedSuccessFeeAmount)}).
+            </div>
+
+            <div className="lg:col-span-7 flex">
+              <div className="w-full rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 flex items-start gap-3 text-xs text-slate-700">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100/90 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-200/50">
+                  <Calculator className="w-4 h-4 text-emerald-800" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                    Simulação em Tempo Real
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Para um crédito de <strong className="font-semibold text-slate-900">{formatCurrency(simulatedCredit)}</strong> liberado no banco, o honorário sugerido será de{' '}
+                    <strong className="text-emerald-900 font-bold">{successFee}%</strong> ({formatCurrency(simulatedSuccessFeeAmount)}).
+                  </p>
                 </div>
               </div>
             </div>
@@ -155,9 +163,9 @@ export default function GlobalSettingsForm({
 
         {/* Card 2: Taxa Padrão de Comissão de Parceiros Comerciais */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-200/60">
                 <Users2 className="w-4 h-4" />
               </div>
               <div>
@@ -167,44 +175,53 @@ export default function GlobalSettingsForm({
                 <p className="text-xs text-slate-500">Repasse a corretores e prospectadores de crédito rural</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-200/60">
-              <ShieldCheck className="w-3 h-3" />
+            <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200/70 shadow-2xs">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
               Trava Contra Inadimplência
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700">Comissão sobre Honorários:</Label>
-              <div className="relative flex items-center">
-                <Input
-                  id="partnerComm"
-                  type="number"
-                  step="0.5"
-                  min="0"
-                  max="100"
-                  value={partnerComm}
-                  onChange={(e) => setPartnerComm(parseFloat(e.target.value) || 0)}
-                  disabled={!isExecutive}
-                  className="pr-8 text-sm font-bold text-amber-900 bg-slate-50/50 focus:bg-white"
-                />
-                <span className="absolute right-3 text-xs font-bold text-slate-400 select-none pointer-events-none">
-                  %
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch pt-1">
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="partnerComm" className="text-xs font-bold text-slate-700 block">
+                  Comissão sobre Honorários
+                </Label>
+                <div className="flex h-10 w-full rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/20 transition-all">
+                  <input
+                    id="partnerComm"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="100"
+                    value={partnerComm}
+                    onChange={(e) => setPartnerComm(parseFloat(e.target.value) || 0)}
+                    disabled={!isExecutive}
+                    className="w-full h-full px-3 text-sm font-bold text-slate-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:text-slate-400"
+                  />
+                  <span className="flex items-center justify-center h-full px-3.5 text-xs font-bold text-slate-600 bg-slate-50 border-l border-slate-200 select-none shrink-0">
+                    %
+                  </span>
+                </div>
               </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Percentual dos honorários repassado a intermediadores e corretores de campo parceiros.
+              </p>
             </div>
 
-            <div className="sm:col-span-2 space-y-2">
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Percentual dos honorários repassado a intermediadores e corretores de campo.
-              </p>
-              {/* Simulação Dinâmica em Tempo Real */}
-              <div className="rounded-xl border border-amber-200/80 bg-amber-50/60 p-3 text-xs text-amber-950 flex items-start gap-2.5">
-                <Calculator className="w-4 h-4 text-amber-800 shrink-0 mt-0.5" />
-                <div className="leading-snug">
-                  <strong>Simulação em Tempo Real:</strong> Sobre{' '}
-                  <span className="font-semibold">{formatCurrency(simulatedRevenue)}</span> de honorários da LN, a comissão provisionada será de{' '}
-                  <strong className="text-amber-900 font-bold">{formatCurrency(simulatedPartnerCommAmount)}</strong>, liberada estritamente após a quitação do produtor.
+            <div className="lg:col-span-7 flex">
+              <div className="w-full rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 flex items-start gap-3 text-xs text-slate-700">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100/90 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-200/50">
+                  <Calculator className="w-4 h-4 text-emerald-800" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                    Simulação em Tempo Real
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Sobre <strong className="font-semibold text-slate-900">{formatCurrency(simulatedRevenue)}</strong> de honorários da LN, a comissão provisionada será de{' '}
+                    <strong className="text-emerald-900 font-bold">{formatCurrency(simulatedPartnerCommAmount)}</strong>, liberada estritamente após a quitação do produtor.
+                  </p>
                 </div>
               </div>
             </div>
@@ -213,9 +230,9 @@ export default function GlobalSettingsForm({
 
         {/* Card 3: Custo de Referência por Quilômetro de Campo */}
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-800 flex items-center justify-center shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-200/60">
                 <Car className="w-4 h-4" />
               </div>
               <div>
@@ -225,43 +242,53 @@ export default function GlobalSettingsForm({
                 <p className="text-xs text-slate-500">Deslocamentos agronômicos, coletas e vistorias fundiárias</p>
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-700 border border-slate-200">
+            <span className="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800 border border-emerald-200/70 shadow-2xs">
+              <Car className="w-3.5 h-3.5 text-emerald-700" />
               Dedução na MOL
             </span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-start">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-slate-700">Valor Unitário:</Label>
-              <div className="relative flex items-center">
-                <Input
-                  id="kmCost"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={kmCost}
-                  onChange={(e) => setKmCost(parseFloat(e.target.value) || 0)}
-                  disabled={!isExecutive}
-                  className="pr-16 text-sm font-bold text-slate-900 bg-slate-50/50 focus:bg-white"
-                />
-                <span className="absolute right-3 text-xs font-bold text-slate-400 select-none pointer-events-none">
-                  R$ / km
-                </span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch pt-1">
+            <div className="lg:col-span-5 flex flex-col justify-between space-y-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="kmCost" className="text-xs font-bold text-slate-700 block">
+                  Custo Unitário por Quilômetro
+                </Label>
+                <div className="flex h-10 w-full rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden focus-within:border-emerald-600 focus-within:ring-2 focus-within:ring-emerald-600/20 transition-all">
+                  <input
+                    id="kmCost"
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="100"
+                    value={kmCost}
+                    onChange={(e) => setKmCost(parseFloat(e.target.value) || 0)}
+                    disabled={!isExecutive}
+                    className="w-full h-full px-3 text-sm font-bold text-slate-900 bg-transparent outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none disabled:text-slate-400"
+                  />
+                  <span className="flex items-center justify-center h-full px-3.5 text-xs font-bold text-slate-600 bg-slate-50 border-l border-slate-200 select-none shrink-0 whitespace-nowrap">
+                    R$ / km
+                  </span>
+                </div>
               </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                Base para cálculo de deslocamentos técnicos com dedução na Margem Operacional Líquida (MOL).
+              </p>
             </div>
 
-            <div className="sm:col-span-2 space-y-2">
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Base para cálculo de deslocamentos agronômicos e vistorias técnicas com dedução na Margem Operacional Líquida (MOL).
-              </p>
-              {/* Simulação Dinâmica em Tempo Real */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 flex items-start gap-2.5">
-                <Calculator className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
-                <div className="leading-snug">
-                  <strong>Simulação em Tempo Real:</strong> Um deslocamento técnico de{' '}
-                  <span className="font-semibold">{simulatedKmDistance} km</span> terá custo orçado de{' '}
-                  <strong className="text-slate-900 font-bold">{formatCurrency(simulatedKmCostTotal)}</strong>.
+            <div className="lg:col-span-7 flex">
+              <div className="w-full rounded-xl border border-emerald-100 bg-emerald-50/60 p-3.5 flex items-start gap-3 text-xs text-slate-700">
+                <div className="w-8 h-8 rounded-lg bg-emerald-100/90 text-emerald-800 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-200/50">
+                  <Calculator className="w-4 h-4 text-emerald-800" />
+                </div>
+                <div className="space-y-1 flex-1">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-emerald-950 flex items-center gap-1.5">
+                    Simulação em Tempo Real
+                  </div>
+                  <p className="text-xs text-slate-700 leading-relaxed">
+                    Um deslocamento técnico de <strong className="font-semibold text-slate-900">{simulatedKmDistance} km</strong> terá custo orçado de{' '}
+                    <strong className="text-emerald-900 font-bold">{formatCurrency(simulatedKmCostTotal)}</strong>.
+                  </p>
                 </div>
               </div>
             </div>

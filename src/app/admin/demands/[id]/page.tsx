@@ -27,6 +27,9 @@ import {
   FileCheck2,
   ClipboardList,
   ShieldCheck,
+  Zap,
+  Sparkles,
+  ExternalLink,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
@@ -54,8 +57,9 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
 
   const demand = result.demand
 
-  // Documentos existentes no GED do produtor/propriedade para sugestão de vínculo
-  const existingGedDocs = await prisma.document.findMany({
+  // 1. Sincronização Automática com GED: Qualquer documento emitido contendo demandId
+  // ou vinculado diretamente à demanda deve constar no checklist imediatamente
+  const allGedDocsForProducer = await prisma.document.findMany({
     where: {
       producerId: demand.producerId,
       isArchived: false,
@@ -65,9 +69,59 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
       id: true,
       fileName: true,
       documentType: true,
+      storagePath: true,
+      complianceStatus: true,
+      metadataPayload: true,
+      createdAt: true,
     },
     orderBy: { createdAt: 'desc' },
   })
+
+  // Sincroniza documentos emitidos que possuem o demandId ou são o primary document
+  const linkedDocsToSync = allGedDocsForProducer.filter((doc) => {
+    if (demand.documentId && doc.id === demand.documentId) return true
+    const meta = (doc.metadataPayload as any) || {}
+    return meta.demandId === demand.id || meta.linkedDemandId === demand.id
+  })
+
+  for (const doc of linkedDocsToSync) {
+    const isAlreadyInChecklist = demand.checklistItems.some((item) => item.documentId === doc.id)
+    if (!isAlreadyInChecklist) {
+      try {
+        const syncedItem = await prisma.demandChecklistItem.create({
+          data: {
+            demandId: demand.id,
+            title: `Projeto Técnico Emitido: ${doc.fileName}`,
+            documentType: doc.documentType,
+            documentId: doc.id,
+            isRequired: true,
+            isDelivered: true,
+            deliveredAt: doc.createdAt,
+            notes: 'Documento vinculado e sincronizado automaticamente pela esteira de crédito.',
+          },
+          include: {
+            document: {
+              select: {
+                id: true,
+                fileName: true,
+                storagePath: true,
+                complianceStatus: true,
+              },
+            },
+          },
+        })
+        demand.checklistItems.push(syncedItem as any)
+      } catch (err) {
+        console.error('[Document Sync Error]:', err)
+      }
+    }
+  }
+
+  const existingGedDocs = allGedDocsForProducer.map((doc) => ({
+    id: doc.id,
+    fileName: doc.fileName,
+    documentType: doc.documentType,
+  }))
 
   const serviceMeta = RURAL_SERVICES_CATALOG[demand.serviceType as RuralServiceTypeCode]
   const serviceTitle =
@@ -209,6 +263,62 @@ export default async function DemandDetailPage(props: DemandDetailPageProps) {
             <div className="text-muted-foreground font-medium">Previsão (SLA)</div>
             <div className="font-bold text-foreground text-sm mt-0.5">{formattedEstimatedDate}</div>
           </div>
+        </div>
+      </div>
+
+      {/* Card de Ações Técnicas Vinculadas (Hub de Integração Bidirecional da Esteira) */}
+      <div className="bg-gradient-to-r from-emerald-950 via-[#1B4D3E] to-slate-900 rounded-2xl p-5 text-white shadow-xs border border-emerald-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold shrink-0 border border-emerald-400/30">
+            <Sparkles className="w-5 h-5 text-emerald-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-sm font-bold text-white">
+                Ações Técnicas Vinculadas à Demanda
+              </h4>
+              <span className="text-[10px] font-semibold bg-emerald-800/80 text-emerald-200 border border-emerald-600/40 px-2 py-0.5 rounded-full">
+                Hub Bidirecional
+              </span>
+              {demand.document && (
+                <span className="text-[10px] font-medium bg-white/10 text-emerald-200 px-2 py-0.5 rounded-full border border-white/10 flex items-center gap-1">
+                  <FileText className="w-3 h-3 text-emerald-300" />
+                  Doc: {demand.document.fileName}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-emerald-100/80 mt-1">
+              Contexto ativo herdado: <strong>{demand.producer.name}</strong>
+              {demand.property ? ` • Fazenda ${propertyDisplayName}` : ''}.
+              Avance ou simule sem reinserir dados.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5 flex-wrap shrink-0">
+          <Link
+            href={`/admin/documents/credit-projects/new?demandId=${demand.id}&producerId=${demand.producerId}&propertyId=${demand.propertyId || ''}`}
+          >
+            <Button
+              type="button"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-9 px-3.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-white" />
+              <span>Gerar Projeto Técnico BB</span>
+            </Button>
+          </Link>
+
+          <Link
+            href={`/admin/credit-limit?propertyId=${demand.propertyId || ''}&producerId=${demand.producerId}&demandId=${demand.id}&tab=simulator`}
+          >
+            <Button
+              type="button"
+              className="bg-white hover:bg-emerald-50 text-[#1B4D3E] font-bold text-xs h-9 px-3.5 rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 text-yellow-600 fill-yellow-500" />
+              <span>Simular Limite MCR / ICSD</span>
+            </Button>
+          </Link>
         </div>
       </div>
 

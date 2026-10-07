@@ -127,7 +127,7 @@ export default function DashboardPendingReceivablesList({
               <CheckCircle2 className="h-6 w-6" />
             </div>
             <h4 className="text-sm font-bold text-emerald-900">
-              🟢 Todos os honorários previstos estão 100% quitados!
+              Todos os honorários previstos estão 100% quitados!
             </h4>
             <p className="text-xs text-emerald-700 max-w-md mt-1">
               Excelente controle de tesouraria: nenhum título a receber pendente de pagamento no período.

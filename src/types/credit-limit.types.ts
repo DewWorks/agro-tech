@@ -29,6 +29,7 @@ export interface CreditLimitPropertyItem {
   totalArea: number
   branchId: string
   branchName: string
+  producerId?: string | null
   primaryProducerName: string
   primaryProducerDocument: string | null
   landValue: number
@@ -166,6 +167,12 @@ export interface PropertySelectOption {
 
 export interface CreditRiskSimulatorProps {
   initialPropertyId?: string
+  initialProducerId?: string
+  initialAmount?: number
+  initialCreditLine?: string
+  initialTargetBank?: string
+  initialPropertiesList?: PropertySelectOption[]
+  initialSimulationData?: PropertySimulationData | null
   onPropertyChange?: (propertyId: string) => void
 }
 

@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import { createDirectPayableTitle } from '@/actions/financial/payables'
 import { toast } from 'sonner'
 import { Textarea } from '@/components/ui/textarea'
-import { FinancialModal, FormField, InputField, SelectField } from './FinancialModal'
+import { FinancialModal, FormField, InputField, SelectField, CurrencyField, DateField } from './FinancialModal'
 
 const PRESETS = [
   { name: 'ART CREA-TO', supplier: 'CREA-TO', cat: '2.1.01', type: 'CUSTO_DIRETO_PROPOSTA' as const, val: 285.5, notes: 'ART de Crédito Rural' },
@@ -101,7 +101,7 @@ export default function NewPayableModal({
           label="Centro de Custo / Proposta (Opcional):" value={demandId || 'DESPESA_GERAL'} onChange={(val) => setDemandId(val === 'DESPESA_GERAL' ? '' : val)}
           options={[{ value: 'DESPESA_GERAL', label: 'Despesa Geral da Filial' }, ...demands.map((d) => ({ value: d.id, label: `${d.producer?.name} (${d.serviceType})` }))]}
         />
-        <InputField label="Valor Total (R$):" type="number" step="0.01" value={totalAmount} onChange={(e) => setTotalAmount(parseFloat(e.target.value) || 0)} className="font-bold text-slate-900" />
+        <CurrencyField label="Valor Total (R$):" value={totalAmount} onChangeValue={setTotalAmount} className="font-bold text-slate-900" />
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-slate-50 p-2 space-y-1.5">
@@ -110,9 +110,9 @@ export default function NewPayableModal({
           <input type="checkbox" checked={isInstallment} onChange={(e) => setIsInstallment(e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-emerald-800" />
         </label>
         {isInstallment && (
-          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200">
+          <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200 items-end">
             <SelectField label="Parcelas:" value={String(numInstallments)} onChange={(val) => setNumInstallments(parseInt(val || '2', 10))} options={[2, 3, 4, 5, 6, 10, 12].map((n) => ({ value: String(n), label: `${n}x` }))} />
-            <InputField label="Primeiro Vencimento:" type="date" value={firstDueDate} onChange={(e) => setFirstDueDate(e.target.value)} />
+            <DateField label="Primeiro Vencimento:" value={firstDueDate} onChange={(val) => setFirstDueDate(val || new Date().toISOString().slice(0, 10))} />
             <div className="col-span-2 space-y-1">
               <span className="text-[10px] font-bold uppercase text-slate-500">Grade Projetada:</span>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 max-h-20 overflow-y-auto">

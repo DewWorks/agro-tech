@@ -4,6 +4,7 @@ import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Sparkles, Loader2, Coins } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
 import { useCreditRiskSimulator } from './hooks/useCreditRiskSimulator'
 import { SimulatorPropertyHeader } from './simulator-sections/SimulatorPropertyHeader'
@@ -22,11 +23,18 @@ export type { CreditRiskSimulatorProps }
  */
 export function CreditRiskSimulator({
   initialPropertyId,
+  initialProducerId,
+  initialAmount,
+  initialCreditLine,
+  initialTargetBank,
+  initialPropertiesList,
+  initialSimulationData,
   onPropertyChange,
 }: CreditRiskSimulatorProps) {
   const {
     propertiesList,
     selectedPropertyId,
+    selectedProducerId,
     currentProperty,
     loadingProperty,
     simulationData,
@@ -44,6 +52,7 @@ export function CreditRiskSimulator({
     previewHtml,
     previewFileName,
     isLoadingPreview,
+    hasUrlParams,
     setPurpose,
     setTargetBank,
     setRequestedAmount,
@@ -56,10 +65,29 @@ export function CreditRiskSimulator({
     handleSaveSimulation,
     handleOpenPreviewModal,
     handleClosePreviewModal,
-  } = useCreditRiskSimulator({ initialPropertyId, onPropertyChange })
+  } = useCreditRiskSimulator({
+    initialPropertyId,
+    initialProducerId,
+    initialAmount,
+    initialCreditLine,
+    initialTargetBank,
+    initialPropertiesList,
+    initialSimulationData,
+    onPropertyChange,
+  })
 
   return (
     <div className="space-y-6">
+      {/* 0. BANNER DE FEEDBACK VISUAL IMEDIATO NA TRANSIÇÃO DE MÓDULOS */}
+      {(loadingProperty || (hasUrlParams && !simulationData)) && (
+        <div className="flex items-center gap-3 p-3.5 bg-emerald-50/90 border border-emerald-200 text-emerald-950 rounded-xl text-sm animate-pulse shadow-xs">
+          <Loader2 className="w-4 h-4 animate-spin text-[#1B4D3E] shrink-0" />
+          <span>
+            <strong>Sincronizando Análise MCR:</strong> Carregando dados cadastrais, garantias e fluxo financeiro para a operação solicitada...
+          </span>
+        </div>
+      )}
+
       {/* 1. SELETOR PRINCIPAL DE PROPRIEDADE RURAL & AÇÕES DE CABEÇALHO */}
       <SimulatorPropertyHeader
         propertiesList={propertiesList}
@@ -73,12 +101,53 @@ export function CreditRiskSimulator({
         hasSimulationData={Boolean(simulationData)}
       />
 
-      {loadingProperty ? (
-        <div className="p-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-3">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto" />
-          <p className="text-xs text-slate-500 font-medium">
-            Carregando lastro patrimonial e fluxo de caixa da propriedade...
-          </p>
+      {loadingProperty && !simulationData ? (
+        <div className="space-y-6 animate-pulse">
+          {/* Skeleton de Cards de Entrada: Balanço & Fluxo de Caixa */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-48 rounded-lg" />
+                <Skeleton className="h-5 w-20 rounded-md" />
+              </div>
+              <Skeleton className="h-9 w-36 rounded-md" />
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-3/4 rounded" />
+                <Skeleton className="h-4 w-5/6 rounded" />
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-5 w-48 rounded-lg" />
+                <Skeleton className="h-5 w-20 rounded-md" />
+              </div>
+              <Skeleton className="h-9 w-36 rounded-md" />
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <Skeleton className="h-4 w-full rounded" />
+                <Skeleton className="h-4 w-3/4 rounded" />
+                <Skeleton className="h-4 w-5/6 rounded" />
+              </div>
+            </div>
+          </div>
+
+          {/* Skeleton do Simulador MCR */}
+          <div className="p-6 rounded-2xl border border-emerald-200/80 dark:border-emerald-900/40 bg-white dark:bg-slate-900 space-y-5">
+            <div className="flex items-center justify-between border-b border-emerald-100 dark:border-emerald-950 pb-3">
+              <Skeleton className="h-6 w-64 rounded-md" />
+              <Skeleton className="h-5 w-32 rounded-full" />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+            <Skeleton className="h-28 w-full rounded-2xl bg-emerald-50/50" />
+          </div>
         </div>
       ) : !simulationData ? (
         <div className="p-12 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-center space-y-2">
@@ -153,6 +222,7 @@ export function CreditRiskSimulator({
 
                   <PrescriptiveActionCard
                     propertyId={selectedPropertyId}
+                    producerId={simulationData.producer?.id || currentProperty?.producerId}
                     requestedAmount={requestedAmount}
                     annualDebtService={riskAnalysis.amortization.annualDebtService}
                     paymentCapacity={riskAnalysis.icsd.paymentCapacity}
@@ -163,6 +233,8 @@ export function CreditRiskSimulator({
                     creditLineName={
                       CREDIT_LINES_CATALOG.find((l) => l.code === creditLineCode)?.name || creditLineCode
                     }
+                    creditLineCode={creditLineCode}
+                    targetBank={targetBank}
                     termMonths={termMonths}
                     amortizationSystem={amortizationSystem}
                     purpose={purpose}

@@ -122,7 +122,7 @@ export async function getTitleAuditTimeline(
       const creationOperator =
         creationLog && creationLog.userId ? operatorsMap.get(creationLog.userId) : null
 
-      // 1. Evento de Criação (🟣)
+      // 1. Evento de Criação
       events.push({
         id: `create-${title.id}`,
         type: 'CRIACAO',
@@ -144,7 +144,7 @@ export async function getTitleAuditTimeline(
         },
       })
 
-      // 2. Eventos de Liquidação e Estorno (🟢 / 🔴)
+      // 2. Eventos de Liquidação e Estorno
       for (const inst of title.installments) {
         for (const tx of inst.cashTransactions) {
           const operator = operatorsMap.get(tx.operatorId)
@@ -186,7 +186,7 @@ export async function getTitleAuditTimeline(
         }
       }
 
-      // 3. Eventos de Comissão de Parceiros (🟡)
+      // 3. Eventos de Comissão de Parceiros
       for (const comm of title.commissions) {
         const released = Number(comm.releasedAmount)
         if (released > 0) {
@@ -282,7 +282,7 @@ export async function getTitleAuditTimeline(
     const creationOperator =
       creationLog && creationLog.userId ? operatorsMap.get(creationLog.userId) : null
 
-    // 1. Criação (🟣)
+    // 1. Criação
     events.push({
       id: `create-${payable.id}`,
       type: 'CRIACAO',
@@ -300,7 +300,7 @@ export async function getTitleAuditTimeline(
       },
     })
 
-    // 2. Liquidações e Estornos de Saída (🟢 / 🔴)
+    // 2. Liquidações e Estornos de Saída
     for (const inst of payable.installments) {
       for (const tx of inst.cashTransactions) {
         const operator = operatorsMap.get(tx.operatorId)
@@ -337,7 +337,7 @@ export async function getTitleAuditTimeline(
       }
     }
 
-    // 3. Informações de Comissão (🟡)
+    // 3. Informações de Comissão
     if (payable.partnerCommission) {
       const comm = payable.partnerCommission
       events.push({

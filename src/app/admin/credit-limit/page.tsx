@@ -1,8 +1,13 @@
 import React from 'react'
 import { redirect } from 'next/navigation'
 import { getUserContext } from '@/lib/auth'
-import { getCreditLimitPortfolioData } from '@/actions/credit-limit'
+import {
+  getCreditLimitPortfolioData,
+  getPropertiesForCreditLimitSelect,
+  getSimulationInitialBundle,
+} from '@/actions/credit-limit'
 import { CreditLimitContainer } from '@/components/credit-limit/CreditLimitContainer'
+import { parseUrlAmount } from '@/lib/utils/formatters'
 
 export default async function CreditLimitPage(props: {
   searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined }
@@ -27,18 +32,32 @@ export default async function CreditLimitPage(props: {
     redirect('/admin')
   }
 
-  // Consulta dados da carteira e consolidação MCR
-  const data = await getCreditLimitPortfolioData({
-    branchId: searchParams.branchId,
-    search: searchParams.q,
-    purpose: searchParams.purpose,
-    bank: searchParams.bank,
-    status: searchParams.status,
-  })
-
+  const targetPropertyId = searchParams.propertyId
+  const targetProducerId = searchParams.producerId
   const initialTab =
     (searchParams.tab as 'overview' | 'simulator') ||
-    (searchParams.propertyId ? 'simulator' : 'overview')
+    (targetPropertyId || targetProducerId ? 'simulator' : 'overview')
+
+  // Paralelização de Queries em Promise.all eliminando waterfalls
+  const [data, selectProperties, initialSimulationBundle] = await Promise.all([
+    getCreditLimitPortfolioData({
+      branchId: searchParams.branchId,
+      search: searchParams.q,
+      purpose: searchParams.purpose,
+      bank: searchParams.bank,
+      status: searchParams.status,
+    }),
+    getPropertiesForCreditLimitSelect(),
+    (targetPropertyId || targetProducerId) && initialTab === 'simulator'
+      ? getSimulationInitialBundle({
+          producerId: targetProducerId,
+          propertyId: targetPropertyId,
+        })
+      : Promise.resolve(null),
+  ])
+
+  const resolvedPropertyId =
+    targetPropertyId || initialSimulationBundle?.resolvedPropertyId || undefined
 
   return (
     <CreditLimitContainer
@@ -46,7 +65,13 @@ export default async function CreditLimitPage(props: {
       properties={data.properties}
       branches={data.branches}
       initialTab={initialTab}
-      initialPropertyId={searchParams.propertyId}
+      initialPropertyId={resolvedPropertyId}
+      initialProducerId={targetProducerId}
+      initialAmount={searchParams.amount ? (parseUrlAmount(searchParams.amount) || undefined) : undefined}
+      initialCreditLine={searchParams.creditLine || searchParams.creditLineCode}
+      initialTargetBank={searchParams.bank || searchParams.targetBank}
+      initialPropertiesList={selectProperties}
+      initialSimulationData={initialSimulationBundle?.simulationData || null}
       isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
     />
   )

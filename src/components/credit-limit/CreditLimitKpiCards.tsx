@@ -43,7 +43,7 @@ export function CreditLimitKpiCards({ kpis }: CreditLimitKpiCardsProps) {
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Garantias Ofertáveis
             </span>
-            <div className="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950 text-blue-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-emerald-100/60 dark:bg-emerald-950 text-[#113025] dark:text-emerald-300 flex items-center justify-center">
               <ShieldCheck className="w-4.5 h-4.5" />
             </div>
           </div>
@@ -65,7 +65,7 @@ export function CreditLimitKpiCards({ kpis }: CreditLimitKpiCardsProps) {
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               Propriedades no Hub
             </span>
-            <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-purple-950 text-purple-600 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
               <Building2 className="w-4.5 h-4.5" />
             </div>
           </div>

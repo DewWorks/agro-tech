@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/date-picker'
 
 interface NewReceivableFormProps {
   branches: Array<{ id: string; name: string; city: string }>
@@ -506,12 +507,12 @@ export default function NewReceivableClientForm({
                 <Label htmlFor="firstDueDate" className="text-xs font-semibold">
                   Vencimento da 1ª Parcela:
                 </Label>
-                <Input
-                  id="firstDueDate"
-                  type="date"
+                <DatePicker
                   value={firstDueDate}
-                  onChange={(e) => setFirstDueDate(e.target.value)}
-                  className="text-xs"
+                  onChange={(val) => setFirstDueDate(val || '')}
+                  placeholder="DD/MM/AAAA"
+                  className="text-xs h-9"
+                  showPresets={false}
                 />
               </div>
             </div>

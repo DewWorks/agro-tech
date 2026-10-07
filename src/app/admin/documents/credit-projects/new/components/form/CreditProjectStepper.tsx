@@ -418,6 +418,8 @@ export function CreditProjectStepper({
             hasParamsStep={hasParamsStep}
             stepRTPending={stepRTPending}
             selectedTemplateCode={selectedTemplateCode}
+            producerId={currentProducer?.id}
+            propertyId={currentProperty?.id}
           />
         )}
 
@@ -432,6 +434,8 @@ export function CreditProjectStepper({
             hasParamsStep={true}
             stepRTPending={stepRTPending}
             selectedTemplateCode={selectedTemplateCode}
+            producerId={currentProducer?.id}
+            propertyId={currentProperty?.id}
           />
         )}
 
