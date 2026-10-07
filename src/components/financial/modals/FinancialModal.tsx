@@ -15,6 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DatePicker } from '@/components/ui/date-picker'
+import { CurrencyInput } from '@/components/ui/currency-input'
+import { cn } from '@/lib/utils'
 
 export function FinancialModal({
   isOpen,
@@ -104,7 +107,68 @@ export function InputField({
 }: React.ComponentProps<typeof Input> & { label: string; error?: string }) {
   return (
     <FormField label={label} error={error}>
-      <Input className={`text-xs ${className || ''}`} {...props} />
+      <Input className={cn('text-xs h-9', className)} {...props} />
+    </FormField>
+  )
+}
+
+export function DateField({
+  label,
+  value,
+  onChange,
+  error,
+  placeholder = 'Selecione a data...',
+  disabled,
+  className,
+}: {
+  label: string
+  value?: string | Date | null
+  onChange: (val: string) => void
+  error?: string
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+}) {
+  return (
+    <FormField label={label} error={error}>
+      <DatePicker
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        disabled={disabled}
+        showPresets={false}
+        className={cn('h-9 text-xs font-semibold w-full', className)}
+      />
+    </FormField>
+  )
+}
+
+export function CurrencyField({
+  label,
+  value,
+  onChangeValue,
+  error,
+  placeholder = '0,00',
+  disabled,
+  className,
+}: {
+  label: string
+  value: number | undefined | null
+  onChangeValue: (val: number) => void
+  error?: string
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+}) {
+  return (
+    <FormField label={label} error={error}>
+      <CurrencyInput
+        value={value}
+        onChangeValue={onChangeValue}
+        placeholder={placeholder}
+        disabled={disabled}
+        className={cn('text-xs font-bold h-9', className)}
+      />
     </FormField>
   )
 }
@@ -115,23 +179,25 @@ export function SelectField({
   onChange,
   placeholder,
   options,
+  error,
 }: {
   label: string
   value: string
   onChange: (val: string) => void
   placeholder?: string
   options: { value: string; label: string }[]
+  error?: string
 }) {
   const selectedLabel = options.find((o) => o.value === value)?.label
   return (
-    <FormField label={label}>
+    <FormField label={label} error={error}>
       <Select value={value} onValueChange={(val) => onChange(val || '')}>
-        <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200">
+        <SelectTrigger className="w-full text-xs font-semibold bg-white border-slate-200 h-9">
           <SelectValue placeholder={placeholder}>
             {selectedLabel}
           </SelectValue>
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="z-[100]">
           {options.map((o) => (
             <SelectItem key={o.value} value={o.value}>
               {o.label}

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   CreditCard,
   Building2,
@@ -211,16 +212,13 @@ export function BillProjectFeeModal({
                 <Label htmlFor="dueDate" className="text-xs font-semibold text-slate-700">
                   Data de Vencimento
                 </Label>
-                <div className="relative">
-                  <Input
-                    id="dueDate"
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                    className="h-9 text-xs bg-white"
-                    required
-                  />
-                </div>
+                <DatePicker
+                  value={dueDate}
+                  onChange={(val) => setDueDate(val || '')}
+                  placeholder="DD/MM/AAAA"
+                  className="h-9 text-xs bg-white"
+                  showPresets={true}
+                />
               </div>
             </div>
 

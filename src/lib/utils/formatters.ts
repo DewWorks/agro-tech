@@ -96,6 +96,39 @@ export function formatDate(date?: string | Date | null): string {
   return d.toLocaleDateString('pt-BR')
 }
 
+/**
+ * Converte parâmetro de valor monetário vindo da URL ou inputs para número float positivo,
+ * aceitando formatos numéricos puros ("103950"), formatados em pt-BR ("103.950,00"), etc.
+ */
+export function parseUrlAmount(raw?: string | null): number | null {
+  if (!raw) return null
+  const clean = raw.trim()
+  if (!clean) return null
+
+  // Digitação inteira pura (ex: "103950" ou "250000")
+  if (/^\d+$/.test(clean)) {
+    const n = Number(clean)
+    return !isNaN(n) && n > 0 ? n : null
+  }
+
+  // Moeda brasileira com separador decimal por vírgula (ex: "103.950,00" ou "103,950")
+  if (clean.includes(',')) {
+    const normalized = clean.replace(/\./g, '').replace(',', '.')
+    const n = parseFloat(normalized)
+    return !isNaN(n) && n > 0 ? n : null
+  }
+
+  // Ponto como separador de milhar sem vírgula decimal (ex: "103.950")
+  if (/\.\d{3}$/.test(clean)) {
+    const n = parseFloat(clean.replace(/\./g, ''))
+    return !isNaN(n) && n > 0 ? n : null
+  }
+
+  // Float padrão (ex: "103950.00")
+  const n = parseFloat(clean)
+  return !isNaN(n) && n > 0 ? n : null
+}
+
 // Re-exporta utilitários de máscaras cadastrais
 export {
   formatCPF,

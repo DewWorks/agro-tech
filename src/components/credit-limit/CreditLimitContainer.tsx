@@ -113,6 +113,16 @@ export function CreditLimitContainer({
     const params = new URLSearchParams(searchParams.toString())
     params.set('tab', 'simulator')
     params.set('propertyId', propId)
+    const targetProp = properties.find((p) => p.id === propId)
+    if (targetProp) {
+      if (targetProp.producerId) {
+        params.set('producerId', targetProp.producerId)
+        setSelectedProducerId(targetProp.producerId)
+      }
+      if (targetProp.creditLimitRequested && targetProp.creditLimitRequested > 100) {
+        params.set('amount', String(targetProp.creditLimitRequested))
+      }
+    }
     router.replace(`/admin/credit-limit?${params.toString()}`)
   }
 

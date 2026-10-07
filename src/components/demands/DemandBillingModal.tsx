@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { DatePicker } from '@/components/ui/date-picker'
 import {
   DollarSign,
   Receipt,
@@ -470,13 +471,12 @@ export function DemandBillingModal({
                   <Calendar className="w-4 h-4 text-emerald-700" />
                   Vencimento da Parcela (D+30)
                 </Label>
-                <Input
-                  id="dueDate"
-                  type="date"
+                <DatePicker
                   value={dueDateStr}
-                  onChange={(e) => setDueDateStr(e.target.value)}
-                  className="text-xs font-bold text-slate-900 h-10 rounded-xl border-slate-300 focus:ring-emerald-600"
-                  required
+                  onChange={(val) => setDueDateStr(val || '')}
+                  placeholder="DD/MM/AAAA"
+                  className="text-xs font-bold text-slate-900 h-10 rounded-xl"
+                  showPresets={true}
                 />
               </div>
 

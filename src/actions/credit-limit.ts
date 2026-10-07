@@ -407,6 +407,7 @@ export async function getCreditLimitPortfolioData(
         totalArea,
         branchId: prop.branchId,
         branchName: prop.branch.name,
+        producerId: primaryProducer?.id || null,
         primaryProducerName: primaryProducer?.name || 'Não vinculado',
         primaryProducerDocument: primaryProducer?.document || null,
         landValue,
@@ -609,9 +610,12 @@ export async function getPropertySimulationData(
         latestAnalysis?.targetBank ||
         poss.creditLimitTargetBank ||
         'BANCO_DO_BRASIL',
-      requestedAmount: latestAnalysis
-        ? Number(latestAnalysis.requestedAmount)
-        : Number(poss.creditLimitRequested) || 250000,
+      requestedAmount:
+        latestAnalysis && Number(latestAnalysis.requestedAmount) > 100
+          ? Number(latestAnalysis.requestedAmount)
+          : Number(poss.creditLimitRequested) > 100
+          ? Number(poss.creditLimitRequested)
+          : 250000,
       termMonths:
         latestAnalysis?.termMonths ||
         Number(poss.creditLimitTermMonths) ||

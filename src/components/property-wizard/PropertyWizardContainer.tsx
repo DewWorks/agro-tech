@@ -396,11 +396,19 @@ export function PropertyWizardContainer({
       }
 
       const targetId = saveResult.id || propertyId || initialData?.id
-      if (targetId) {
-        router.push(`/admin/credit-limit?propertyId=${targetId}&tab=simulator`)
-      } else {
-        router.push(`/admin/credit-limit?tab=simulator`)
+      const queryParams = new URLSearchParams()
+      queryParams.set('tab', 'simulator')
+      if (targetId) queryParams.set('propertyId', targetId)
+      const targetProdId = values.producerId || selectedProducer?.id || (initialData as any)?.producerId
+      if (targetProdId) queryParams.set('producerId', targetProdId)
+      const reqAmt = Number(values.creditLimitRequested)
+      if (reqAmt && reqAmt > 100) {
+        queryParams.set('amount', String(reqAmt))
       }
+      if (values.creditLineCode) {
+        queryParams.set('creditLine', values.creditLineCode)
+      }
+      router.push(`/admin/credit-limit?${queryParams.toString()}`)
     } catch (err: any) {
       console.error(err)
       toast.error('Erro ao salvar dados para simulação.')
@@ -537,6 +545,7 @@ export function PropertyWizardContainer({
               form={form}
               isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
               propertyId={propertyId || (initialData?.id as string)}
+              producerId={form.watch('producerId') || selectedProducer?.id || (initialData as any)?.producerId}
               onSaveAndSimulate={handleSaveAndGoToCreditLimit}
             />
           )}

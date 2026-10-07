@@ -25,6 +25,7 @@ interface Step4FinancialSummaryProps {
   form?: UseFormReturn<any>
   isFinancialModuleDisabledForOrg?: boolean
   propertyId?: string
+  producerId?: string
   onSaveAndSimulate?: () => void
 }
 
@@ -32,6 +33,7 @@ export function Step4FinancialSummary({
   form,
   isFinancialModuleDisabledForOrg = false,
   propertyId,
+  producerId,
   onSaveAndSimulate,
 }: Step4FinancialSummaryProps) {
   const context = useFormContext()
@@ -145,6 +147,7 @@ export function Step4FinancialSummary({
       <QuickLimitSummary
         activeForm={activeForm}
         propertyId={propertyId}
+        producerId={producerId}
         formatBRL={calculations.formatBRL}
         onSaveAndSimulate={onSaveAndSimulate}
       />

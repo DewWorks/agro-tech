@@ -272,7 +272,12 @@ export async function saveCreditAnalysis(payload: SaveCreditAnalysisInput) {
         creditLineName: lineDef?.name || 'PRONAMP - Custeio Agropecuário',
         creditLineAxis: axis as CreditLineAxis,
         targetBank,
-        status: riskAnalysis.overallStatus as any,
+        status:
+          riskAnalysis.overallStatus === 'APROVADO'
+            ? 'VALIDADO'
+            : riskAnalysis.overallStatus === 'REPROVADO'
+            ? 'REPROVADO'
+            : 'CALCULADO',
         requestedAmount: payload.requestedAmount,
         termMonths,
         gracePeriodMonths: graceMonths,
@@ -684,6 +689,34 @@ export async function createProtocolDemandFromAnalysis({
       success: false,
       error: error?.message || 'Falha ao criar demanda de protocolo bancário',
     }
+  }
+}
+
+/**
+ * Define uma análise de crédito como oficial (status VALIDADO) para o produtor/propriedade.
+ */
+export async function setOfficialCreditAnalysis(analysisId: string, producerId?: string) {
+  try {
+    const user = await getUserContext()
+    if (!user) return { success: false, error: 'Não autorizado' }
+
+    const target = await prisma.creditAnalysis.findUnique({
+      where: { id: analysisId },
+    })
+    if (!target) return { success: false, error: 'Análise não encontrada' }
+
+    // Atualiza a análise selecionada para VALIDADO
+    await prisma.creditAnalysis.update({
+      where: { id: analysisId },
+      data: { status: 'VALIDADO' },
+    })
+
+    revalidatePath('/admin/credit-limit')
+    revalidatePath('/admin/crm/properties')
+    return { success: true }
+  } catch (error: any) {
+    console.error('[setOfficialCreditAnalysis] Erro:', error)
+    return { success: false, error: error?.message || 'Erro ao definir análise oficial' }
   }
 }
 

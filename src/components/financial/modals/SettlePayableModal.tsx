@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { formatCurrency } from '@/lib/utils'
 import { settlePayableInstallment } from '@/actions/financial/payables'
 import { toast } from 'sonner'
-import { FinancialModal, InputField, SelectField } from './FinancialModal'
+import { FinancialModal, CurrencyField, DateField, SelectField } from './FinancialModal'
 
 export default function SettlePayableModal({
   isOpen, onClose, selectedPayable, selectedInstallment, bankAccounts, onSuccess,
@@ -41,15 +41,24 @@ export default function SettlePayableModal({
     >
       {selectedInstallment && selectedPayable && (
         <>
-          <div className="rounded-lg bg-slate-50 p-2.5 space-y-1 border border-slate-200">
+          <div className="rounded-xl bg-slate-50 p-3 space-y-1 border border-slate-200">
             <div className="font-bold text-slate-900">{selectedPayable.supplierName} • {selectedPayable.documentNumber || 'S/N'}</div>
-            <div className="text-slate-500">Boleto {selectedInstallment.installmentNumber}/{selectedInstallment.totalInstallments} • Vencimento: {new Date(selectedInstallment.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
-            <div className="text-slate-700 font-semibold pt-0.5">Saldo devedor: <span className="text-rose-600 font-bold">{formatCurrency(residual)}</span></div>
+            <div className="text-slate-500 text-xs">Boleto {selectedInstallment.installmentNumber}/{selectedInstallment.totalInstallments} • Vencimento: {new Date(selectedInstallment.dueDate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}</div>
+            <div className="text-slate-700 font-semibold pt-0.5 text-xs">Saldo devedor: <span className="text-rose-600 font-bold">{formatCurrency(residual)}</span></div>
           </div>
           <SelectField label="Conta Bancária de Saída / Débito:" value={bankAccountId} onChange={setBankAccountId} options={bankAccounts.map((b) => ({ value: b.id, label: `${b.bankName} (Saldo: ${formatCurrency(Number(b.currentBalance))})` }))} />
-          <div className="grid grid-cols-2 gap-2">
-            <InputField label="Valor a Pagar (R$):" type="number" step="0.01" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} className="font-bold text-rose-800" />
-            <InputField label="Data do Pagamento:" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+          <div className="grid grid-cols-2 gap-3 items-end">
+            <CurrencyField
+              label="Valor a Pagar (R$):"
+              value={amount}
+              onChangeValue={(val) => setAmount(val)}
+              className="font-bold text-rose-700"
+            />
+            <DateField
+              label="Data do Pagamento:"
+              value={date}
+              onChange={(val) => setDate(val || new Date().toISOString().slice(0, 10))}
+            />
           </div>
         </>
       )}

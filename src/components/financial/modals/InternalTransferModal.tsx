@@ -6,7 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import { transferBetweenBankAccounts } from '@/actions/financial/settings'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { FinancialModal, InputField, SelectField } from './FinancialModal'
+import { FinancialModal, InputField, SelectField, CurrencyField } from './FinancialModal'
 
 export default function InternalTransferModal({
   isOpen, onClose, bankAccounts, onSuccess,
@@ -54,7 +54,7 @@ export default function InternalTransferModal({
       </div>
       <SelectField label="Conta de Origem (Débito):" value={sourceId} onChange={setSourceId} options={accountOptions} />
       <SelectField label="Conta de Destino (Crédito):" value={destId} onChange={setDestId} options={accountOptions} />
-      <InputField label="Valor a Transferir (R$):" type="number" step="0.01" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value) || 0)} className="font-bold text-slate-900" />
+      <CurrencyField label="Valor a Transferir (R$):" value={amount} onChangeValue={setAmount} className="font-bold text-slate-900" />
       <InputField label="Motivo / Descrição:" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Ex: Suprimento do caixa em espécie para vistorias" />
     </FinancialModal>
   )

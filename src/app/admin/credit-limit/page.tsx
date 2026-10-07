@@ -7,6 +7,7 @@ import {
   getSimulationInitialBundle,
 } from '@/actions/credit-limit'
 import { CreditLimitContainer } from '@/components/credit-limit/CreditLimitContainer'
+import { parseUrlAmount } from '@/lib/utils/formatters'
 
 export default async function CreditLimitPage(props: {
   searchParams: Promise<{ [key: string]: string | undefined }> | { [key: string]: string | undefined }
@@ -66,7 +67,7 @@ export default async function CreditLimitPage(props: {
       initialTab={initialTab}
       initialPropertyId={resolvedPropertyId}
       initialProducerId={targetProducerId}
-      initialAmount={searchParams.amount ? Number(searchParams.amount) : undefined}
+      initialAmount={searchParams.amount ? (parseUrlAmount(searchParams.amount) || undefined) : undefined}
       initialCreditLine={searchParams.creditLine || searchParams.creditLineCode}
       initialTargetBank={searchParams.bank || searchParams.targetBank}
       initialPropertiesList={selectProperties}

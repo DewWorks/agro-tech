@@ -77,6 +77,9 @@ export function resolveCreditLineCode(rawInput?: string | null): string | null {
   return clean
 }
 
+import { parseUrlAmount } from '@/lib/utils/formatters'
+export { parseUrlAmount }
+
 export interface UseCreditRiskSimulatorOptions {
   initialPropertyId?: string
   initialProducerId?: string
@@ -111,14 +114,14 @@ export function useCreditRiskSimulator({
 
   const [requestedAmount, setRequestedAmount] = useState<number>(() => {
     const raw = searchParams?.get('amount') || searchParams?.get('requestedAmount')
-    if (raw) {
-      const parsed = Number(raw)
-      if (!isNaN(parsed) && parsed > 0) return parsed
-    }
-    if (initialAmount && initialAmount > 0) return initialAmount
-    if (initialSimulationData?.simulationParams?.requestedAmount) {
-      return initialSimulationData.simulationParams.requestedAmount
-    }
+    const parsedUrl = parseUrlAmount(raw)
+    if (parsedUrl && parsedUrl > 100) return parsedUrl
+
+    if (initialAmount && initialAmount > 100) return initialAmount
+
+    const simAmt = initialSimulationData?.simulationParams?.requestedAmount
+    if (simAmt && simAmt > 100) return simAmt
+
     return 250000
   })
 
@@ -260,8 +263,8 @@ export function useCreditRiskSimulator({
       setSelectedProducerId(urlProd)
     }
     if (urlAmt) {
-      const parsed = Number(urlAmt)
-      if (!isNaN(parsed) && parsed > 0 && parsed !== requestedAmount) {
+      const parsed = parseUrlAmount(urlAmt)
+      if (parsed && parsed > 100 && parsed !== requestedAmount) {
         setRequestedAmount(parsed)
       }
     }
@@ -312,11 +315,13 @@ export function useCreditRiskSimulator({
           }
 
           const rawAmt = searchParams?.get('amount') || searchParams?.get('requestedAmount')
-          const parsedAmt = rawAmt ? Number(rawAmt) : null
-          if (parsedAmt && !isNaN(parsedAmt) && parsedAmt > 0) {
+          const parsedAmt = parseUrlAmount(rawAmt)
+          if (parsedAmt && parsedAmt > 100) {
             setRequestedAmount(parsedAmt)
-          } else if (params.requestedAmount) {
+          } else if (params.requestedAmount && params.requestedAmount > 100) {
             setRequestedAmount(params.requestedAmount)
+          } else if (requestedAmount <= 100) {
+            setRequestedAmount(250000)
           }
 
           setTermMonths(params.termMonths || 12)

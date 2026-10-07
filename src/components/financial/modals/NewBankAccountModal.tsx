@@ -5,7 +5,7 @@ import { maskBankAgency, maskBankAccount } from '@/lib/utils'
 import { createBankAccount } from '@/actions/financial/settings'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { FinancialModal, InputField, SelectField } from './FinancialModal'
+import { FinancialModal, InputField, SelectField, CurrencyField } from './FinancialModal'
 
 export default function NewBankAccountModal({
   isOpen, onClose, branches, currentBranchId, onSuccess,
@@ -59,7 +59,7 @@ export default function NewBankAccountModal({
           <InputField label="Nº Conta:" value={accountNumber} onChange={(e) => setAccountNumber(maskBankAccount(e.target.value))} placeholder="12345-6" maxLength={15} className="font-mono" />
         </div>
       )}
-      <InputField label="Saldo Inicial em Caixa / Abertura (R$):" type="number" step="0.01" value={initialBalance} onChange={(e) => setInitialBalance(parseFloat(e.target.value) || 0)} className="font-bold text-slate-900" />
+      <CurrencyField label="Saldo Inicial em Caixa / Abertura (R$):" value={initialBalance} onChangeValue={setInitialBalance} className="font-bold text-slate-900" />
     </FinancialModal>
   )
 }

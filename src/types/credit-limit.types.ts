@@ -29,6 +29,7 @@ export interface CreditLimitPropertyItem {
   totalArea: number
   branchId: string
   branchName: string
+  producerId?: string | null
   primaryProducerName: string
   primaryProducerDocument: string | null
   landValue: number
