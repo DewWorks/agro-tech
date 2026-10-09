@@ -6,6 +6,13 @@ import { LivestockTableRow } from '@/components/property-wizard/steps/step3-subc
 import { MachineryTableRow } from '@/components/property-wizard/steps/step2-subcomponents/MachineryTableRow'
 import { Step4FinancialSummary, PURPOSE_OPTIONS, BANK_OPTIONS } from '@/components/property-wizard/steps/Step4FinancialSummary'
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    refresh: jest.fn(),
+  }),
+}))
+
 function ImprovementTestApp() {
   const methods = useForm({
     defaultValues: {

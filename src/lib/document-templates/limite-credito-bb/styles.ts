@@ -28,14 +28,18 @@ export const documentStyles = `
         break-after: avoid !important;
       }
     }
+    img, svg, .bank-logo, .dossie-logo {
+      display: inline-block !important;
+      vertical-align: middle !important;
+    }
     .page-sheet, .dossie-page {
       background: #ffffff;
       width: 794px;
       max-width: 794px;
-      height: 1120px;
-      max-height: 1120px;
+      height: 1040px;
+      max-height: 1040px;
       margin: 0 auto;
-      padding: 22px 26px 45px 26px;
+      padding: 20px 24px 38px 24px;
       font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
       color: #1f2937;
       font-size: 10px;
@@ -45,6 +49,7 @@ export const documentStyles = `
       position: relative;
       page-break-inside: avoid;
       break-inside: avoid;
+      overflow: hidden;
     }
     .dossie-page:not(.dossie-page-last) {
       page-break-after: always;
@@ -77,7 +82,7 @@ export const documentStyles = `
     }
     .dossie-card-header {
       background: #f3f4f6;
-      padding: 4px 9px;
+      padding: 6px 12px !important;
       font-weight: 700;
       color: #111827;
       border-bottom: 1px solid #d1d5db;
@@ -85,47 +90,56 @@ export const documentStyles = `
       border-top-right-radius: 3px;
       text-transform: uppercase;
       font-size: 9.5px;
-      line-height: 1.3;
+      line-height: 1.3 !important;
+      box-sizing: border-box;
     }
     .dossie-table {
-      width: 100%;
-      border-collapse: separate;
-      border-spacing: 0;
+      width: 100% !important;
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+      table-layout: fixed !important;
       text-align: left;
       font-size: 9px;
-      line-height: 1.25;
+      line-height: 1.35;
       font-variant-numeric: tabular-nums;
+      box-sizing: border-box;
     }
     .dossie-table th {
       background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
       border-bottom: 1px solid #e5e7eb;
-      padding: 5px 8px;
+      padding: 8px 10px !important;
       font-weight: 700;
       color: #374151;
       font-size: 8.5px;
       text-transform: uppercase;
       vertical-align: middle !important;
       box-sizing: border-box;
+      white-space: nowrap;
     }
     .dossie-table td {
-      padding: 5px 8px;
+      border-bottom: 1px solid #f1f5f9 !important;
+      padding: 8px 10px !important;
       vertical-align: middle !important;
       box-sizing: border-box;
-      line-height: 1.25;
+      line-height: 1.35;
     }
     .dossie-table td > div,
     .dossie-table td > span {
-      line-height: 1.25;
+      line-height: 1.35;
       vertical-align: middle;
     }
     .dossie-total-row,
     .dossie-total-row td {
-      padding: 7px 8px !important;
+      border-top: 1px solid #d1d5db !important;
+      border-bottom: 1px solid #d1d5db !important;
+      padding: 8px 10px !important;
       font-size: 9.5px !important;
       font-weight: 700 !important;
-      line-height: 1.3 !important;
+      line-height: 1.35 !important;
       vertical-align: middle !important;
       box-sizing: border-box;
+      white-space: nowrap;
     }
     .badge-approved {
       background: #d1fae5;

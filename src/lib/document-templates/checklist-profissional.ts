@@ -88,7 +88,7 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
   }
 
   return `
-  <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.5; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff;">
+  <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.5; padding: 20px 24px; width: 794px; height: 1040px; max-height: 1040px; overflow: hidden; box-sizing: border-box; margin: 0 auto; background: #fff;">
     
     <!-- CABEÇALHO OFICIAL -->
     <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
@@ -273,44 +273,44 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
         <div style="background: #374151; color: #fff; padding: 6px 12px; font-weight: bold; font-size: 12px; text-transform: uppercase;">
           5. Controle Interno e Acompanhamento da Esteira
         </div>
-        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 11px;">
+        <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 11px;">
           <thead>
-            <tr style="background: #f3f4f6; border-bottom: 1px solid #e5e7eb;">
-              <th style="padding: 6px 12px;">Etapa Operacional</th>
-              <th style="padding: 6px 12px;">Data Prevista / Realizada</th>
-              <th style="padding: 6px 12px;">Responsável / Status</th>
+            <tr style="background: #f3f4f6;">
+              <th style="width: 44%; padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Etapa Operacional</th>
+              <th style="width: 28%; padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Data Prevista / Realizada</th>
+              <th style="width: 28%; padding: 8px 12px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Responsável / Status</th>
             </tr>
           </thead>
           <tbody>
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 6px 12px; font-weight: 600;">1. Atendimento Inicial & Triagem</td>
-              <td style="padding: 6px 12px;">${entryDate}</td>
-              <td style="padding: 6px 12px; color: #065f46; font-weight: bold;">Concluído</td>
+              <td style="padding: 8px 12px; font-weight: 600; vertical-align: middle;">1. Atendimento Inicial & Triagem</td>
+              <td style="padding: 8px 12px; vertical-align: middle; white-space: nowrap;">${entryDate}</td>
+              <td style="padding: 8px 12px; color: #065f46; font-weight: bold; vertical-align: middle; white-space: nowrap;">Concluído</td>
             </tr>
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 6px 12px; font-weight: 600;">2. Recebimento e Conferência de Documentos</td>
-              <td style="padding: 6px 12px;">___ / ___ / ______</td>
-              <td style="padding: 6px 12px;">Em Validação</td>
+              <td style="padding: 8px 12px; font-weight: 600; vertical-align: middle;">2. Recebimento e Conferência de Documentos</td>
+              <td style="padding: 8px 12px; vertical-align: middle; white-space: nowrap;">___ / ___ / ______</td>
+              <td style="padding: 8px 12px; vertical-align: middle; white-space: nowrap;">Em Validação</td>
             </tr>
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 6px 12px; font-weight: 600;">3. Elaboração do Projeto Técnico & ART</td>
-              <td style="padding: 6px 12px;">___ / ___ / ______</td>
-              <td style="padding: 6px 12px;">${responsible}</td>
+              <td style="padding: 8px 12px; font-weight: 600; vertical-align: middle;">3. Elaboração do Projeto Técnico & ART</td>
+              <td style="padding: 8px 12px; vertical-align: middle; white-space: nowrap;">___ / ___ / ______</td>
+              <td style="padding: 8px 12px; vertical-align: middle;">${responsible}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 6px 12px; font-weight: 600;">4. Assinatura do Cliente e Protocolo no Banco</td>
-              <td style="padding: 6px 12px;">___ / ___ / ______</td>
-              <td style="padding: 6px 12px;">Agência ${bank}</td>
+              <td style="padding: 8px 12px; font-weight: 600; vertical-align: middle;">4. Assinatura do Cliente e Protocolo no Banco</td>
+              <td style="padding: 8px 12px; vertical-align: middle; white-space: nowrap;">___ / ___ / ______</td>
+              <td style="padding: 8px 12px; vertical-align: middle;">Agência ${bank}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 6px 12px; font-weight: 600;">5. Parecer e Aprovação de Crédito (SICOR)</td>
-              <td style="padding: 6px 12px;">___ / ___ / ______</td>
-              <td style="padding: 6px 12px;">Comitê de Crédito</td>
+              <td style="padding: 8px 12px; font-weight: 600; vertical-align: middle;">5. Parecer e Aprovação de Crédito (SICOR)</td>
+              <td style="padding: 8px 12px; vertical-align: middle; white-space: nowrap;">___ / ___ / ______</td>
+              <td style="padding: 8px 12px; vertical-align: middle;">Comitê de Crédito</td>
             </tr>
             <tr>
-              <td style="padding: 6px 12px; font-weight: 600;">6. Contratação e Liberação de Recursos</td>
-              <td style="padding: 6px 12px;">___ / ___ / ______</td>
-              <td style="padding: 6px 12px;">Conta Corrente Vinculada</td>
+              <td style="padding: 8px 12px; font-weight: 600; vertical-align: middle;">6. Contratação e Liberação de Recursos</td>
+              <td style="padding: 8px 12px; vertical-align: middle; white-space: nowrap;">___ / ___ / ______</td>
+              <td style="padding: 8px 12px; vertical-align: middle;">Conta Corrente Vinculada</td>
             </tr>
           </tbody>
         </table>

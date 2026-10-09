@@ -161,31 +161,82 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
     const toastId = toast.loading('Compilando documento PDF oficial...')
 
     try {
-      const html2pdf = (await import('html2pdf.js')).default
+      if (typeof document !== 'undefined' && document.fonts) {
+        await document.fonts.ready
+      }
+      const { jsPDF } = await import('jspdf')
+      const html2canvas = (await import('html2canvas')).default
       const element = contentRef.current
+
+      if (!element) {
+        throw new Error('Elemento de visualização não encontrado para captura.')
+      }
 
       const sanitizedTitle = documentData.template.title.replace(/[^a-zA-Z0-9]/g, '_')
       const sanitizedName = documentData.producer.name.replace(/[^a-zA-Z0-9]/g, '_')
       const fileName = `${sanitizedTitle}_${sanitizedName}.pdf`
 
-      const opt = {
-        margin: 6,
-        filename: fileName,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
+      const pdf = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+        compress: true,
+      })
+
+      const pages = element.querySelectorAll<HTMLElement>('.page-sheet, .dossie-page, .document-page')
+
+      if (pages.length > 0) {
+        for (let i = 0; i < pages.length; i++) {
+          if (i > 0) {
+            pdf.addPage('a4', 'portrait')
+          }
+          const pageEl = pages[i]
+          const canvas = await html2canvas(pageEl, {
+            scale: 2.5,
+            useCORS: true,
+            logging: false,
+            scrollX: 0,
+            scrollY: 0,
+            windowWidth: 794,
+            backgroundColor: '#ffffff',
+            ignoreElements: (node: Element) => node.tagName?.toLowerCase() === 'noscript',
+            onclone: (clonedDoc: Document) => {
+              const target = clonedDoc.getElementById('permanent-printable-document')
+              if (target) {
+                target.style.width = '794px'
+                target.style.margin = '0'
+                target.style.backgroundColor = '#ffffff'
+              }
+            },
+          })
+          const imgData = canvas.toDataURL('image/jpeg', 0.98)
+          pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
+        }
+      } else {
+        const canvas = await html2canvas(element, {
+          scale: 2.5,
           useCORS: true,
           logging: false,
-          ignoreElements: (node: Element) => {
-            const tag = node.tagName?.toLowerCase()
-            return tag === 'noscript'
-          }
-        },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794,
+          backgroundColor: '#ffffff',
+          ignoreElements: (node: Element) => node.tagName?.toLowerCase() === 'noscript',
+          onclone: (clonedDoc: Document) => {
+            const target = clonedDoc.getElementById('permanent-printable-document')
+            if (target) {
+              target.style.width = '794px'
+              target.style.margin = '0'
+              target.style.backgroundColor = '#ffffff'
+            }
+          },
+        })
+        const imgData = canvas.toDataURL('image/jpeg', 0.98)
+        pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
       }
 
       // Gerar blob de saída para cálculo de integridade e download transparente
-      const pdfBlob: Blob = await html2pdf().set(opt).from(element).output('blob')
+      const pdfBlob: Blob = pdf.output('blob')
 
       if (!pdfBlob || pdfBlob.size === 0) {
         throw new Error('Falha ao compilar o arquivo PDF (tamanho 0 bytes).')
@@ -578,23 +629,27 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
         <div
           aria-hidden="true"
           style={{
-            position: 'absolute',
-            left: '-9999px',
+            position: 'fixed',
+            left: 0,
             top: 0,
-            width: '800px',
+            width: '794px',
+            minHeight: '1123px',
             zIndex: -9999,
-            overflow: 'hidden',
             pointerEvents: 'none',
+            overflow: 'visible',
+            backgroundColor: '#ffffff',
           }}
         >
           <div
             ref={contentRef}
             id="permanent-printable-document"
             style={{
-              width: '800px',
+              width: '794px',
+              minHeight: '1123px',
               backgroundColor: '#ffffff',
               color: '#1f2937',
               boxSizing: 'border-box',
+              margin: 0,
             }}
           >
             <A4DocumentPreview documentData={documentData} />

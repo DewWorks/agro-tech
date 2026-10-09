@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   ShieldCheck,
   User,
   Landmark,
@@ -43,6 +50,7 @@ import {
   createDemandFromCreditProject,
   linkProjectToExistingDemand,
 } from '@/actions/credit-projects'
+import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
 
 interface ConfirmEmitModalProps {
   isOpen: boolean
@@ -315,11 +323,12 @@ export function ConfirmEmitModal({
     /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawBranchName.trim())
   const activeBranchName = isUuid || !rawBranchName ? 'Filial Principal' : rawBranchName
 
-  const accessRoute =
+  const rawAccessRoute =
     customOptions?.propertyAccessRoute ||
     currentProperty?.accessRoute ||
     (currentProperty?.possessionData as any)?.accessRoute ||
     null
+  const accessRoute = rawAccessRoute ? sanitizeAccessRoute(rawAccessRoute) : null
 
   const hasCrea = Boolean(customOptions?.creaNumber?.trim())
   const isCreaRequired = [
@@ -514,25 +523,30 @@ export function ConfirmEmitModal({
                   </p>
 
                   <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                    <select
+                    <Select
                       value={selectedTargetDemandId}
-                      onChange={(e) => setSelectedTargetDemandId(e.target.value)}
+                      onValueChange={(val) => setSelectedTargetDemandId(val || '')}
                       disabled={isLinkingDemand || activeDemands.length === 0}
-                      className="flex-1 h-9 rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 font-medium"
                     >
-                      <option value="">
-                        {isLoadingDemands
-                          ? 'Carregando demandas em aberto...'
-                          : activeDemands.length === 0
-                          ? 'Nenhuma demanda em aberto para este produtor'
-                          : 'Selecione uma demanda em andamento...'}
-                      </option>
-                      {activeDemands.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          Demanda #{d.id.slice(-6).toUpperCase()} • {d.serviceType} {d.property?.name ? `(${d.property.name})` : ''} • {d.status}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="flex-1 h-9 rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-800 focus:ring-2 focus:ring-emerald-500 font-medium">
+                        <SelectValue
+                          placeholder={
+                            isLoadingDemands
+                              ? 'Carregando demandas em aberto...'
+                              : activeDemands.length === 0
+                              ? 'Nenhuma demanda em aberto para este produtor'
+                              : 'Selecione uma demanda em andamento...'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-slate-200 shadow-xl rounded-xl">
+                        {activeDemands.map((d) => (
+                          <SelectItem key={d.id} value={d.id} className="text-xs">
+                            Demanda #{d.id.slice(-6).toUpperCase()} • {d.serviceType} {d.property?.name ? `(${d.property.name})` : ''} • {d.status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
                     <Button
                       type="button"

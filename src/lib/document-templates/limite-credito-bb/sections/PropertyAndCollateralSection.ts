@@ -98,7 +98,7 @@ export function renderPropertyAndCollateralSection({
       <div style="background: #f3f4f6; padding: 3px 8px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 10px;">
         II - Discriminação de Terras e Uso Atual do Solo (${prop.name || 'Propriedade Principal'})
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9.5px;">
+      <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 9.5px;">
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
             <th style="padding: 3px 6px;">Uso / Discriminação do Solo</th>
@@ -146,7 +146,7 @@ export function renderPropertyAndCollateralSection({
       <div style="background: #f3f4f6; padding: 3px 8px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase; font-size: 10px;">
         III - Benfeitorias, Instalações e Edificações Rurais
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9.5px;">
+      <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 9.5px;">
         <thead>
           <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
             <th style="padding: 3px 6px;">Especificação da Benfeitoria</th>
@@ -189,7 +189,7 @@ export function renderPropertyAndCollateralSection({
       </div>
 
       ${consolidatedLivestock.length > 0 ? `
-      <table style="width: 100%; table-layout: fixed; border-collapse: collapse; text-align: left; font-size: 9px;">
+      <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 9px;">
         <colgroup>
           <col style="width: 16%;">
           <col style="width: 18%;">

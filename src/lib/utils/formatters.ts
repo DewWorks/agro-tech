@@ -145,3 +145,7 @@ export {
   maskBankAgency,
   maskBankAccount,
 }
+
+// Re-exporta sanitização documental e formatação de rota e gleba
+export { sanitizeAccessRoute, formatGlebaRoteiro } from '@/lib/document-templates/limite-credito-bb/formatters'
+

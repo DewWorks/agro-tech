@@ -1,5 +1,6 @@
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 import { getDocumentTypeAndLabel } from '@/lib/utils/masks'
+import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
 
 export interface RenovAgroDocumentData {
   producer: {
@@ -92,7 +93,7 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
     subline.toLowerCase().includes('equipamento')
 
   return `
-  <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
+  <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 20px 24px; width: 794px; height: 1040px; max-height: 1040px; overflow: hidden; box-sizing: border-box; margin: 0 auto; background: #fff; font-size: 11px;">
     
     <!-- CABEÇALHO OFICIAL RENOVAGRO -->
     <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
@@ -112,11 +113,11 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
     </div>
 
     <!-- 01. PROPONENTE -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
+    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 14px; overflow: hidden;">
+      <div style="background: #f3f4f6; padding: 6px 14px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
         ${isCnpj ? '01 - Identificação da Empresa Proponente & Representante Legal' : '01 - Identificação do Proponente'}
       </div>
-      <div style="padding: 6px 12px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px 16px; font-size: 11px; line-height: 1.5;">
+      <div style="padding: 10px 14px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px 16px; font-size: 11px; line-height: 1.4;">
         <div><strong>${isCnpj ? 'Razão Social:' : 'Nome:'}</strong> ${p.name || '-'}</div>
         <div style="white-space: nowrap;"><strong>${docLabel}:</strong> ${docFormatted || '-'}</div>
         ${isCnpj ? `
@@ -134,31 +135,31 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
 
     <!-- 02. IMÓVEIS EXPLORADOS E IMÓVEL BENEFICIADO -->
     <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
+      <div style="background: #f3f4f6; padding: 6px 12px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
         02 - Imóvel Beneficiado pelo Investimento
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
+      <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 10px;">
         <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-            <th style="padding: 4px 8px;">Denominação do Imóvel</th>
-            <th style="padding: 4px 8px;">Matrícula / CRI</th>
-            <th style="padding: 4px 8px;">CAR</th>
-            <th style="padding: 4px 8px; text-align: right;">Área Total</th>
-            <th style="padding: 4px 8px; text-align: right;">${isAnimalOrEquipment ? 'Quant. Projeto' : 'Área do Projeto'}</th>
+          <tr style="background: #f9fafb;">
+            <th style="width: 30%; padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Denominação do Imóvel</th>
+            <th style="width: 24%; padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Matrícula / CRI</th>
+            <th style="width: 18%; padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">CAR</th>
+            <th style="width: 14%; padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Área Total</th>
+            <th style="width: 14%; padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">${isAnimalOrEquipment ? 'Quant. Projeto' : 'Área do Projeto'}</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style="padding: 5px 8px; font-weight: bold;">${prop.name || 'Fazenda Principal'}</td>
-            <td style="padding: 5px 8px;">${prop.registrationNumber || 'Pendente'} (${prop.registryOffice || 'CRI'})</td>
-            <td style="padding: 5px 8px;">${prop.car || 'Pendente'}</td>
-            <td style="padding: 5px 8px; text-align: right;">${(prop.totalAreaHa || 0).toFixed(2)} ha</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-weight: bold;">${areaRecover > 0 ? (isAnimalOrEquipment ? `${areaRecover.toFixed(0)} un/cab` : `${areaRecover.toFixed(2)} ha`) : 'Pendente'}</td>
+            <td style="padding: 8px 10px; font-weight: bold; vertical-align: middle;">${prop.name || 'Fazenda Principal'}</td>
+            <td style="padding: 8px 10px; vertical-align: middle;">${prop.registrationNumber || 'Pendente'} (${prop.registryOffice || 'CRI'})</td>
+            <td style="padding: 8px 10px; vertical-align: middle;">${prop.car || 'Pendente'}</td>
+            <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">${(prop.totalAreaHa || 0).toFixed(2)} ha</td>
+            <td style="padding: 8px 10px; text-align: right; color: #1B4D3E; font-weight: bold; vertical-align: middle; white-space: nowrap;">${areaRecover > 0 ? (isAnimalOrEquipment ? `${areaRecover.toFixed(0)} un/cab` : `${areaRecover.toFixed(2)} ha`) : 'Pendente'}</td>
           </tr>
         </tbody>
       </table>
-      <div style="padding: 4px 8px; background: #fafafa; border-top: 1px solid #e5e7eb; font-size: 9px; color: #4b5563;">
-        <strong>Roteiro de Acesso:</strong> ${prop.accessRoute || 'Não informado'}
+      <div style="padding: 8px 14px; background: #fafafa; border-top: 1px solid #e5e7eb; font-size: 9.5px; color: #4b5563; line-height: 1.4;">
+        <strong>Roteiro de Acesso:</strong> ${sanitizeAccessRoute(prop.accessRoute)}
       </div>
     </div>
 
@@ -178,42 +179,42 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
         04 - Plano de Investimento & Composição de Custos ${areaRecover > 0 ? (isAnimalOrEquipment ? `(${areaRecover.toFixed(0)} un/cab)` : `(${areaRecover.toFixed(2)} ha)`) : ''}
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
+      <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 10px;">
         <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-            <th style="padding: 4px 8px;">Item / Discriminação do ${isAnimalOrEquipment ? 'Bem ou Semovente' : 'Serviço ou Insumo'}</th>
-            <th style="padding: 4px 8px;">${isAnimalOrEquipment ? 'Quant. Total' : 'Quant./ha'}</th>
-            <th style="padding: 4px 8px; text-align: right;">Custo Unit. Estimado</th>
-            <th style="padding: 4px 8px; text-align: right;">Total Item (R$)</th>
+          <tr style="background: #f9fafb;">
+            <th style="width: 40%; padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Item / Discriminação do ${isAnimalOrEquipment ? 'Bem ou Semovente' : 'Serviço ou Insumo'}</th>
+            <th style="width: 18%; padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">${isAnimalOrEquipment ? 'Quant. Total' : 'Quant./ha'}</th>
+            <th style="width: 21%; padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Custo Unit. Estimado</th>
+            <th style="width: 21%; padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Total Item (R$)</th>
           </tr>
         </thead>
         <tbody>
           ${totalInv > 0 && areaRecover > 0 ? (
             isAnimalOrEquipment ? `
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 4px 8px; font-weight: 500;">${subline || 'Aquisição de Semoventes / Bens Financiáveis'}</td>
-              <td style="padding: 4px 8px;">${areaRecover.toFixed(0)} un/cab</td>
-              <td style="padding: 4px 8px; text-align: right;">R$ ${costPerHa.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
-              <td style="padding: 4px 8px; text-align: right; font-weight: bold; color: #1B4D3E;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+              <td style="padding: 8px 10px; font-weight: 500; vertical-align: middle;">${subline || 'Aquisição de Semoventes / Bens Financiáveis'}</td>
+              <td style="padding: 8px 10px; vertical-align: middle; white-space: nowrap;">${areaRecover.toFixed(0)} un/cab</td>
+              <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${costPerHa.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+              <td style="padding: 8px 10px; text-align: right; font-weight: bold; color: #1B4D3E; vertical-align: middle; white-space: nowrap;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
             </tr>
             ` : `
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 4px 8px;">Calagem e Preparo do Solo</td>
-              <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
-              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
-              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.25).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+              <td style="padding: 8px 10px; vertical-align: middle;">Calagem e Preparo do Solo</td>
+              <td style="padding: 8px 10px; vertical-align: middle; white-space: nowrap;">${areaRecover.toFixed(1)} ha</td>
+              <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${(totalInv * 0.25 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+              <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${(totalInv * 0.25).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 4px 8px;">Adubação Corretiva e de Manutenção</td>
-              <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
-              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
-              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.45).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+              <td style="padding: 8px 10px; vertical-align: middle;">Adubação Corretiva e de Manutenção</td>
+              <td style="padding: 8px 10px; vertical-align: middle; white-space: nowrap;">${areaRecover.toFixed(1)} ha</td>
+              <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${(totalInv * 0.45 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+              <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${(totalInv * 0.45).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
             </tr>
             <tr style="border-bottom: 1px solid #f3f4f6;">
-              <td style="padding: 4px 8px;">Sementes, Inoculantes e Plantio</td>
-              <td style="padding: 4px 8px;">${areaRecover.toFixed(1)} ha</td>
-              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
-              <td style="padding: 4px 8px; text-align: right;">R$ ${(totalInv * 0.30).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+              <td style="padding: 8px 10px; vertical-align: middle;">Sementes, Inoculantes e Plantio</td>
+              <td style="padding: 8px 10px; vertical-align: middle; white-space: nowrap;">${areaRecover.toFixed(1)} ha</td>
+              <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${(totalInv * 0.30 / areaRecover).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} / ha</td>
+              <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${(totalInv * 0.30).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
             </tr>
             `
           ) : `
@@ -224,8 +225,8 @@ export function generateProjetoRenovagroHtml(data: RenovAgroDocumentData): strin
           </tr>
           `}
           <tr style="background: #f3f4f6; font-weight: bold;">
-            <td colspan="3" style="padding: 5px 8px;">VALOR TOTAL DO INVESTIMENTO PROPOSTO</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-size: 11px;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td colspan="3" style="padding: 8px 10px; vertical-align: middle;">VALOR TOTAL DO INVESTIMENTO PROPOSTO</td>
+            <td style="padding: 8px 10px; text-align: right; color: #1B4D3E; font-size: 11px; vertical-align: middle; white-space: nowrap;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
         </tbody>
       </table>
