@@ -118,6 +118,12 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
         name: previewProject.propertyName,
         city: previewProject.propertyCity,
         state: previewProject.propertyState,
+        registrationNumber: (previewProject.payloadSnapshot as any)?.propertyRegistrationNumber,
+        registryOffice: (previewProject.payloadSnapshot as any)?.propertyRegistryOffice,
+        car: (previewProject.payloadSnapshot as any)?.propertyCar,
+        accessRoute: (previewProject.payloadSnapshot as any)?.propertyAccessRoute || (previewProject.payloadSnapshot as any)?.accessRoute,
+        totalAreaHa: (previewProject.payloadSnapshot as any)?.propertyTotalArea,
+        explorationActivity: (previewProject.payloadSnapshot as any)?.propertyActivity,
       },
       organization: {
         name: 'Organização Ativa',

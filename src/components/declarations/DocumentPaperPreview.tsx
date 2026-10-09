@@ -47,28 +47,35 @@ export function DocumentPaperPreview({ template, resolvedVariables, onSavePdfMet
     setIsGenerating(true)
     
     try {
-      // Dynamic import of html2pdf to avoid SSR issues
-      const html2pdf = (await import('html2pdf.js')).default
+      const { jsPDF } = await import('jspdf')
+      const html2canvas = (await import('html2canvas')).default
 
       const element = contentRef.current
       const fileName = `${template.code}_${Date.now()}.pdf`
-      const opt = {
-        margin:       0,
-        filename:     fileName,
-        image:        { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas:  { 
-          scale: 2, 
-          useCORS: true,
-          ignoreElements: (node: Element) => {
-            const tag = node.tagName?.toLowerCase()
-            return tag === 'style' || tag === 'link' || tag === 'noscript'
-          }
+
+      const pdf = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+        compress: true,
+      })
+
+      const canvas = await html2canvas(element, {
+        scale: 2.5,
+        useCORS: true,
+        logging: false,
+        windowWidth: 794,
+        backgroundColor: '#ffffff',
+        ignoreElements: (node: Element) => {
+          const tag = node.tagName?.toLowerCase()
+          return tag === 'noscript'
         },
-        jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const }
-      }
+      })
+      const imgData = canvas.toDataURL('image/jpeg', 0.98)
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
 
       // 1. Gerar blob de saída para cálculo de integridade SHA-256 e download direto
-      const pdfBlob: Blob = await html2pdf().set(opt).from(element).output('blob')
+      const pdfBlob: Blob = pdf.output('blob')
 
       let sha256 = ''
       try {

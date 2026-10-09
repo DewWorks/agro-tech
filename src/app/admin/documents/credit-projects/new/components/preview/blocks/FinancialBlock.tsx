@@ -13,11 +13,11 @@ export const FinancialBlock = React.memo(({ templateCode, options }: FinancialBl
     const netCapacity = Math.max(0, annualRev - annualExp - debts)
 
     return (
-      <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '12px', overflow: 'hidden' }}>
-        <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
+      <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '14px', overflow: 'hidden' }}>
+        <div style={{ background: '#f3f4f6', padding: '6px 14px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
           V - Resumo de Capacidade de Pagamento e Viabilidade (Estimativa)
         </div>
-        <div style={{ padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+        <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '11px', lineHeight: 1.4 }}>
           <div><strong>Receita Bruta Anual:</strong> R$ {annualRev.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
           <div><strong>Despesas Operacionais:</strong> R$ {annualExp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
           <div><strong>Dívidas Preexistentes (Amortização Anual):</strong> R$ {debts.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
@@ -40,11 +40,11 @@ export const FinancialBlock = React.memo(({ templateCode, options }: FinancialBl
   const ownRes = options.ownResources || (total - financed)
 
   return (
-    <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '12px', overflow: 'hidden' }}>
-      <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
+    <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '14px', overflow: 'hidden' }}>
+      <div style={{ background: '#f3f4f6', padding: '6px 14px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
         III - Quadro Financeiro e Condições de Financiamento
       </div>
-      <div style={{ padding: '8px 10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+      <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 16px', fontSize: '11px', lineHeight: 1.4 }}>
         {templateCode !== 'PROJETO_CUSTEIO_SAFRA' && (
           <>
             <div><strong>Investimento Total Projetado:</strong> R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>

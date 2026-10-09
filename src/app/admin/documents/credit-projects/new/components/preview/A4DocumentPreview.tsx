@@ -43,18 +43,22 @@ export const A4DocumentPreview = React.memo(({ documentData, data }: A4DocumentP
 
   return (
     <div 
+      id="a4-document-preview-root"
       className="document-page" 
       style={{ 
         fontFamily: "'Segoe UI', Arial, sans-serif", 
         color: '#1f2937', 
         lineHeight: 1.4, 
-        padding: '24px', 
-        maxWidth: '800px', 
+        padding: '16mm 18mm', 
+        width: '794px', 
+        maxWidth: '794px', 
+        height: '1040px',
+        maxHeight: '1040px',
         margin: '0 auto', 
-        background: '#fff', 
+        backgroundColor: '#ffffff', 
         fontSize: '11px',
-        width: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        overflow: 'hidden'
       }}
     >
       <BBHeader 

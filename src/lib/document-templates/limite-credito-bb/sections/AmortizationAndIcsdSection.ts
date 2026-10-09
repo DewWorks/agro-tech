@@ -35,34 +35,32 @@ export function renderAmortizationAndIcsdSection({
         <span>1. Cronograma Estimado do Serviço da Dívida (Tabela ${system})</span>
         <span style="font-size: 9px; color: #4b5563;">Taxa: ${interestRate}% a.a. • Prazo: ${termMonths} meses</span>
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 9px;">
+      <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 9px;">
         <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb; color: #374151;">
-            <th style="padding: 3px 6px;">Período / Ano</th>
-            <th style="padding: 3px 6px; text-align: right;">Saldo Inicial</th>
-            <th style="padding: 3px 6px; text-align: right;">Juros Anuais</th>
-            <th style="padding: 3px 6px; text-align: right;">Amortização</th>
-            <th style="padding: 3px 6px; text-align: right;">Parcela Total</th>
-            <th style="padding: 3px 6px; text-align: right;">Saldo Final</th>
+          <tr style="background: #f9fafb; color: #374151;">
+            <th style="width: 16%; padding: 8px 10px; text-align: left; vertical-align: middle; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Período</th>
+            <th style="width: 21%; padding: 8px 10px; text-align: right; vertical-align: middle; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Saldo Inicial</th>
+            <th style="width: 18%; padding: 8px 10px; text-align: right; vertical-align: middle; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Juros</th>
+            <th style="width: 18%; padding: 8px 10px; text-align: right; vertical-align: middle; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Amortização</th>
+            <th style="width: 27%; padding: 8px 10px; text-align: right; vertical-align: middle; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Parcela Total</th>
           </tr>
         </thead>
         <tbody>
           ${engineResult.amortization.schedule.slice(0, 5).map((row) => `
           <tr style="border-bottom: 1px solid #f3f4f6; ${row.period === (graceMonths > 0 ? Math.ceil(graceMonths / 12) + 1 : 1) ? 'background: #fefce8; font-weight: 600;' : ''}">
-            <td style="padding: 3px 6px;">
+            <td style="padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #f3f4f6; white-space: nowrap;">
               Ano ${row.period} ${row.isGracePeriod ? '<span style="font-size:7.5px; color:#d97706;">(Carência)</span>' : ''}
               ${row.period === (graceMonths > 0 ? Math.ceil(graceMonths / 12) + 1 : 1) ? '<span style="font-size:7.5px; color:#b45309;">(Estresse)</span>' : ''}
             </td>
-            <td style="padding: 3px 6px; text-align: right;">${formatBRL(row.openingBalance)}</td>
-            <td style="padding: 3px 6px; text-align: right; color: #dc2626;">${formatBRL(row.interest)}</td>
-            <td style="padding: 3px 6px; text-align: right;">${formatBRL(row.amortization)}</td>
-            <td style="padding: 3px 6px; text-align: right; font-weight: bold; color: #1B4D3E;">${formatBRL(row.totalPayment)}</td>
-            <td style="padding: 3px 6px; text-align: right;">${formatBRL(row.closingBalance)}</td>
+            <td style="padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #f3f4f6; white-space: nowrap;">${formatBRL(row.openingBalance)}</td>
+            <td style="padding: 8px 10px; text-align: right; color: #dc2626; vertical-align: middle; border-bottom: 1px solid #f3f4f6; white-space: nowrap;">${formatBRL(row.interest)}</td>
+            <td style="padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #f3f4f6; white-space: nowrap;">${formatBRL(row.amortization)}</td>
+            <td style="padding: 8px 10px; text-align: right; font-weight: bold; color: #1B4D3E; vertical-align: middle; border-bottom: 1px solid #f3f4f6; white-space: nowrap;">${formatBRL(row.totalPayment)}</td>
           </tr>
           `).join('')}
-          <tr style="background: #f3f4f6; font-weight: bold;">
-            <td colspan="4" style="padding: 4px 6px; text-transform: uppercase;">Parcela Anual Crítica de Estresse Financeiro:</td>
-            <td colspan="2" style="padding: 4px 6px; text-align: right; color: #1B4D3E; font-size: 10.5px;">
+          <tr style="background: #f3f4f6; font-weight: bold; border-top: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db;">
+            <td colspan="3" style="padding: 8px 10px; text-transform: uppercase; vertical-align: middle; white-space: nowrap;">Parcela Anual Crítica de Estresse:</td>
+            <td colspan="2" style="padding: 8px 10px; text-align: right; color: #1B4D3E; font-size: 10.5px; vertical-align: middle; white-space: nowrap;">
               ${formatBRL(engineResult.amortization.annualDebtService)} / ano
             </td>
           </tr>
@@ -124,7 +122,7 @@ export function renderAmortizationAndIcsdSection({
           <div style="color: #6b7280; font-size: 7.5px; text-transform: uppercase;">Lastro Ofertado vs. Exigido</div>
           <div style="font-weight: bold; color: #111827; font-size: 9.5px;">${formatBRL(engineResult.ltv.totalAcceptableCollateral)}</div>
           <div style="font-size: 7.5px; color: ${engineResult.ltv.isApproved ? '#065f46' : '#dc2626'}; font-weight: bold;">
-            ${engineResult.ltv.isApproved ? `✓ Conforme (${engineResult.ltv.coverageRatioPercent.toFixed(1)}%)` : `✗ Insuficiente`}
+            ${engineResult.ltv.isApproved ? `Conforme (${engineResult.ltv.coverageRatioPercent.toFixed(1)}%)` : `Insuficiente`}
           </div>
         </div>
 
@@ -134,7 +132,7 @@ export function renderAmortizationAndIcsdSection({
             ${formatBRL(paymentCapacity)} <span style="font-weight: normal; color: #6b7280; font-size: 8px;">(Exig: ${formatBRL(targetCPForApproval)})</span>
           </div>
           <div style="font-size: 7.5px; color: ${cpDeficit > 0 ? '#dc2626' : '#065f46'}; font-weight: bold;">
-            ${cpDeficit > 0 ? `Déficit apurado: ${formatBRL(cpDeficit)}` : `✓ Margem regulamentar atendida`}
+            ${cpDeficit > 0 ? `Déficit apurado: ${formatBRL(cpDeficit)}` : `Margem regulamentar atendida`}
           </div>
         </div>
 

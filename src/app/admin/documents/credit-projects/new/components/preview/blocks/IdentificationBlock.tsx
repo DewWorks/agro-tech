@@ -15,11 +15,11 @@ export const IdentificationBlock = React.memo(({ producer, property, options }: 
   const repName = options?.representativeName || producer.representativeName || (isCnpj ? producer.name?.replace(/\s*\(PJ\)\s*/i, '').trim() : 'Administrador(a) / Titular')
 
   return (
-    <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '12px', overflow: 'hidden' }}>
-      <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
+    <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '14px', overflow: 'hidden' }}>
+      <div style={{ background: '#f3f4f6', padding: '6px 14px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
         {isCnpj ? 'I - Identificação da Empresa Proponente & Representante Legal' : 'I - Identificação do Proponente e Cônjuge'}
       </div>
-      <div style={{ padding: '8px 12px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '6px 16px', fontSize: '11px', lineHeight: '1.5' }}>
+      <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px 16px', fontSize: '11px', lineHeight: 1.4 }}>
         <div><strong>{isCnpj ? 'Razão Social:' : 'Nome:'}</strong> {producer.name || '-'}</div>
         <div style={{ whiteSpace: 'nowrap' }}><strong>{docLabel}:</strong> {docFormatted || '-'}</div>
         

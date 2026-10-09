@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { CustomOptions, ProducerData, PropertyData } from '../../types/wizard-types'
 import { CreditTemplateMeta } from '@/lib/document-templates'
+import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
 
 export interface UseCreditProjectCalculationsParams {
   currentProducer?: ProducerData
@@ -92,7 +93,7 @@ export function useCreditProjectCalculations({
         agricultureAreaHa: (currentProperty.productiveArea || 0) - (currentProperty.pastureArea || 0),
         preservationAreaHa: currentProperty.preserveArea || 0,
         explorationActivity: customOptions.propertyActivity || currentProperty.explorationActivity,
-        accessRoute: customOptions.propertyAccessRoute || currentProperty.accessRoute,
+        accessRoute: sanitizeAccessRoute(customOptions.propertyAccessRoute || currentProperty.accessRoute),
         livestockData: (currentProperty as any).livestockData || (currentProperty as any).livestock || {
           totalCattle:
             customOptions.livestockCattleHeads ||

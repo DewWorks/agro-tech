@@ -13,7 +13,7 @@ import {
   UrbanPropertyType,
   VehicleType
 } from '@/lib/financial-engine'
-import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
+import { sanitizeAccessRoute, formatGlebaRoteiro } from '@/lib/document-templates/limite-credito-bb/formatters'
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
 
 describe('Motor Financeiro e Risco Bancário (Aditivo 003)', () => {
@@ -395,6 +395,36 @@ describe('Motor Financeiro e Risco Bancário (Aditivo 003)', () => {
       const duplicated = 'Partindo de Palmas pela TO-050 por 45km. Partindo de Palmas pela TO-050 por 45km.'
       const sanitized = sanitizeAccessRoute(duplicated)
       expect(sanitized).toBe('Partindo de Palmas pela TO-050 por 45km.')
+    })
+
+    it('elimina duplicação colada direta sem separador', () => {
+      const glued = 'Partindo de Palmas pela TO-050 por 45kmPartindo de Palmas pela TO-050 por 45km'
+      const sanitized = sanitizeAccessRoute(glued)
+      expect(sanitized).toBe('Partindo de Palmas pela TO-050 por 45km')
+    })
+
+    it('elimina fragmento colado no início (45kmPartindo...)', () => {
+      const gluedFragment = '45kmPartindo de Palmas pela TO-050 por 45km'
+      const sanitized = sanitizeAccessRoute(gluedFragment)
+      expect(sanitized).toBe('Partindo de Palmas pela TO-050 por 45km')
+    })
+
+    it('formata gleba e roteiro com separador e deduplicação inteligente', () => {
+      expect(formatGlebaRoteiro('Gleba 01', 'Partindo de Palmas pela TO-050 por 45km')).toBe(
+        'Gleba 01 • Partindo de Palmas pela TO-050 por 45km'
+      )
+      expect(
+        formatGlebaRoteiro(
+          'Partindo de Palmas pela TO-050 por 45km',
+          'Partindo de Palmas pela TO-050 por 45km'
+        )
+      ).toBe('Partindo de Palmas pela TO-050 por 45km')
+      expect(
+        formatGlebaRoteiro(
+          undefined,
+          'Partindo de Palmas pela TO-050 por 45kmPartindo de Palmas pela TO-050 por 45km'
+        )
+      ).toBe('Partindo de Palmas pela TO-050 por 45km')
     })
 
     it('preserva rotas válidas e normais sem duplicação', () => {

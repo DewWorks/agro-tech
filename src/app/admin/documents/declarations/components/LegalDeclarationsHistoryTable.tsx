@@ -107,27 +107,36 @@ export function LegalDeclarationsHistoryTable({ initialDeclarations }: LegalDecl
     const toastId = toast.loading('Compilando documento PDF oficial...')
 
     try {
-      const html2pdf = (await import('html2pdf.js')).default
+      if (typeof document !== 'undefined' && document.fonts) {
+        await document.fonts.ready
+      }
+      const { jsPDF } = await import('jspdf')
+      const html2canvas = (await import('html2canvas')).default
       const element = contentRef.current
 
       const sanitizedTitle = (previewDocData.template.title || 'Declaracao_Legal').replace(/[^a-zA-Z0-9]/g, '_')
       const sanitizedName = (previewDocData.producer.name || 'Produtor').replace(/[^a-zA-Z0-9]/g, '_')
       const fileName = `${sanitizedTitle}_${sanitizedName}.pdf`
 
-      const opt = {
-        margin: 6,
-        filename: fileName,
-        image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          ignoreElements: (node: Element) => node.tagName?.toLowerCase() === 'noscript',
-        },
-        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-      }
+      const pdf = new jsPDF({
+        unit: 'mm',
+        format: 'a4',
+        orientation: 'portrait',
+        compress: true,
+      })
 
-      const pdfBlob: Blob = await html2pdf().set(opt).from(element).output('blob')
+      const canvas = await html2canvas(element, {
+        scale: 2.5,
+        useCORS: true,
+        logging: false,
+        windowWidth: 794,
+        backgroundColor: '#ffffff',
+        ignoreElements: (node: Element) => node.tagName?.toLowerCase() === 'noscript',
+      })
+      const imgData = canvas.toDataURL('image/jpeg', 0.98)
+      pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297)
+
+      const pdfBlob: Blob = pdf.output('blob')
       if (!pdfBlob || pdfBlob.size === 0) {
         throw new Error('Falha ao compilar o arquivo PDF.')
       }

@@ -86,7 +86,7 @@ export function printElementCleanly(
   `)
   doc.close()
 
-  setTimeout(() => {
+  const triggerPrint = () => {
     try {
       iframe.contentWindow?.focus()
       iframe.contentWindow?.print()
@@ -94,5 +94,17 @@ export function printElementCleanly(
       console.error('Falha ao acionar impressão no iframe:', e)
       window.print()
     }
-  }, 300)
+  }
+
+  if (typeof document !== 'undefined' && document.fonts) {
+    document.fonts.ready
+      .then(() => {
+        setTimeout(triggerPrint, 150)
+      })
+      .catch(() => {
+        setTimeout(triggerPrint, 300)
+      })
+  } else {
+    setTimeout(triggerPrint, 300)
+  }
 }

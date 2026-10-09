@@ -16,6 +16,13 @@ import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { DatePicker } from '@/components/ui/date-picker'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   DollarSign,
   Receipt,
   Users,
@@ -121,10 +128,11 @@ export function DemandBillingModal({
     return grossHonorary * (partnerCommissionPercent / 100)
   }, [selectedPartnerId, grossHonorary, partnerCommissionPercent])
 
-  const handlePartnerChange = (partnerId: string) => {
-    setSelectedPartnerId(partnerId)
-    if (partnerId && suggestion) {
-      const p = suggestion.partners.find((item) => item.id === partnerId)
+  const handlePartnerChange = (partnerId: string | null) => {
+    const cleanId = !partnerId || partnerId === 'none' ? '' : partnerId
+    setSelectedPartnerId(cleanId)
+    if (cleanId && suggestion) {
+      const p = suggestion.partners.find((item) => item.id === cleanId)
       if (p) {
         setPartnerCommissionPercent(p.defaultCommissionRate || 20.0)
       }
@@ -407,19 +415,25 @@ export function DemandBillingModal({
                   <Label htmlFor="partnerSelect" className="text-xs text-slate-600 mb-1 block">
                     Selecionar Parceiro
                   </Label>
-                  <select
-                    id="partnerSelect"
-                    value={selectedPartnerId}
-                    onChange={(e) => handlePartnerChange(e.target.value)}
-                    className="w-full h-10 text-xs font-semibold rounded-xl border border-slate-300 bg-white px-3 text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  <Select
+                    value={selectedPartnerId || 'none'}
+                    onValueChange={handlePartnerChange}
                   >
-                    <option value="">Nenhum / Captação Interna (0% comissão)</option>
-                    {suggestion?.partners.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.defaultCommissionRate}% padrão)
-                      </option>
-                    ))}
-                  </select>
+                    <SelectTrigger
+                      id="partnerSelect"
+                      className="w-full h-11 border-emerald-900/30 bg-white text-slate-800 rounded-xl focus:ring-emerald-700 text-xs font-medium cursor-pointer"
+                    >
+                      <SelectValue placeholder="Selecione o Parceiro Comercial" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-slate-200 shadow-xl rounded-xl">
+                      <SelectItem value="none">Nenhum / Captação Interna (0% comissão)</SelectItem>
+                      {suggestion?.partners.map((partner) => (
+                        <SelectItem key={partner.id} value={partner.id}>
+                          {partner.name} ({partner.defaultCommissionRate}% padrão)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {selectedPartnerId ? (

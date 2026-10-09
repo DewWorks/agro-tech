@@ -88,7 +88,7 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
   const art = opt.artNumber || 'Pendente'
 
   return `
-  <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 24px; max-width: 800px; margin: 0 auto; background: #fff; font-size: 11px;">
+  <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 20px 24px; width: 794px; height: 1040px; max-height: 1040px; overflow: hidden; box-sizing: border-box; margin: 0 auto; background: #fff; font-size: 11px;">
     
     <!-- CABEÇALHO OFICIAL INOVAGRO -->
     <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
@@ -108,11 +108,11 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
     </div>
 
     <!-- 01. PROPONENTE -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
+    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 14px; overflow: hidden;">
+      <div style="background: #f3f4f6; padding: 6px 14px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
         ${isCnpj ? '01 - Identificação da Empresa Proponente & Representante Legal' : '01 - Identificação do Proponente e Enquadramento CNAE'}
       </div>
-      <div style="padding: 6px 12px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 6px 16px; font-size: 11px; line-height: 1.5;">
+      <div style="padding: 10px 14px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 8px 16px; font-size: 11px; line-height: 1.4;">
         <div><strong>${isCnpj ? 'Razão Social:' : 'Proponente:'}</strong> ${p.name || '-'}</div>
         <div style="white-space: nowrap;"><strong>${docLabel}:</strong> ${docFormatted || '-'}</div>
         ${isCnpj ? `
@@ -129,11 +129,11 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
     </div>
 
     <!-- 02. IMÓVEL BENEFICIADO -->
-    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 10px; overflow: hidden;">
-      <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
+    <div style="border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 14px; overflow: hidden;">
+      <div style="background: #f3f4f6; padding: 6px 14px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
         02 - Imóvel Beneficiado pelo Investimento
       </div>
-      <div style="padding: 6px 10px; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 6px;">
+      <div style="padding: 10px 14px; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 8px 16px; font-size: 11px; line-height: 1.4;">
         <div><strong>Propriedade:</strong> ${prop.name || 'Fazenda'}</div>
         <div><strong>Matrícula:</strong> ${prop.registrationNumber || 'Pendente'}</div>
         <div><strong>CAR:</strong> ${prop.car || 'Pendente'}</div>
@@ -145,22 +145,22 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
       <div style="background: #f3f4f6; padding: 4px 10px; font-weight: bold; color: #111827; border-bottom: 1px solid #d1d5db; text-transform: uppercase;">
         03 - Especificação dos Equipamentos e Inovação Tecnológica
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 10px;">
+      <table style="width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 0; text-align: left; font-size: 10px;">
         <thead>
-          <tr style="background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
-            <th style="padding: 4px 8px;">Equipamento / Serviço</th>
-            <th style="padding: 4px 8px;">Especificação Técnica</th>
-            <th style="padding: 4px 8px; text-align: right;">Potência / Capacidade</th>
-            <th style="padding: 4px 8px; text-align: right;">Valor Total (R$)</th>
+          <tr style="background: #f9fafb;">
+            <th style="width: 28%; padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Equipamento / Serviço</th>
+            <th style="width: 36%; padding: 8px 10px; vertical-align: middle; border-bottom: 1px solid #e5e7eb;">Especificação Técnica</th>
+            <th style="width: 18%; padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Potência / Capacidade</th>
+            <th style="width: 18%; padding: 8px 10px; text-align: right; vertical-align: middle; border-bottom: 1px solid #e5e7eb; white-space: nowrap;">Valor Total (R$)</th>
           </tr>
         </thead>
         <tbody>
           ${totalInv > 0 ? `
           <tr style="border-bottom: 1px solid #f3f4f6;">
-            <td style="padding: 6px 8px; font-weight: bold;">${equipName}</td>
-            <td style="padding: 6px 8px;">${equipSpec}</td>
-            <td style="padding: 6px 8px; text-align: right;">${powerStr}</td>
-            <td style="padding: 6px 8px; text-align: right;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td style="padding: 8px 10px; font-weight: bold; vertical-align: middle;">${equipName}</td>
+            <td style="padding: 8px 10px; vertical-align: middle;">${equipSpec}</td>
+            <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">${powerStr}</td>
+            <td style="padding: 8px 10px; text-align: right; vertical-align: middle; white-space: nowrap;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
           ` : `
           <tr>
@@ -170,8 +170,8 @@ export function generateProjetoInovagroHtml(data: InovAgroDocumentData): string 
           </tr>
           `}
           <tr style="background: #f3f4f6; font-weight: bold;">
-            <td colspan="3" style="padding: 5px 8px;">VALOR TOTAL DO INVESTIMENTO</td>
-            <td style="padding: 5px 8px; text-align: right; color: #1B4D3E; font-size: 11px;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
+            <td colspan="3" style="padding: 8px 10px; vertical-align: middle;">VALOR TOTAL DO INVESTIMENTO</td>
+            <td style="padding: 8px 10px; text-align: right; color: #1B4D3E; font-size: 11px; vertical-align: middle; white-space: nowrap;">R$ ${totalInv.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
           </tr>
         </tbody>
       </table>

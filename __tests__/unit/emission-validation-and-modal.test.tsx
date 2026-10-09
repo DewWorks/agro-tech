@@ -4,6 +4,13 @@ import '@testing-library/jest-dom'
 import { ConfirmEmitModal } from '@/app/admin/documents/credit-projects/new/components/modals/ConfirmEmitModal'
 import { toast } from 'sonner'
 
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: jest.fn(),
+    refresh: jest.fn(),
+  }),
+}))
+
 jest.mock('sonner', () => ({
   toast: {
     success: jest.fn(),
