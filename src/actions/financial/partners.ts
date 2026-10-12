@@ -298,3 +298,77 @@ export async function getPartnerCommissionSummary(partnerId: string) {
     return { error: handleServerError(error, 'getPartnerCommissionSummary') }
   }
 }
+
+/**
+ * Atualiza o nome de um parceiro comercial existente.
+ */
+export async function updateCommercialPartnerName(partnerId: string, name: string) {
+  try {
+    const trimmed = name?.trim()
+    if (!trimmed || trimmed.length < 2) {
+      throw new Error('O nome do parceiro comercial deve ter pelo menos 2 caracteres.')
+    }
+
+    const partner = await prisma.commercialPartner.findUnique({
+      where: { id: partnerId },
+    })
+
+    if (!partner) {
+      throw new Error('Parceiro comercial não encontrado.')
+    }
+
+    const auth = await requireFinancialAuth(partner.branchId)
+    await assertBranchMutationAllowed(auth, partner.branchId)
+
+    const updated = await prisma.commercialPartner.update({
+      where: { id: partnerId },
+      data: { name: trimmed },
+    })
+
+    ;(revalidateTag as any)('financial-data')
+    revalidatePath('/admin/financial/partners')
+    return { data: serializeDecimals(updated), success: true }
+  } catch (error) {
+    return { error: handleServerError(error, 'updateCommercialPartnerName') }
+  }
+}
+
+/**
+ * Exclui um parceiro comercial, desde que não possua títulos ou comissões associadas.
+ */
+export async function deleteCommercialPartner(partnerId: string) {
+  try {
+    const partner = await prisma.commercialPartner.findUnique({
+      where: { id: partnerId },
+      include: {
+        _count: {
+          select: { commissions: true, receivableTitles: true },
+        },
+      },
+    })
+
+    if (!partner) {
+      throw new Error('Parceiro comercial não encontrado.')
+    }
+
+    const auth = await requireFinancialAuth(partner.branchId)
+    await assertBranchMutationAllowed(auth, partner.branchId)
+
+    if (partner._count.commissions > 0 || partner._count.receivableTitles > 0) {
+      throw new Error(
+        `Não é possível excluir o parceiro comercial "${partner.name}" pois existem ${partner._count.receivableTitles} propostas e ${partner._count.commissions} comissões vinculadas a ele. Você pode inativá-lo para impedir novas operações mantendo a rastreabilidade fiscal.`
+      )
+    }
+
+    await prisma.commercialPartner.delete({
+      where: { id: partnerId },
+    })
+
+    ;(revalidateTag as any)('financial-data')
+    revalidatePath('/admin/financial/partners')
+    return { success: true }
+  } catch (error) {
+    return { error: handleServerError(error, 'deleteCommercialPartner') }
+  }
+}
+

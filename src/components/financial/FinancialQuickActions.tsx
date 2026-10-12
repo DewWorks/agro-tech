@@ -26,7 +26,7 @@ export default function FinancialQuickActions({
   const actions = [
     {
       title: 'Novo Faturamento Avulso',
-      subtitle: 'CAR, AUI, Licenças e Laudos',
+      subtitle: 'CAR, DUI, Licenças e Laudos',
       icon: Receipt,
       href: '/admin/financial/receivables/new',
     },

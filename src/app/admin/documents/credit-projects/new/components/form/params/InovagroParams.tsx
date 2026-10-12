@@ -134,12 +134,15 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
             value={customOptions.inovagroTotalInvestment || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
-              setCustomOptions(prev => ({
-                ...prev,
-                inovagroTotalInvestment: val,
-                inovagroFinanced: Math.round(val * 0.9),
-                inovagroOwnResources: Math.round(val * 0.1)
-              }))
+              setCustomOptions((prev) => {
+                const own = prev.inovagroOwnResources || 0
+                return {
+                  ...prev,
+                  inovagroTotalInvestment: val,
+                  inovagroFinanced: Math.max(0, val - own),
+                  inovagroOwnResources: own,
+                }
+              })
             }}
             className={cn(
               "h-8 text-xs font-semibold transition-colors",
@@ -151,12 +154,19 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-[10.5px] text-gray-600">Financiamento (R$)</Label>
+          <Label className="text-[10.5px] text-gray-600">Financiamento Solicitado (R$)</Label>
           <Input
             type="number"
             value={customOptions.inovagroFinanced || ''}
-            onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroFinanced: Number(e.target.value) }))}
-            className="h-8 text-xs"
+            onChange={(e) => {
+              const finVal = Number(e.target.value)
+              setCustomOptions((prev) => ({
+                ...prev,
+                inovagroFinanced: finVal,
+                inovagroOwnResources: Math.max(0, (prev.inovagroTotalInvestment || 0) - finVal),
+              }))
+            }}
+            className="h-8 text-xs font-bold"
             placeholder="0,00"
           />
         </div>
@@ -164,13 +174,23 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
 
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
-          <Label className="text-[10.5px] text-gray-600">Recursos Próprios (R$)</Label>
+          <Label className="text-[10.5px] text-gray-600">Recursos Próprios / Contrapartida (R$)</Label>
           <Input
             type="number"
             value={customOptions.inovagroOwnResources || ''}
-            onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroOwnResources: Number(e.target.value) }))}
+            onChange={(e) => {
+              const ownVal = Number(e.target.value)
+              setCustomOptions((prev) => {
+                const total = prev.inovagroTotalInvestment || 0
+                return {
+                  ...prev,
+                  inovagroOwnResources: ownVal,
+                  inovagroFinanced: Math.max(0, total - ownVal),
+                }
+              })
+            }}
             className="h-8 text-xs"
-            placeholder="0,00"
+            placeholder="0,00 (Opcional)"
           />
         </div>
         <div className="space-y-1">

@@ -18,6 +18,10 @@ import { cn } from '@/lib/utils'
 import { TechnicalResponsibleForm } from '../TechnicalResponsibleForm'
 import { CustomOptions } from '../../../types/wizard-types'
 import { checkProducerCreditAnalysis } from '@/actions/credit-analysis'
+import {
+  AstecPlurianualTable,
+  ControlledCreditsInDebtSection,
+} from '@/components/credit-proposals/astec'
 
 interface StepFinanceAndResponsibleProps {
   customOptions: CustomOptions
@@ -274,6 +278,35 @@ export function StepFinanceAndResponsible({
           </div>
         </div>
 
+        {/* Declaração de Créditos Controlados em Ser (Item 06 - Proposta Sicor/BB) */}
+        <ControlledCreditsInDebtSection
+          isBeneficiary={customOptions.isControlledCreditBeneficiary ?? false}
+          onToggleBeneficiary={(isBen) =>
+            setCustomOptions((prev) => ({ ...prev, isControlledCreditBeneficiary: isBen }))
+          }
+          credits={customOptions.controlledCredits || []}
+          onChangeCredits={(creds) =>
+            setCustomOptions((prev) => ({ ...prev, controlledCredits: creds }))
+          }
+        />
+
+        {/* Quadro Plurianual de 10 Anos (Item 05 - Capacidade de Pagamento ASTEC) */}
+        <AstecPlurianualTable
+          initialPayload={customOptions.astecProjection}
+          effectiveAgroRevenue={rev}
+          projectedAgroRevenue={rev}
+          nonAgroRevenue={Number(customOptions.nonAgroRevenue) || 0}
+          operationalExpenses={exp}
+          familyLivingExpenses={Number(customOptions.familyLivingExpenses) || Math.round(rev * 0.15)}
+          existingDebtService={debts}
+          financedAmount={currentFinancedAmount}
+          interestRateAnnual={Number(customOptions.interestRate) || 5.0}
+          totalTermMonths={Number(customOptions.totalTermMonths) || (Number(customOptions.renovagroTermYears) * 12) || 120}
+          gracePeriodMonths={Number(customOptions.gracePeriodMonths) || Number(customOptions.renovagroGraceMonths) || 36}
+          amortizationSystem="SAC"
+          onChange={(payload) => setCustomOptions((prev) => ({ ...prev, astecProjection: payload }))}
+        />
+
         {/* Linha 2: Responsável Técnico */}
         <div className="p-5 bg-slate-50 border border-gray-200 rounded-xl space-y-3">
           <span className="text-xs font-bold text-gray-800 uppercase tracking-wide block">
@@ -369,6 +402,39 @@ export function StepFinanceAndResponsible({
         pendingFields={stepRTPending}
         isCreaRequired={isCreaRequired}
       />
+
+      {isCreaRequired && (
+        <div className="space-y-4 pt-4 border-t border-slate-200">
+          {/* Declaração de Créditos Controlados em Ser (Item 06 - Proposta Sicor/BB) */}
+          <ControlledCreditsInDebtSection
+            isBeneficiary={customOptions.isControlledCreditBeneficiary ?? false}
+            onToggleBeneficiary={(isBen) =>
+              setCustomOptions((prev) => ({ ...prev, isControlledCreditBeneficiary: isBen }))
+            }
+            credits={customOptions.controlledCredits || []}
+            onChangeCredits={(creds) =>
+              setCustomOptions((prev) => ({ ...prev, controlledCredits: creds }))
+            }
+          />
+
+          {/* Quadro Plurianual de 10 Anos (Item 05 - Capacidade de Pagamento ASTEC) */}
+          <AstecPlurianualTable
+            initialPayload={customOptions.astecProjection}
+            effectiveAgroRevenue={rev}
+            projectedAgroRevenue={rev}
+            nonAgroRevenue={Number(customOptions.nonAgroRevenue) || 0}
+            operationalExpenses={exp}
+            familyLivingExpenses={Number(customOptions.familyLivingExpenses) || Math.round(rev * 0.15)}
+            existingDebtService={debts}
+            financedAmount={currentFinancedAmount}
+            interestRateAnnual={Number(customOptions.interestRate) || 5.0}
+            totalTermMonths={Number(customOptions.totalTermMonths) || (Number(customOptions.renovagroTermYears) * 12) || 120}
+            gracePeriodMonths={Number(customOptions.gracePeriodMonths) || Number(customOptions.renovagroGraceMonths) || 36}
+            amortizationSystem="SAC"
+            onChange={(payload) => setCustomOptions((prev) => ({ ...prev, astecProjection: payload }))}
+          />
+        </div>
+      )}
 
       <div className="pt-4 border-t border-gray-100 flex justify-between">
         <Button

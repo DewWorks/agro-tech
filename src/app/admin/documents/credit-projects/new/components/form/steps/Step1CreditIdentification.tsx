@@ -8,6 +8,7 @@ import { SmartCreatableCombobox } from '@/components/property-wizard/subcomponen
 import { RURAL_ACTIVITIES } from '@/lib/validations/reference-data'
 import { CustomOptions, ProducerData } from '../../../types/wizard-types'
 import { formatCPF, formatCNPJ, validateCPF, maskRegistrationNumber, maskCAR, maskCCIR, maskITR } from '@/lib/utils/masks'
+import { MultiPropertySelector, OfferedCollateralSelector } from '@/components/credit-proposals/astec'
 
 interface Step1CreditIdentificationProps {
   customOptions: CustomOptions
@@ -79,6 +80,47 @@ export function Step1CreditIdentification({
             <strong>Atenção às pendências obrigatórias da etapa:</strong> Preencha {step1Pending.join(', ')} para prosseguir à esteira do projeto.
           </div>
         </div>
+      )}
+
+      {/* Vínculo Multi-Imóvel do Produtor */}
+      {currentProducer?.properties && currentProducer.properties.length > 1 && (
+        <MultiPropertySelector
+          availableProperties={currentProducer.properties}
+          selectedProperties={customOptions.selectedProperties || []}
+          onChange={(items) => {
+            setCustomOptions((prev) => {
+              const enterprise = items.find((i) => i.isEnterpriseLocation)
+              const enterpriseProp = enterprise
+                ? currentProducer.properties.find((p) => p.id === enterprise.propertyId)
+                : undefined
+
+              return {
+                ...prev,
+                selectedProperties: items,
+                ...(enterpriseProp
+                  ? {
+                      propertyRegistrationNumber: enterpriseProp.registrationNumber || prev.propertyRegistrationNumber,
+                      propertyRegistryOffice: enterpriseProp.registryOffice || prev.propertyRegistryOffice,
+                      propertyCar: enterpriseProp.car || prev.propertyCar,
+                      propertyCcir: enterpriseProp.ccir || prev.propertyCcir,
+                      propertyItr: enterpriseProp.itr || prev.propertyItr,
+                      propertyTotalArea: enterpriseProp.totalArea || prev.propertyTotalArea,
+                      propertyAccessRoute: enterpriseProp.accessRoute || prev.propertyAccessRoute,
+                      propertyActivity: enterpriseProp.explorationActivity || prev.propertyActivity,
+                    }
+                  : {}),
+              }
+            })
+          }}
+        />
+      )}
+
+      {/* Modalidade Oficial de Garantia (SICOR / BACEN) */}
+      {!isLegalTemplate && (
+        <OfferedCollateralSelector
+          value={customOptions.offeredCollateral}
+          onChange={(val) => setCustomOptions((prev) => ({ ...prev, offeredCollateral: val }))}
+        />
       )}
 
       {/* Seção Proponente PJ & Representante Legal */}

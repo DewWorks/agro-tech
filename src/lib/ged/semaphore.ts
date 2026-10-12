@@ -108,6 +108,9 @@ export const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   LICENCA_AMBIENTAL_OPERACAO: 'Licença Ambiental de Operação (LO)',
   LICENCA_AMBIENTAL_INSTALACAO: 'Licença Ambiental de Instalação (LI)',
   LICENCA_AMBIENTAL_AEF: 'Autorização de Exploração Florestal (AEF)',
+
+  // Atividade Agropecuária / Defesa Agropecuária
+  COMPROVANTE_EXPLORACAO_PECUARIA: 'Comprovante de Exploração Pecuária (Ficha ADA PEC / Vacinação / Saldo)',
 }
 
 // ---------------------------------------------------------------

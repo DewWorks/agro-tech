@@ -739,7 +739,7 @@ export async function fetchFinancialOverview(
       margemPercent: creditoFaturamento > 0 ? Math.round((creditoMargem / creditoFaturamento) * 1000) / 10 : 0,
     },
     {
-      service: 'Pacotes Ambientais (CAR/AUI)',
+      service: 'Pacotes Ambientais (CAR/DUI)',
       faturamento: ambientalFaturamento,
       custosDiretos: ambientalCustos,
       margemLiquida: ambientalMargem,

@@ -5,7 +5,7 @@ import NewReceivableClientForm from '@/components/financial/NewReceivableClientF
 
 export const metadata = {
   title: 'Novo Faturamento Avulso | AgroTech Financeiro',
-  description: 'Emissão direta de faturamento avulso de pacotes CAR, AUI e licenças ambientais.',
+  description: 'Emissão direta de faturamento avulso de pacotes CAR, DUI e licenças ambientais.',
 }
 
 export default async function NewReceivablePage({
@@ -108,7 +108,7 @@ export default async function NewReceivablePage({
           Novo Faturamento Avulso / Pacotes Fechados
         </h2>
         <p className="text-xs text-slate-500">
-          Emissão direta de títulos a receber para Regularização Ambiental, CAR, AUI e Laudos Técnicos.
+          Emissão direta de títulos a receber para Regularização Ambiental, CAR, DUI e Laudos Técnicos.
         </p>
       </div>
 

@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { CurrencyInput } from '@/components/ui/currency-input'
@@ -11,8 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { FileCheck } from 'lucide-react'
-import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
+import { FileCheck, Sparkles, Sprout, Tractor } from 'lucide-react'
+import { CREDIT_LINES_CATALOG, CREDIT_PREFERENCE_OPTIONS } from '@/constants/credit-lines'
 import { CreditLineAxis } from '@/lib/financial-engine'
 import { SimulatorParametersFormProps } from '@/types/credit-limit.types'
 
@@ -53,16 +53,62 @@ export function SimulatorParametersForm({
   interestRate,
   onChangeInterestRate,
 }: SimulatorParametersFormProps) {
+  const [axisFilter, setAxisFilter] = useState<'ALL' | 'CUSTEIO' | 'INVESTIMENTO'>('ALL')
+
+  const filteredLines = CREDIT_LINES_CATALOG.filter((line) => {
+    if (axisFilter === 'ALL') return true
+    return line.axis === axisFilter
+  })
+
   return (
     <div className="space-y-6">
-      {/* Seletor do Catálogo Oficial das 15 Linhas */}
-      <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between">
+      {/* Seletor do Catálogo Oficial das 15 Linhas com Tabs de Segregação Custeio vs Investimento */}
+      <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <Label className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
             <FileCheck className="w-4 h-4 text-emerald-600" />
-            Linha de Financiamento Oficial (Catálogo das 15 Linhas BB/Cooperativas)
+            Linha de Financiamento Oficial (MCR / BACEN)
           </Label>
-          <span className="text-[10px] text-slate-500">MCR / Banco Central</span>
+          <span className="text-[10px] text-slate-500 font-medium">Catálogo Oficial das Linhas</span>
+        </div>
+
+        {/* Tabs de Filtro Custeio vs Investimento */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+          <button
+            type="button"
+            onClick={() => setAxisFilter('ALL')}
+            className={`flex-1 py-1 px-2.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
+              axisFilter === 'ALL'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            Todas as Linhas
+          </button>
+          <button
+            type="button"
+            onClick={() => setAxisFilter('CUSTEIO')}
+            className={`flex-1 py-1 px-2.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              axisFilter === 'CUSTEIO'
+                ? 'bg-emerald-600 text-white shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <Sprout className="w-3 h-3" />
+            Eixo Custeio
+          </button>
+          <button
+            type="button"
+            onClick={() => setAxisFilter('INVESTIMENTO')}
+            className={`flex-1 py-1 px-2.5 text-xs font-semibold rounded-md transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              axisFilter === 'INVESTIMENTO'
+                ? 'bg-[#1B4D3E] text-white shadow-2xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <Tractor className="w-3 h-3" />
+            Eixo Investimento
+          </button>
         </div>
 
         <Select
@@ -75,40 +121,57 @@ export function SimulatorParametersForm({
             <SelectValue placeholder="Selecione o programa de crédito..." />
           </SelectTrigger>
           <SelectContent className="max-h-[320px]">
-            <div className="px-2 py-1 text-[10px] font-bold uppercase text-slate-400">
-              Eixo de Custeio Agropecuário
-            </div>
-            {CREDIT_LINES_CATALOG.filter((l) => l.axis === CreditLineAxis.CUSTEIO).map(
-              (line) => (
-                <SelectItem key={line.code} value={line.code} className="text-xs py-2">
+            {filteredLines.map((line) => (
+              <SelectItem key={line.code} value={line.code} className="text-xs py-2">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${line.axis === 'CUSTEIO' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
                   <span className="font-semibold text-slate-900 dark:text-slate-100">
                     {line.name}
                   </span>
-                  <span className="text-[10px] text-slate-500 block">
-                    Taxa: {line.defaultInterestRate}% a.a. • Prazo: {line.defaultTermMonths}m •{' '}
-                    {line.mcrRef}
-                  </span>
-                </SelectItem>
-              )
-            )}
-            <div className="px-2 py-1 text-[10px] font-bold uppercase text-slate-400 mt-2">
-              Eixo de Investimento & Modernização
-            </div>
-            {CREDIT_LINES_CATALOG.filter(
-              (l) => l.axis === CreditLineAxis.INVESTIMENTO
-            ).map((line) => (
-              <SelectItem key={line.code} value={line.code} className="text-xs py-2">
-                <span className="font-semibold text-slate-900 dark:text-slate-100">
-                  {line.name}
-                </span>
-                <span className="text-[10px] text-slate-500 block">
-                  Taxa: {line.defaultInterestRate}% a.a. • Prazo: {line.defaultTermMonths}m •{' '}
-                  {line.mcrRef}
+                </div>
+                <span className="text-[10px] text-slate-500 block pl-3.5">
+                  Taxa: {line.defaultInterestRate}% a.a. • Prazo: {line.defaultTermMonths}m • {line.mcrRef}
                 </span>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
+        {/* Tags de Financiamento Preferencial (ASTEC/Sicor) */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+          <div className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-2 flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-amber-500" />
+            <span>Financiamentos Preferenciais ASTEC/Sicor:</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {CREDIT_PREFERENCE_OPTIONS.filter((p) => p.value !== 'OUTRA').map((pref) => (
+              <button
+                key={pref.value}
+                type="button"
+                onClick={() => {
+                  if (pref.value === 'AQUISICAO_MATRIZES_REPRODUTORES') {
+                    onSelectCreditLine('PRONAF_MAIS_ALIMENTOS_SEMIFIXO')
+                    onChangePurpose('INVESTIMENTO_SEMI_FIXO')
+                  } else if (pref.value === 'CONSTRUCAO_OBRAS_RURAIS') {
+                    onSelectCreditLine('PRONAF_MAIS_ALIMENTOS_FIXO')
+                    onChangePurpose('INVESTIMENTO_FIXO')
+                  } else if (pref.value === 'CUSTEIO_PECUARIO_RECRIA_ENGORDA') {
+                    onSelectCreditLine('CUSTEIO_PECUARIO')
+                    onChangePurpose('CUSTEIO_PECUARIO')
+                  }
+                }}
+                className="text-left p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-800/50 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:border-emerald-300 transition-all text-xs cursor-pointer group"
+              >
+                <div className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-emerald-700 text-[11px] leading-tight">
+                  {pref.label}
+                </div>
+                <div className="text-[10px] text-slate-500 line-clamp-1 mt-0.5">
+                  {pref.category}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Dados da Proposta: Finalidade & Banco Alvo */}

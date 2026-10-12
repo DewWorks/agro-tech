@@ -52,8 +52,8 @@ const PRESETS = [
     categoryCode: '1.2.01',
   },
   {
-    name: 'AUI & Regularização Fundiária',
-    subtype: 'Autorização de Uso e Ocupação do Imóvel (AUI / ITERTINS)',
+    name: 'DUI & Regularização Fundiária',
+    subtype: 'Declaração de Uso e Ocupação do Imóvel (DUI / ITERTINS)',
     suggestedAmount: 5000.0,
     categoryCode: '1.2.02',
   },

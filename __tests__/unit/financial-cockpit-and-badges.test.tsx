@@ -178,7 +178,7 @@ describe('Cockpit Financeiro Executivo & Badges de Alerta (Tarefas A, B, C, D)',
       )
 
       expect(
-        screen.getByText(/🟢 Todos os honorários previstos estão 100% quitados!/i)
+        screen.getByText(/Todos os honorários previstos estão 100% quitados!/i)
       ).toBeInTheDocument()
     })
   })
