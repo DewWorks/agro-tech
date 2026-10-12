@@ -65,6 +65,9 @@ model Branch {
   payableTitles           PayableTitle[]
   cashTransactions        CashTransaction[]
   financialAuditLogs      FinancialAuditLog[]
+  generatedFormProperties GeneratedFormProperty[]
+  controlledCreditsInDebt ControlledCreditInDebt[]
+  astecPlurianualProjections AstecPlurianualProjection[]
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -357,6 +360,7 @@ model Producer {
   urbanProperties UrbanProperty[]
   vehicles       Vehicle[]
   receivableTitles ReceivableTitle[]
+  controlledCreditsInDebt ControlledCreditInDebt[]
 
   // Restrição: O mesmo CPF/CNPJ não pode existir duas vezes na mesma filial
   @@unique([branchId, document])
@@ -447,6 +451,7 @@ model Property {
   serviceDemands ServiceDemand[]
   creditAnalyses CreditAnalysis[]
   receivableTitles ReceivableTitle[]
+  proposalProperties GeneratedFormProperty[]
 
   @@index([branchId])
   @@index([branchId, name])
@@ -638,6 +643,23 @@ enum DocumentType {
   LICENCA_AMBIENTAL_OPERACAO
   LICENCA_AMBIENTAL_INSTALACAO
   LICENCA_AMBIENTAL_AEF
+  COMPROVANTE_EXPLORACAO_PECUARIA
+}
+
+enum OfferedCollateralModality {
+  FIANCA_AVALISTA                  // Fiança e Avalista
+  ALIENACAO_FIDUCIARIA_IMOVEL      // Alienação Fiduciária de Imóvel
+  HIPOTECA_RURAL_CEDULAR           // Hipoteca Rural ou Cedular
+  PATRIMONIO_RURAL_AFETACAO        // Patrimônio Rural em Afetação
+  PENHOR_RURAL                     // Penhor Rural - (Agrícola ou Pecuário)
+  ANTICRESE                        // Anticrese
+}
+
+enum CreditPreferenceLine {
+  AQUISICAO_MATRIZES_REPRODUTORES  // Aquisição de Matrizes e (ou) Reprodutores
+  CONSTRUCAO_OBRAS_RURAIS          // Construção de Obras Rurais
+  CUSTEIO_PECUARIO_RECRIA_ENGORDA  // Custeio Pecuário - Recria/Engorda/Nutrição
+  OUTRA
 }
 
 enum ComplianceStatus {
@@ -765,6 +787,7 @@ model GeneratedForm {
   branchId          String   @map("branch_id")
   producerId        String   @map("producer_id")
   propertyId        String?  @map("property_id")
+  creditAnalysisId  String?  @map("credit_analysis_id")
   templateCode      String   @map("template_code")
   templateVersion   Int      @map("template_version")
   payloadSnapshot   Json     @map("payload_snapshot")
@@ -775,8 +798,92 @@ model GeneratedForm {
   branch            Branch   @relation(fields: [branchId], references: [id], onDelete: Cascade)
   producer          Producer @relation(fields: [producerId], references: [id], onDelete: Cascade)
   property          Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  creditAnalysis    CreditAnalysis? @relation(fields: [creditAnalysisId], references: [id], onDelete: SetNull)
+  properties        GeneratedFormProperty[]
+  controlledCredits ControlledCreditInDebt[]
+  astecProjection   AstecPlurianualProjection?
 
+  @@index([branchId])
+  @@index([producerId])
+  @@index([propertyId])
+  @@index([creditAnalysisId])
   @@map("generated_forms")
+}
+
+// ======================================================================
+// GESTÃO DE MÚLTIPLOS IMÓVEIS POR PROPOSTA (ATUALIZAÇÃO III / PRONAF)
+// ======================================================================
+
+model GeneratedFormProperty {
+  id                    String        @id @default(uuid())
+  branchId              String        @map("branch_id")
+  formId                String        @map("form_id")
+  propertyId            String        @map("property_id")
+  isEnterpriseLocation  Boolean       @default(false) @map("is_enterprise_location") // "Imóvel de localização do empreendimento objeto da proposta"
+  createdAt             DateTime      @default(now()) @map("created_at")
+
+  branch                Branch        @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  form                  GeneratedForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+  property              Property      @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@unique([formId, propertyId])
+  @@index([branchId])
+  @@index([formId])
+  @@index([propertyId])
+  @@map("generated_form_properties")
+}
+
+// ======================================================================
+// DECLARAÇÃO DE CRÉDITOS CONTROLADOS EM SER (PRONAF INVESTIMENTO)
+// ======================================================================
+
+model ControlledCreditInDebt {
+  id                String          @id @default(uuid())
+  branchId          String          @map("branch_id")
+  producerId        String          @map("producer_id")
+  formId            String?         @map("form_id")
+  creditAnalysisId  String?         @map("credit_analysis_id")
+  institution       String          // Instituição Financeira (ex: Banco do Brasil, Sicredi)
+  creditLine        String          @map("credit_line") // Linha de Crédito
+  contractDate      DateTime        @map("contract_date") // Data Contratação
+  purpose           String          // Finalidade
+  cropYear          String          @map("crop_year") // Ano Agrícola (ex: 2024/2025)
+  amount            Decimal         @map("amount") @db.Decimal(15, 2) // Valor R$
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  branch            Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  producer          Producer        @relation(fields: [producerId], references: [id], onDelete: Cascade)
+  form              GeneratedForm?  @relation(fields: [formId], references: [id], onDelete: SetNull)
+  creditAnalysis    CreditAnalysis? @relation(fields: [creditAnalysisId], references: [id], onDelete: SetNull)
+
+  @@index([branchId])
+  @@index([producerId])
+  @@index([formId])
+  @@index([creditAnalysisId])
+  @@map("controlled_credits_in_debt")
+}
+
+// ======================================================================
+// DEMONSTRATIVO PLURIANUAL ASTEC (10 ANOS - ANO I AO ANO X)
+// ======================================================================
+
+model AstecPlurianualProjection {
+  id                String          @id @default(uuid())
+  branchId          String          @map("branch_id")
+  formId            String          @unique @map("form_id")
+  creditAnalysisId  String?         @map("credit_analysis_id")
+  isManualOverride  Boolean         @default(false) @map("is_manual_override")
+  payload           Json            // Matriz estruturada de 10 anos (Ano I a Ano X)
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  branch            Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  form              GeneratedForm   @relation(fields: [formId], references: [id], onDelete: Cascade)
+  creditAnalysis    CreditAnalysis? @relation(fields: [creditAnalysisId], references: [id], onDelete: SetNull)
+
+  @@index([branchId])
+  @@index([creditAnalysisId])
+  @@map("astec_plurianual_projections")
 }
 
 // ----------------------------------------------------------------------
@@ -1031,6 +1138,9 @@ model CreditAnalysis {
   agroRevenues               AgroRevenue[]
   nonAgroRevenues            NonAgroRevenue[]
   expenses                   Expense[]
+  generatedForms             GeneratedForm[]
+  controlledCredits          ControlledCreditInDebt[]
+  astecProjections           AstecPlurianualProjection[]
 
   @@index([branchId, status])
   @@index([producerId, cropYear])
