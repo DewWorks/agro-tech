@@ -656,6 +656,112 @@ export async function updateDemandStatus(
     // Regra de automação 2: Se moveu para CONCLUIDO e não tem data de conclusão, grava agora
     if (parsed.status === 'CONCLUIDO') {
       updateData.completionDate = new Date()
+
+      // Validação Operacional Estrita (Atualização III):
+      const isCreditService =
+        ['PROJETO_CUSTEIO', 'PROJETO_INVESTIMENTO', 'LIMITE_CREDITO', 'PRORROGACAO_DIVIDAS'].includes(existing.serviceType) ||
+        Boolean(existing.proposalId)
+
+      if (isCreditService) {
+        // 1. Projeto de Crédito emitido ou vinculado (Custeio, RenovAgro, InovAgro, etc.)
+        let hasCreditProject =
+          Boolean(existing.proposalId || existing.documentId) ||
+          Boolean(billingOptions?.financedAmount && billingOptions.financedAmount > 0)
+
+        if (!hasCreditProject) {
+          const generatedProject = await prisma.generatedForm.findFirst({
+            where: {
+              OR: [
+                { id: existing.id },
+                { producerId: existing.producerId },
+                ...(existing.propertyId ? [{ propertyId: existing.propertyId }] : []),
+              ],
+              templateCode: {
+                in: [
+                  'PROJETO_CUSTEIO_SAFRA',
+                  'PROJETO_RENOVAGRO',
+                  'PROJETO_INOVAGRO',
+                  'PRONAF_INVESTIMENTO',
+                  'LIMITE_CREDITO_BB',
+                ],
+              },
+            },
+            select: { id: true },
+          })
+          if (generatedProject) {
+            hasCreditProject = true
+          }
+        }
+
+        if (!hasCreditProject) {
+          throw new Error(
+            'Para concluir a demanda, é obrigatório possuir um Projeto de Crédito emitido ou vinculado (Custeio, RenovAgro, InovAgro, etc.).'
+          )
+        }
+
+        // 2. Resumo Financeiro do Produtor no CRM preenchido (Passo 4 de 5)
+        let hasFinancialSummary = false
+        if (existing.propertyId) {
+          const property = await prisma.property.findUnique({
+            where: { id: existing.propertyId },
+            select: {
+              possessionData: true,
+              landUses: { select: { id: true }, take: 1 },
+              improvementsList: { select: { id: true }, take: 1 },
+              livestockList: { select: { id: true }, take: 1 },
+              machineries: { select: { id: true }, take: 1 },
+            },
+          })
+          if (
+            property &&
+            (property.landUses.length > 0 ||
+              property.improvementsList.length > 0 ||
+              property.livestockList.length > 0 ||
+              property.machineries.length > 0 ||
+              Boolean(property.possessionData))
+          ) {
+            hasFinancialSummary = true
+          }
+        }
+
+        if (!hasFinancialSummary) {
+          const producerFinancial = await prisma.creditAnalysis.findFirst({
+            where: { producerId: existing.producerId },
+            select: { id: true },
+          })
+          if (producerFinancial) {
+            hasFinancialSummary = true
+          }
+        }
+
+        if (!hasFinancialSummary) {
+          const producerInfo = await prisma.producer.findUnique({
+            where: { id: existing.producerId },
+            select: {
+              urbanProperties: { select: { id: true }, take: 1 },
+              vehicles: { select: { id: true }, take: 1 },
+              properties: { select: { propertyId: true }, take: 1 },
+            },
+          })
+          if (
+            producerInfo &&
+            (producerInfo.urbanProperties.length > 0 ||
+              producerInfo.vehicles.length > 0 ||
+              producerInfo.properties.length > 0)
+          ) {
+            hasFinancialSummary = true
+          }
+        }
+
+        if (!hasFinancialSummary) {
+          throw new Error(
+            'Para concluir a demanda, é obrigatório preencher o Resumo Financeiro do Produtor no CRM (Receitas e Despesas operacionais cadastradas no Passo 4).'
+          )
+        }
+
+        // 3. Limite MCR: 100% Opcional. Se houver CreditAnalysis, os dados já foram vinculados;
+        // se não houver, a demanda conclui normalmente disparando o faturamento a partir do projeto.
+      }
     }
 
     // Regra de automação 3: Reabertura (de CONCLUIDO para outro status ativo)

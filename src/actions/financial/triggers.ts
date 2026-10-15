@@ -300,13 +300,36 @@ export async function triggerReceivableFromDemand(
       })
     }
 
-    // 4. Gerar número de documento sequencial
+    // 4. Gerar número de documento sequencial garantindo unicidade por branch
     const currentYear = new Date().getFullYear()
-    const titlesCount = await prisma.receivableTitle.count({
-      where: { branchId: demand.branchId },
+    const latestTitle = await prisma.receivableTitle.findFirst({
+      where: {
+        branchId: demand.branchId,
+        documentNumber: { startsWith: `FAT-${currentYear}-` },
+      },
+      orderBy: { documentNumber: 'desc' },
+      select: { documentNumber: true },
     })
-    const docSeq = String(titlesCount + 1).padStart(4, '0')
-    const documentNumber = `FAT-${currentYear}-${docSeq}`
+
+    let nextSeq = 1
+    if (latestTitle?.documentNumber) {
+      const parts = latestTitle.documentNumber.split('-')
+      const lastSeq = parseInt(parts[parts.length - 1], 10)
+      if (!isNaN(lastSeq)) {
+        nextSeq = lastSeq + 1
+      }
+    }
+
+    let documentNumber = `FAT-${currentYear}-${String(nextSeq).padStart(4, '0')}`
+    while (
+      await prisma.receivableTitle.findFirst({
+        where: { branchId: demand.branchId, documentNumber },
+        select: { id: true },
+      })
+    ) {
+      nextSeq++
+      documentNumber = `FAT-${currentYear}-${String(nextSeq).padStart(4, '0')}`
+    }
 
     const dueDate = options.dueDate
       ? new Date(options.dueDate)

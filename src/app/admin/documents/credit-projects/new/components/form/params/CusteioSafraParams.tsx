@@ -275,6 +275,7 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
           <Input
             id="field-custeio-qty"
             type="number"
+            step="any"
             value={areaOrQty || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
@@ -321,6 +322,7 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
           <Input
             id="field-custeio-cost"
             type="number"
+            step="any"
             value={costOrPrice || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
@@ -350,6 +352,7 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
           <Input
             id="field-custeio-yield"
             type="number"
+            step="any"
             value={yieldOrWeight || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioExpectedYield: Number(e.target.value) }))}
             className={cn(
@@ -368,6 +371,7 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
           <Input
             id="field-custeio-selling-price"
             type="number"
+            step="any"
             value={unitSellingPrice || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioPricePerUnit: Number(e.target.value) }))}
             className={cn(
@@ -384,7 +388,7 @@ export function CusteioSafraParams({ customOptions, setCustomOptions }: ParamsPr
           <Input
             id="field-custeio-interest"
             type="number"
-            step="0.1"
+            step="any"
             value={customOptions.custeioInterestRate || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, custeioInterestRate: Number(e.target.value) }))}
             className={cn(

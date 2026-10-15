@@ -187,7 +187,7 @@ export async function getReceivableTitleById(titleId: string) {
 }
 
 /**
- * Criação direta de faturamento avulso ou pacotes fechados (CAR, AUI, Laudos de Avaliação).
+ * Criação direta de faturamento avulso ou pacotes fechados (CAR, DUI, Laudos de Avaliação).
  */
 export async function createDirectReceivableTitle(data: CreateReceivableTitleInput) {
   try {

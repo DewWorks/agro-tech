@@ -12,12 +12,16 @@ import {
   Lock,
   Unlock,
   Building,
+  Edit2,
+  Trash2,
 } from 'lucide-react'
 import { formatCPF, formatCNPJ } from '@/lib/utils'
 import { toggleCommercialPartnerStatus } from '@/actions/financial/partners'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import NewPartnerModal from './modals/NewPartnerModal'
+import EditPartnerModal from './modals/EditPartnerModal'
+import DeletePartnerModal from './modals/DeletePartnerModal'
 
 interface PartnersListClientProps {
   partners: any[]
@@ -33,6 +37,8 @@ export default function PartnersListClient({
   const router = useRouter()
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
+  const [editPartner, setEditPartner] = useState<any | null>(null)
+  const [deletePartner, setDeletePartner] = useState<{ id: string; name: string } | null>(null)
 
   // Copiar chave PIX em 1 clique
   const handleCopyPix = (key: string, id: string) => {
@@ -141,15 +147,48 @@ export default function PartnersListClient({
                       </div>
                     </div>
 
-                    <span
-                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
-                        partner.isActive
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200'
-                      }`}
-                    >
-                      {partner.isActive ? 'Ativo' : 'Inativo'}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setEditPartner(partner)}
+                        title="Editar Parceiro Comercial"
+                        className="text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors p-1 rounded-md cursor-pointer"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(partner.id, partner.isActive)}
+                        title={partner.isActive ? 'Inativar Parceiro' : 'Reativar Parceiro'}
+                        className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors p-1 rounded-md cursor-pointer"
+                      >
+                        {partner.isActive ? (
+                          <Unlock className="h-3.5 w-3.5 text-emerald-600" />
+                        ) : (
+                          <Lock className="h-3.5 w-3.5 text-slate-400" />
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setDeletePartner({ id: partner.id, name: partner.name })}
+                        title="Excluir Parceiro"
+                        className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors p-1 rounded-md cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                          partner.isActive
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-500 border border-slate-200'
+                        }`}
+                      >
+                        {partner.isActive ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Informações da Filial e Taxa */}
@@ -239,6 +278,26 @@ export default function PartnersListClient({
           onClose={() => setModalOpen(false)}
           branches={branches}
           currentBranchId={currentBranchId}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
+      {/* Modal de Edição de Parceiro */}
+      {editPartner && (
+        <EditPartnerModal
+          isOpen={Boolean(editPartner)}
+          onClose={() => setEditPartner(null)}
+          partner={editPartner}
+          onSuccess={() => router.refresh()}
+        />
+      )}
+
+      {/* Modal de Exclusão com Validação de Vínculos */}
+      {deletePartner && (
+        <DeletePartnerModal
+          isOpen={Boolean(deletePartner)}
+          onClose={() => setDeletePartner(null)}
+          partner={deletePartner}
           onSuccess={() => router.refresh()}
         />
       )}

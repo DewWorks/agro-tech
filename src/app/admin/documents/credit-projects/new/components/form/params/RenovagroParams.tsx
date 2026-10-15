@@ -204,19 +204,21 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-area"
             type="number"
+            step="any"
             value={customOptions.renovagroAreaHa || ''}
             onChange={(e) => {
               const qty = Number(e.target.value)
               setCustomOptions((prev) => {
                 const cost = prev.renovagroCostPerHa || defaultUnitCost
                 const total = qty * cost
+                const own = prev.renovagroOwnResources || 0
                 return {
                   ...prev,
                   renovagroAreaHa: qty,
                   renovagroCostPerHa: cost,
                   renovagroTotalInvestment: total,
-                  renovagroFinanced: Math.round(total * 0.9),
-                  renovagroOwnResources: Math.round(total * 0.1),
+                  renovagroFinanced: Math.max(0, total - own),
+                  renovagroOwnResources: own,
                 }
               })
             }}
@@ -238,18 +240,20 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-cost"
             type="number"
+            step="any"
             value={customOptions.renovagroCostPerHa || ''}
             onChange={(e) => {
               const cost = Number(e.target.value)
               setCustomOptions((prev) => {
                 const qty = prev.renovagroAreaHa || 0
                 const total = qty * cost
+                const own = prev.renovagroOwnResources || 0
                 return {
                   ...prev,
                   renovagroCostPerHa: cost,
                   renovagroTotalInvestment: total,
-                  renovagroFinanced: Math.round(total * 0.9),
-                  renovagroOwnResources: Math.round(total * 0.1),
+                  renovagroFinanced: Math.max(0, total - own),
+                  renovagroOwnResources: own,
                 }
               })
             }}
@@ -264,8 +268,8 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
         </div>
       </div>
 
-      {/* Investimento Total e Financiamento (90% teto) */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Investimento Total e Financiamento (100% Padrão Reativo) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-bold text-gray-900">Investimento Total (R$) *</Label>
@@ -283,15 +287,19 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-total"
             type="number"
+            step="any"
             value={customOptions.renovagroTotalInvestment || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
-              setCustomOptions((prev) => ({
-                ...prev,
-                renovagroTotalInvestment: val,
-                renovagroFinanced: Math.round(val * 0.9),
-                renovagroOwnResources: Math.round(val * 0.1),
-              }))
+              setCustomOptions((prev) => {
+                const own = prev.renovagroOwnResources || 0
+                return {
+                  ...prev,
+                  renovagroTotalInvestment: val,
+                  renovagroFinanced: Math.max(0, val - own),
+                  renovagroOwnResources: own,
+                }
+              })
             }}
             className={cn(
               'h-9 text-xs font-bold transition-colors',
@@ -305,14 +313,43 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <Label className="text-xs font-semibold text-gray-700">Valor Financiado Solicitado (R$) *</Label>
+            <Label className="text-xs font-semibold text-gray-700">Recursos Próprios (R$)</Label>
+            <span className="text-[9px] text-slate-500 bg-slate-100 px-1 py-0.2 rounded">
+              Contrapartida
+            </span>
+          </div>
+          <Input
+            id="field-renovagro-own"
+            type="number"
+            step="any"
+            value={customOptions.renovagroOwnResources || ''}
+            onChange={(e) => {
+              const ownVal = Number(e.target.value)
+              setCustomOptions((prev) => {
+                const total = prev.renovagroTotalInvestment || 0
+                return {
+                  ...prev,
+                  renovagroOwnResources: ownVal,
+                  renovagroFinanced: Math.max(0, total - ownVal),
+                }
+              })
+            }}
+            className="h-9 text-xs bg-white border-gray-200"
+            placeholder="0,00 (Opcional)"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold text-gray-700">Valor Financiado (R$) *</Label>
             <span className="text-[9px] text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded font-bold border border-emerald-200">
-              90% Teto
+              100% Base
             </span>
           </div>
           <Input
             id="field-renovagro-financed"
             type="number"
+            step="any"
             value={customOptions.renovagroFinanced || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
@@ -323,7 +360,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
               }))
             }}
             className={cn(
-              'h-9 text-xs transition-colors',
+              'h-9 text-xs font-bold transition-colors',
               isFinancedPending
                 ? 'border-amber-400 bg-amber-50/20 focus-visible:ring-amber-400 focus:border-amber-500'
                 : 'border-gray-200 bg-white focus-visible:ring-emerald-500'
@@ -331,14 +368,6 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
             placeholder="0,00"
           />
         </div>
-      </div>
-
-      {/* Recursos Próprios (Contrapartida) */}
-      <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex items-center justify-between text-xs">
-        <span className="text-gray-600 font-medium">Contrapartida de Recursos Próprios (10%):</span>
-        <span className="font-bold text-gray-900">
-          R$ {(customOptions.renovagroOwnResources || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </span>
       </div>
 
       {/* Condições Financeiras (Prazo, Carência, Juros) */}
@@ -400,7 +429,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
             <Input
               id="field-renovagro-interest"
               type="number"
-              step="0.1"
+              step="any"
               value={customOptions.renovagroInterestRate || ''}
               onChange={(e) =>
                 setCustomOptions((prev) => ({ ...prev, renovagroInterestRate: Number(e.target.value) }))

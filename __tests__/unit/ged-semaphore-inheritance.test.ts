@@ -71,13 +71,14 @@ describe('GED - Semaphore and Type Labels Audit Tests', () => {
       'TITULO_DOMINIO', 'ESCRITURA_COMPRA_VENDA', 'ESCRITURA_DOACAO',
       'ESCRITURA_PERMUTA', 'ESCRITURA_CESSAO_HEREDITARIO', 'ESCRITURA_INVENTARIO',
       'INSCRICAO_ESTADUAL', 'CONTRATO_CESSAO_USO',
-      // Ambientais
+      // Ambientais e Pecuária
       'OUTORGA_AGUA_DUI', 'LICENCA_AMBIENTAL_OPERACAO',
-      'LICENCA_AMBIENTAL_INSTALACAO', 'LICENCA_AMBIENTAL_AEF'
+      'LICENCA_AMBIENTAL_INSTALACAO', 'LICENCA_AMBIENTAL_AEF',
+      'COMPROVANTE_EXPLORACAO_PECUARIA'
     ]
 
-    it('deve conter todos os 37 tipos documentais mapeados com rótulos amigáveis', () => {
-      expect(Object.keys(DOCUMENT_TYPE_LABELS).length).toBe(37)
+    it('deve conter todos os tipos documentais mapeados com rótulos amigáveis', () => {
+      expect(Object.keys(DOCUMENT_TYPE_LABELS).length).toBe(38)
       for (const type of requiredTypes) {
         expect(DOCUMENT_TYPE_LABELS[type]).toBeDefined()
         expect(DOCUMENT_TYPE_LABELS[type].length).toBeGreaterThan(0)

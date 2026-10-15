@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { formatDualTermMonths } from '@/components/credit-proposals/astec/CommercialDualTermInput'
 import {
   Table,
   TableBody,
@@ -345,7 +346,7 @@ export function CreditLimitPortfolioTable({
                               {formatBRL(prop.creditLimitRequested)}
                             </span>
                             <span className="text-[10px] text-slate-400">
-                              {prop.creditLimitTermMonths} meses
+                              {formatDualTermMonths(prop.creditLimitTermMonths)}
                             </span>
                           </div>
                         ) : (

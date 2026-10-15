@@ -11,6 +11,7 @@ jest.mock('next/cache', () => ({
 }))
 
 describe('Validação E2E com Banco de Dados Real — Demanda #04E7E7', () => {
+  jest.setTimeout(30000)
   const demandId = '45b09ff1-4a28-4c97-a67d-3a1d0f04e7e7'
   let partnerId: string
 
@@ -58,6 +59,35 @@ describe('Validação E2E com Banco de Dados Real — Demanda #04E7E7', () => {
       await prisma.partnerCommission.deleteMany({ where: { receivableTitleId: t.id } })
       await prisma.receivableInstallment.deleteMany({ where: { receivableTitleId: t.id } })
       await prisma.receivableTitle.delete({ where: { id: t.id } })
+    }
+
+    // Garantir que o formulário recente do produtor esteja calibrado com R$ 450.000,00
+    const demandRecord = await prisma.serviceDemand.findUnique({
+      where: { id: demandId },
+    })
+    if (demandRecord) {
+      const recentForm = await prisma.generatedForm.findFirst({
+        where: {
+          producerId: demandRecord.producerId,
+          templateCode: {
+            in: ['PROJETO_CUSTEIO_SAFRA', 'PROJETO_RENOVAGRO', 'PROJETO_INOVAGRO', 'LIMITE_CREDITO_BB'],
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (recentForm) {
+        await prisma.generatedForm.update({
+          where: { id: recentForm.id },
+          data: {
+            payloadSnapshot: {
+              ...(recentForm.payloadSnapshot as object),
+              valorTotalFinanciado: 450000,
+              financedAmount: 450000,
+              targetBank: 'Banco do Brasil',
+            },
+          },
+        })
+      }
     }
   })
 

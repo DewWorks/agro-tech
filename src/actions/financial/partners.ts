@@ -161,6 +161,23 @@ export async function updateCommercialPartner(
     const updateData: Prisma.CommercialPartnerUpdateInput = {}
 
     if (data.name) updateData.name = data.name.trim()
+    if (data.document) {
+      const cleanDoc = data.document.replace(/[^\d]+/g, '')
+      if (cleanDoc !== partner.document) {
+        const existing = await prisma.commercialPartner.findUnique({
+          where: {
+            branchId_document: {
+              branchId: partner.branchId,
+              document: cleanDoc,
+            },
+          },
+        })
+        if (existing && existing.id !== partnerId) {
+          throw new Error('Já existe outro parceiro cadastrado com este CPF/CNPJ nesta filial.')
+        }
+        updateData.document = cleanDoc
+      }
+    }
     if (data.phone !== undefined) updateData.phone = data.phone
     if (data.email !== undefined) updateData.email = data.email
     if (data.pixKey) updateData.pixKey = data.pixKey.trim()
@@ -177,7 +194,7 @@ export async function updateCommercialPartner(
 
     ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/partners')
-    return { data: updated, success: true }
+    return { data: serializeDecimals(updated), success: true }
   } catch (error) {
     return { error: handleServerError(error, 'updateCommercialPartner') }
   }
@@ -298,3 +315,91 @@ export async function getPartnerCommissionSummary(partnerId: string) {
     return { error: handleServerError(error, 'getPartnerCommissionSummary') }
   }
 }
+
+/**
+ * Atualiza o nome de um parceiro comercial existente.
+ */
+export async function updateCommercialPartnerName(partnerId: string, name: string) {
+  try {
+    const trimmed = name?.trim()
+    if (!trimmed || trimmed.length < 2) {
+      throw new Error('O nome do parceiro comercial deve ter pelo menos 2 caracteres.')
+    }
+
+    const partner = await prisma.commercialPartner.findUnique({
+      where: { id: partnerId },
+    })
+
+    if (!partner) {
+      throw new Error('Parceiro comercial não encontrado.')
+    }
+
+    const auth = await requireFinancialAuth(partner.branchId)
+    await assertBranchMutationAllowed(auth, partner.branchId)
+
+    const updated = await prisma.commercialPartner.update({
+      where: { id: partnerId },
+      data: { name: trimmed },
+    })
+
+    ;(revalidateTag as any)('financial-data')
+    revalidatePath('/admin/financial/partners')
+    return { data: serializeDecimals(updated), success: true }
+  } catch (error) {
+    return { error: handleServerError(error, 'updateCommercialPartnerName') }
+  }
+}
+
+/**
+ * Exclui um parceiro comercial, desde que não possua títulos ou comissões associadas.
+ */
+export async function deleteCommercialPartner(partnerId: string) {
+  try {
+    const partner = await prisma.commercialPartner.findUnique({
+      where: { id: partnerId },
+      include: {
+        _count: {
+          select: { commissions: true, receivableTitles: true },
+        },
+      },
+    })
+
+    if (!partner) {
+      throw new Error('Parceiro comercial não encontrado.')
+    }
+
+    const auth = await requireFinancialAuth(partner.branchId)
+    await assertBranchMutationAllowed(auth, partner.branchId)
+
+    if (partner._count.commissions > 0 || partner._count.receivableTitles > 0) {
+      const updated = await prisma.commercialPartner.update({
+        where: { id: partnerId },
+        data: { isActive: false },
+      })
+
+      ;(revalidateTag as any)('financial-data')
+      revalidatePath('/admin/financial/partners')
+      return {
+        success: true,
+        inactivated: true,
+        data: serializeDecimals(updated),
+        message: 'Parceiro inativado com sucesso. O histórico financeiro foi preservado para auditoria.',
+      }
+    }
+
+    await prisma.commercialPartner.delete({
+      where: { id: partnerId },
+    })
+
+    ;(revalidateTag as any)('financial-data')
+    revalidatePath('/admin/financial/partners')
+    return {
+      success: true,
+      inactivated: false,
+      message: 'Parceiro comercial excluído com sucesso.',
+    }
+  } catch (error) {
+    return { error: handleServerError(error, 'deleteCommercialPartner') }
+  }
+}
+

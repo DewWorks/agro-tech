@@ -32,6 +32,30 @@ export const CREDIT_LINES_CATALOG: CreditLineDefinition[] = [
     mcrRef: 'MCR 11-1'
   },
   {
+    code: 'PRONAF_CUSTEIO',
+    name: 'PRONAF - Custeio Agropecuário',
+    axis: CreditLineAxis.CUSTEIO,
+    targetAudience: 'PRONAF',
+    defaultInterestRate: 5.0,
+    defaultTermMonths: 12,
+    defaultGraceMonths: 0,
+    maxFinancingPercent: 100,
+    description: 'Custeio agrícola e pecuário para agricultores familiares enquadrados no PRONAF.',
+    mcrRef: 'MCR 10-1'
+  },
+  {
+    code: 'CUSTEIO_PECUARIO',
+    name: 'Custeio Pecuário (Recria/Engorda/Nutrição)',
+    axis: CreditLineAxis.CUSTEIO,
+    targetAudience: 'PRONAMP',
+    defaultInterestRate: 8.0,
+    defaultTermMonths: 12,
+    defaultGraceMonths: 0,
+    maxFinancingPercent: 100,
+    description: 'Custeio pecuário específico para recria, engorda em confinamento e suplementação nutricional.',
+    mcrRef: 'MCR 11-1'
+  },
+  {
     code: 'PRONAMP_INVESTIMENTO',
     name: 'PRONAMP - Investimento',
     axis: CreditLineAxis.INVESTIMENTO,
@@ -240,3 +264,43 @@ export const CREDIT_LINES_CATALOG: CreditLineDefinition[] = [
     mcrRef: 'MCR 11-6'
   }
 ]
+
+export interface CreditPreferenceDefinition {
+  value: 'AQUISICAO_MATRIZES_REPRODUTORES' | 'CONSTRUCAO_OBRAS_RURAIS' | 'CUSTEIO_PECUARIO_RECRIA_ENGORDA' | 'OUTRA'
+  label: string
+  description: string
+  recommendedAxis: CreditLineAxis
+  category: string
+}
+
+export const CREDIT_PREFERENCE_OPTIONS: CreditPreferenceDefinition[] = [
+  {
+    value: 'AQUISICAO_MATRIZES_REPRODUTORES',
+    label: 'Aquisição de Matrizes e (ou) Reprodutores',
+    description: 'Investimento na compra de matrizes bovinas, reprodutores PO e melhoramento genético.',
+    recommendedAxis: CreditLineAxis.INVESTIMENTO,
+    category: 'Pecuária / Genética'
+  },
+  {
+    value: 'CONSTRUCAO_OBRAS_RURAIS',
+    label: 'Construção de Obras Rurais',
+    description: 'Construção de currais, cercas, galpões, silos, açudes e infraestrutura física na propriedade.',
+    recommendedAxis: CreditLineAxis.INVESTIMENTO,
+    category: 'Infraestrutura'
+  },
+  {
+    value: 'CUSTEIO_PECUARIO_RECRIA_ENGORDA',
+    label: 'Custeio Pecuário - Recria/Engorda/Nutrição',
+    description: 'Despesas correntes com nutrição animal, sal mineral, vacinação, pastagens e insumos da recria/engorda.',
+    recommendedAxis: CreditLineAxis.CUSTEIO,
+    category: 'Custeio Pecuário'
+  },
+  {
+    value: 'OUTRA',
+    label: 'Outras Finalidades MCR/Sicor',
+    description: 'Demais modalidades e finalidades operacionais do Manual de Crédito Rural.',
+    recommendedAxis: CreditLineAxis.INVESTIMENTO,
+    category: 'Geral'
+  }
+]
+

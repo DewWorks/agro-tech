@@ -248,7 +248,7 @@ export function DemandBillingModal({
         {isLoadingSuggestion ? (
           <div className="p-12 flex flex-col items-center justify-center gap-3 text-slate-500">
             <Loader2 className="w-8 h-8 animate-spin text-[#1B4D3E]" />
-            <p className="text-xs font-semibold">Buscando dados cadastrais e simulação de crédito...</p>
+            <p className="text-xs font-semibold">Buscando dados cadastrais e projeto de crédito...</p>
           </div>
         ) : (
           <form onSubmit={handleConfirmWithBilling} className="p-6 space-y-6 max-h-[75vh] overflow-y-auto">

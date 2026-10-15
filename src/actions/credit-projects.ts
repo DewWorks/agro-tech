@@ -686,6 +686,8 @@ export async function saveCreditProjectData(
     }
   }
 
+  let savedFormId: string
+
   if (existing) {
     const updated = await prisma.generatedForm.update({
       where: { id: existing.id },
@@ -694,7 +696,7 @@ export async function saveCreditProjectData(
         createdAt: new Date(),
       }
     })
-    return { success: true, id: updated.id }
+    savedFormId = updated.id
   } else {
     const created = await prisma.generatedForm.create({
       data: {
@@ -706,8 +708,74 @@ export async function saveCreditProjectData(
         payloadSnapshot: sanitized,
       }
     })
-    return { success: true, id: created.id }
+    savedFormId = created.id
   }
+
+  // 1. Sincronizar Vínculo Multi-Imóvel (GeneratedFormProperty)
+  if (sanitized.selectedProperties && Array.isArray(sanitized.selectedProperties)) {
+    try {
+      await prisma.generatedFormProperty.deleteMany({ where: { formId: savedFormId } })
+      if (sanitized.selectedProperties.length > 0) {
+        await prisma.generatedFormProperty.createMany({
+          data: sanitized.selectedProperties.map((p: any) => ({
+            branchId,
+            formId: savedFormId,
+            propertyId: p.propertyId,
+            isEnterpriseLocation: Boolean(p.isEnterpriseLocation),
+          }))
+        })
+      }
+    } catch (err) {
+      console.error('Error synchronizing generated form properties:', err)
+    }
+  }
+
+  // 2. Sincronizar Créditos Controlados em Ser (ControlledCreditInDebt)
+  if (sanitized.controlledCredits && Array.isArray(sanitized.controlledCredits)) {
+    try {
+      await prisma.controlledCreditInDebt.deleteMany({ where: { formId: savedFormId } })
+      if (sanitized.controlledCredits.length > 0) {
+        await prisma.controlledCreditInDebt.createMany({
+          data: sanitized.controlledCredits.map((c: any) => ({
+            branchId,
+            producerId,
+            formId: savedFormId,
+            institution: c.institution || 'Banco do Brasil',
+            creditLine: c.creditLine || 'PRONAF Investimento',
+            contractDate: c.contractDate ? new Date(c.contractDate) : new Date(),
+            purpose: c.purpose || '',
+            cropYear: c.cropYear || '2024/2025',
+            amount: Number(c.amount) || 0,
+          }))
+        })
+      }
+    } catch (err) {
+      console.error('Error synchronizing controlled credits in debt:', err)
+    }
+  }
+
+  // 3. Sincronizar Projeção Plurianual ASTEC (AstecPlurianualProjection)
+  if (sanitized.astecProjection && typeof sanitized.astecProjection === 'object') {
+    try {
+      await prisma.astecPlurianualProjection.upsert({
+        where: { formId: savedFormId },
+        create: {
+          branchId,
+          formId: savedFormId,
+          isManualOverride: Boolean(sanitized.astecProjection.isManualOverride),
+          payload: (sanitized.astecProjection.years || sanitized.astecProjection) as any,
+        },
+        update: {
+          isManualOverride: Boolean(sanitized.astecProjection.isManualOverride),
+          payload: (sanitized.astecProjection.years || sanitized.astecProjection) as any,
+        }
+      })
+    } catch (err) {
+      console.error('Error synchronizing astec plurianual projection:', err)
+    }
+  }
+
+  return { success: true, id: savedFormId }
 }
 
 /**
@@ -727,10 +795,46 @@ export async function getSavedCreditProjectData(
       propertyId: propertyId || null,
       templateCode,
     },
+    include: {
+      properties: true,
+      controlledCredits: true,
+      astecProjection: true,
+    },
     orderBy: { createdAt: 'desc' }
   })
 
-  return (existing?.payloadSnapshot as Record<string, any>) || null
+  if (!existing) return null
+
+  const snapshot = (existing.payloadSnapshot as Record<string, any>) || {}
+
+  // Hidratar relações estruturadas no payload retornado se não existirem no snapshot
+  if (existing.properties && existing.properties.length > 0 && !snapshot.selectedProperties) {
+    snapshot.selectedProperties = existing.properties.map((p) => ({
+      propertyId: p.propertyId,
+      isEnterpriseLocation: p.isEnterpriseLocation,
+    }))
+  }
+
+  if (existing.controlledCredits && existing.controlledCredits.length > 0 && !snapshot.controlledCredits) {
+    snapshot.controlledCredits = existing.controlledCredits.map((c) => ({
+      id: c.id,
+      institution: c.institution,
+      creditLine: c.creditLine,
+      contractDate: c.contractDate ? c.contractDate.toISOString().split('T')[0] : '',
+      purpose: c.purpose,
+      cropYear: c.cropYear,
+      amount: Number(c.amount) || 0,
+    }))
+  }
+
+  if (existing.astecProjection && !snapshot.astecProjection) {
+    snapshot.astecProjection = {
+      isManualOverride: existing.astecProjection.isManualOverride,
+      years: existing.astecProjection.payload,
+    }
+  }
+
+  return snapshot
 }
 
 /**

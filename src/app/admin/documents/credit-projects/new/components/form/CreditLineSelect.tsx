@@ -62,7 +62,7 @@ export function CreditLineSelect({
     }
     // Fallback inteligente baseado no template e eixo
     if (selectedTemplateCode === 'PROJETO_CUSTEIO_SAFRA') {
-      return findOfficialCreditLine('PRONAMP')
+      return findOfficialCreditLine('PRONAMP_CUSTEIO')
     }
     if (selectedTemplateCode === 'PROJETO_INOVAGRO') {
       return findOfficialCreditLine('INOVAGRO')
@@ -88,7 +88,7 @@ export function CreditLineSelect({
         : axisFilter
 
     if (activeAxis !== 'TODOS') {
-      lines = lines.filter((l) => l.axis === activeAxis || l.axis === 'AMBOS')
+      lines = lines.filter((l) => l.axis === activeAxis)
     }
 
     if (search.trim()) {

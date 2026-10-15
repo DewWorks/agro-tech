@@ -174,13 +174,25 @@
     border: none !important;
     min-height: auto !important;
   }
-  .document-page {
-    width: 210mm !important;
-    min-height: 297mm !important;
-    padding: 20mm 18mm !important;
+  .page-sheet, .dossie-page, .document-page {
     box-sizing: border-box !important;
-    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 275mm !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 10mm 12mm !important;
+    border: none !important;
+    box-shadow: none !important;
     background: #ffffff !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+  .page-sheet:last-of-type, .dossie-page:last-of-type, .document-page:last-of-type, .dossie-page-last {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
   .print-break-inside-avoid,
   .print\:break-inside-avoid,
@@ -189,7 +201,16 @@
     page-break-inside: avoid !important;
   }
   table {
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    table-layout: fixed !important;
+    width: 100% !important;
     page-break-inside: auto;
+  }
+  th, td {
+    vertical-align: middle !important;
+    padding: 8px 10px !important;
+    border-bottom: 1px solid #f1f5f9;
   }
   tr {
     break-inside: avoid !important;
@@ -202,11 +223,8 @@
   tfoot {
     display: table-footer-group;
   }
-  .document-page {
-    max-width: 100% !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    box-shadow: none !important;
-    border: none !important;
+  img, svg, .bank-logo, .dossie-logo {
+    display: inline-block !important;
+    vertical-align: middle !important;
   }
 }
