@@ -89,6 +89,7 @@ export const RURAL_SERVICES_CATALOG: Record<RuralServiceTypeCode, RuralServiceMe
       'Comprovante de Residência Atualizado',
       'Declaração de IRPF / Recibo de Entrega',
       'Extratos Bancários Recentes',
+      'Comprovante de Exploração Pecuária',
     ],
     estimatedDaysDefault: 10,
   },

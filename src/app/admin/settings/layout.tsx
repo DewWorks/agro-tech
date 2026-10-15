@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { User, Building2, Settings } from 'lucide-react'
+import { User, Building2, Settings, CreditCard } from 'lucide-react'
 import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
@@ -12,6 +12,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
   const tabs = [
     { name: 'Meu Perfil', href: '/admin/settings/profile', icon: User },
     { name: 'Minha Empresa', href: '/admin/settings/organization', icon: Building2 },
+    { name: 'Assinatura & Faturamento', href: '/admin/settings/billing', icon: CreditCard },
   ]
 
   return (

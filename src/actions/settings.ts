@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { handleServerError } from '@/lib/errorHandler'
 import { getUserContext } from '@/lib/auth'
+import { updateAsaasCustomer } from '@/lib/asaas/customers'
+import { serverLog } from '@/lib/logger'
 
 const updateProfileSchema = z.object({
   fullName: z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.'),
@@ -85,10 +87,34 @@ export async function updateOrganization(formData: FormData) {
       updateData.cnpj = cnpj
     }
 
-    await prisma.organization.update({
+    const updatedOrg = await prisma.organization.update({
       where: { id: targetOrgId },
       data: updateData,
     })
+
+    // Sincronização Fiscal com Gateway Asaas (Requisito Crítico #5)
+    try {
+      const subscription = await prisma.organizationSubscription.findUnique({
+        where: { organizationId: targetOrgId },
+      })
+
+      if (subscription?.asaasCustomerId) {
+        await updateAsaasCustomer(subscription.asaasCustomerId, {
+          name: updatedOrg.name,
+          cpfCnpj: updatedOrg.cnpj,
+        })
+
+        await prisma.organizationSubscription.update({
+          where: { organizationId: targetOrgId },
+          data: {
+            billingName: updatedOrg.name,
+            billingCpfCnpj: updatedOrg.cnpj,
+          },
+        })
+      }
+    } catch (syncErr) {
+      serverLog('warn', 'Settings - updateOrganization:syncFiscal', syncErr)
+    }
 
     revalidatePath('/admin/settings/organization')
     revalidatePath('/admin/organizations')

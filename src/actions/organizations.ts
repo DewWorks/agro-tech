@@ -2,13 +2,33 @@
 // Force recompile to expose toggleOrganizationStatus
 
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { getUserContext } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { sendWelcomeEmail } from '@/lib/email'
 
-export async function getOrganizations() {
+export type OrganizationListItem = Prisma.OrganizationGetPayload<{
+  include: {
+    users: {
+      where: { role: 'OWNER' }
+    }
+    subscription: {
+      include: { plan: true }
+    }
+    _count: {
+      select: { 
+        branches: {
+          where: { deletedAt: null }
+        }
+        users: true 
+      }
+    }
+  }
+}>
+
+export async function getOrganizations(): Promise<OrganizationListItem[]> {
   const dbUser = await getUserContext()
   if (!dbUser) throw new Error('Não autorizado')
 
@@ -21,6 +41,9 @@ export async function getOrganizations() {
     include: {
       users: {
         where: { role: 'OWNER' }
+      },
+      subscription: {
+        include: { plan: true }
       },
       _count: {
         select: { 
