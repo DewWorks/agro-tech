@@ -225,7 +225,7 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
             <span>Certidão de Cadeia Dominial Quinzenária</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="checkbox" ${hasDoc('exploracao_pecuaria', undefined, !!prop.explorationActivity) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
+            <input type="checkbox" ${hasDoc('exploracao_pecuaria', 'COMPROVANTE_EXPLORACAO_PECUARIA', !!prop.explorationActivity) ? 'checked' : ''} style="accent-color: #1B4D3E; width: 14px; height: 14px;" />
             <span>Comprovante de Exploração Agropecuária / Declaração de Rebanho</span>
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">

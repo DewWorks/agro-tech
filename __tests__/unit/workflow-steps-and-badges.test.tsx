@@ -11,9 +11,9 @@ import {
 } from '@/components/documents/WorkflowStepsGuideCard'
 
 describe('Diretriz de Engenharia: Padronização Visual de Badges e Guia Didático de Esteira', () => {
-  describe('1. Padronização Cromática das Badges do Catálogo das 15 Linhas', () => {
-    it('todas as 15 linhas devem possuir badgeColor estritamente neutra (ardósia/cinza corporativo) ou verde institucional suave', () => {
-      expect(OFFICIAL_CREDIT_LINES).toHaveLength(15)
+  describe('1. Padronização Cromática das Badges do Catálogo das Linhas Oficiais', () => {
+    it('todas as linhas oficiais devem possuir badgeColor estritamente neutra (ardósia/cinza corporativo) ou verde institucional suave', () => {
+      expect(OFFICIAL_CREDIT_LINES.length).toBeGreaterThanOrEqual(15)
 
       const bannedColorClasses = [
         'pink',

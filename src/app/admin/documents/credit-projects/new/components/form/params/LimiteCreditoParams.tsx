@@ -23,6 +23,7 @@ export function LimiteCreditoParams({ customOptions, setCustomOptions }: ParamsP
           <Label className="text-[10.5px] text-gray-600">Terra Nua (R$ / ha)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.estimatedLandValuePerHa || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, estimatedLandValuePerHa: Number(e.target.value) }))}
             className="h-8 text-xs"
@@ -33,6 +34,7 @@ export function LimiteCreditoParams({ customOptions, setCustomOptions }: ParamsP
           <Label className="text-[10.5px] text-gray-600">Benfeitorias (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.improvementsValue || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, improvementsValue: Number(e.target.value) }))}
             className="h-8 text-xs"
@@ -46,6 +48,7 @@ export function LimiteCreditoParams({ customOptions, setCustomOptions }: ParamsP
           <Label className="text-[10.5px] text-gray-600">Máquinas (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.machineryValue || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, machineryValue: Number(e.target.value) }))}
             className="h-8 text-xs"
@@ -56,6 +59,7 @@ export function LimiteCreditoParams({ customOptions, setCustomOptions }: ParamsP
           <Label className="text-[10.5px] text-gray-600">Receita Bruta Anual (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.annualRevenue || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, annualRevenue: Number(e.target.value) }))}
             className="h-8 text-xs"
@@ -69,6 +73,7 @@ export function LimiteCreditoParams({ customOptions, setCustomOptions }: ParamsP
           <Label className="text-[10.5px] text-gray-600">Custos / Despesas (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.annualExpenses || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, annualExpenses: Number(e.target.value) }))}
             className="h-8 text-xs"
@@ -79,6 +84,7 @@ export function LimiteCreditoParams({ customOptions, setCustomOptions }: ParamsP
           <Label className="text-[10.5px] text-gray-600">Dívidas SCR / BACEN (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.existingDebts || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, existingDebts: Number(e.target.value) }))}
             className="h-8 text-xs"

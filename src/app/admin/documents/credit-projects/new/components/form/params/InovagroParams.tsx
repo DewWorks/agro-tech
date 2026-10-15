@@ -89,6 +89,7 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
           <Label className="text-[10.5px] text-gray-600">Potência (kWp)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.inovagroPower || ''}
             onChange={(e) => {
               const power = Number(e.target.value)
@@ -131,6 +132,7 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
           <Input
             id="field-inovagro-total"
             type="number"
+            step="any"
             value={customOptions.inovagroTotalInvestment || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
@@ -157,6 +159,7 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
           <Label className="text-[10.5px] text-gray-600">Financiamento Solicitado (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.inovagroFinanced || ''}
             onChange={(e) => {
               const finVal = Number(e.target.value)
@@ -177,6 +180,7 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
           <Label className="text-[10.5px] text-gray-600">Recursos Próprios / Contrapartida (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.inovagroOwnResources || ''}
             onChange={(e) => {
               const ownVal = Number(e.target.value)
@@ -197,6 +201,7 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
           <Label className="text-[10.5px] text-gray-600">Economia Mensal (R$)</Label>
           <Input
             type="number"
+            step="any"
             value={customOptions.inovagroMonthlySavings || ''}
             onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroMonthlySavings: Number(e.target.value) }))}
             className="h-8 text-xs"
@@ -246,7 +251,7 @@ export function InovagroParams({ customOptions, setCustomOptions }: ParamsProps)
             <Label className="text-[10px] text-gray-600">Juros (% a.a.) *</Label>
             <Input
               type="number"
-              step="0.1"
+              step="any"
               value={customOptions.inovagroInterestRate || ''}
               onChange={(e) => setCustomOptions(prev => ({ ...prev, inovagroInterestRate: Number(e.target.value) }))}
               className="h-8 text-xs"

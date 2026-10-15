@@ -15,10 +15,14 @@ import { FileCheck, Sparkles, Sprout, Tractor } from 'lucide-react'
 import { CREDIT_LINES_CATALOG, CREDIT_PREFERENCE_OPTIONS } from '@/constants/credit-lines'
 import { CreditLineAxis } from '@/lib/financial-engine'
 import { SimulatorParametersFormProps } from '@/types/credit-limit.types'
+import { formatDualTermMonths } from '@/components/credit-proposals/astec/CommercialDualTermInput'
 
 const PURPOSE_OPTIONS = [
   { value: 'CUSTEIO_AGRICOLA', label: 'Custeio Agrícola (Safra)', color: 'text-amber-600' },
   { value: 'CUSTEIO_PECUARIO', label: 'Custeio Pecuário', color: 'text-emerald-600' },
+  { value: 'CUSTEIO_PECUARIO_RECRIA_ENGORDA', label: 'Custeio Pecuário - Recria/Engorda/Nutrição', color: 'text-emerald-700' },
+  { value: 'AQUISICAO_MATRIZES_REPRODUTORES', label: 'Aquisição de Matrizes e (ou) Reprodutores', color: 'text-indigo-600' },
+  { value: 'CONSTRUCAO_OBRAS_RURAIS', label: 'Construção de Obras Rurais', color: 'text-amber-700' },
   { value: 'INVESTIMENTO_FIXO', label: 'Investimento em Benfeitorias/Instalações', color: 'text-blue-600' },
   { value: 'INVESTIMENTO_SEMI_FIXO', label: 'Investimento em Máquinas e Frotas', color: 'text-purple-600' },
   { value: 'COMERCIALIZACAO', label: 'Comercialização / FGPP', color: 'text-teal-600' },
@@ -261,8 +265,13 @@ export function SimulatorParametersForm({
         </div>
 
         <div className="space-y-1">
-          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Prazo Total (Meses)
+          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+            <span>Prazo Total (Meses)</span>
+            {termMonths > 0 && (
+              <span className="text-[10px] font-medium text-emerald-700 dark:text-emerald-400">
+                {formatDualTermMonths(termMonths)}
+              </span>
+            )}
           </Label>
           <Input
             type="number"

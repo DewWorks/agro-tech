@@ -183,7 +183,10 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
         compress: true,
       })
 
-      const pages = element.querySelectorAll<HTMLElement>('.page-sheet, .dossie-page, .document-page')
+      const rawPages = element.querySelectorAll<HTMLElement>('.page-sheet, .dossie-page, .document-page')
+      const pages = Array.from(rawPages).filter(
+        (p) => p.offsetHeight >= 10 || p.scrollHeight >= 10
+      )
 
       if (pages.length > 0) {
         for (let i = 0; i < pages.length; i++) {

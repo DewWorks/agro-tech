@@ -32,7 +32,11 @@ export default function DeletePartnerModal({
         return
       }
 
-      toast.success(`Parceiro "${partner.name}" excluído com sucesso.`)
+      if (res.inactivated) {
+        toast.success(res.message || 'Parceiro inativado com sucesso. O histórico financeiro foi preservado para auditoria.')
+      } else {
+        toast.success(res.message || `Parceiro "${partner.name}" excluído com sucesso.`)
+      }
       onSuccess()
       onClose()
     } catch (err: any) {

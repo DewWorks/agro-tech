@@ -43,6 +43,24 @@ export const PURPOSE_OPTIONS: PurposeOption[] = [
     iconColor: 'text-emerald-600 dark:text-emerald-400',
   },
   {
+    value: 'AQUISICAO_MATRIZES_REPRODUTORES',
+    label: 'Aquisição de Matrizes e (ou) Reprodutores',
+    icon: Beef,
+    iconColor: 'text-indigo-600 dark:text-indigo-400',
+  },
+  {
+    value: 'CONSTRUCAO_OBRAS_RURAIS',
+    label: 'Construção de Obras Rurais',
+    icon: Building2,
+    iconColor: 'text-amber-700 dark:text-amber-400',
+  },
+  {
+    value: 'CUSTEIO_PECUARIO_RECRIA_ENGORDA',
+    label: 'Custeio Pecuário - Recria/Engorda/Nutrição',
+    icon: Sprout,
+    iconColor: 'text-emerald-700 dark:text-emerald-400',
+  },
+  {
     value: 'RETENCAO_MATRIZES',
     label: 'Retenção de Matrizes & Bezerros',
     icon: Scale,

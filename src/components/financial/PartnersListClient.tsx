@@ -20,7 +20,7 @@ import { toggleCommercialPartnerStatus } from '@/actions/financial/partners'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import NewPartnerModal from './modals/NewPartnerModal'
-import EditPartnerNameModal from './modals/EditPartnerNameModal'
+import EditPartnerModal from './modals/EditPartnerModal'
 import DeletePartnerModal from './modals/DeletePartnerModal'
 
 interface PartnersListClientProps {
@@ -37,7 +37,7 @@ export default function PartnersListClient({
   const router = useRouter()
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
-  const [editPartner, setEditPartner] = useState<{ id: string; name: string } | null>(null)
+  const [editPartner, setEditPartner] = useState<any | null>(null)
   const [deletePartner, setDeletePartner] = useState<{ id: string; name: string } | null>(null)
 
   // Copiar chave PIX em 1 clique
@@ -150,8 +150,8 @@ export default function PartnersListClient({
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setEditPartner({ id: partner.id, name: partner.name })}
-                        title="Editar Nome do Parceiro"
+                        onClick={() => setEditPartner(partner)}
+                        title="Editar Parceiro Comercial"
                         className="text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition-colors p-1 rounded-md cursor-pointer"
                       >
                         <Edit2 className="h-3.5 w-3.5" />
@@ -282,13 +282,12 @@ export default function PartnersListClient({
         />
       )}
 
-      {/* Modal de Edição de Nome */}
+      {/* Modal de Edição de Parceiro */}
       {editPartner && (
-        <EditPartnerNameModal
+        <EditPartnerModal
           isOpen={Boolean(editPartner)}
           onClose={() => setEditPartner(null)}
-          partnerId={editPartner.id}
-          currentName={editPartner.name}
+          partner={editPartner}
           onSuccess={() => router.refresh()}
         />
       )}

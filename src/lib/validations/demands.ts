@@ -61,6 +61,7 @@ export const RURAL_SERVICES_CATALOG: Record<RuralServiceTypeCode, RuralServiceMe
       'ITR / DIAT',
       'DAP / CAF Ativo',
       'Orçamento / Cotação de Insumos',
+      'Comprovante de Exploração Pecuária (Ficha ADA PEC / Vacinação / Saldo)',
     ],
     estimatedDaysDefault: 15,
   },

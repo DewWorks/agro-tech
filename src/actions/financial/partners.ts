@@ -161,6 +161,23 @@ export async function updateCommercialPartner(
     const updateData: Prisma.CommercialPartnerUpdateInput = {}
 
     if (data.name) updateData.name = data.name.trim()
+    if (data.document) {
+      const cleanDoc = data.document.replace(/[^\d]+/g, '')
+      if (cleanDoc !== partner.document) {
+        const existing = await prisma.commercialPartner.findUnique({
+          where: {
+            branchId_document: {
+              branchId: partner.branchId,
+              document: cleanDoc,
+            },
+          },
+        })
+        if (existing && existing.id !== partnerId) {
+          throw new Error('Já existe outro parceiro cadastrado com este CPF/CNPJ nesta filial.')
+        }
+        updateData.document = cleanDoc
+      }
+    }
     if (data.phone !== undefined) updateData.phone = data.phone
     if (data.email !== undefined) updateData.email = data.email
     if (data.pixKey) updateData.pixKey = data.pixKey.trim()
@@ -177,7 +194,7 @@ export async function updateCommercialPartner(
 
     ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/partners')
-    return { data: updated, success: true }
+    return { data: serializeDecimals(updated), success: true }
   } catch (error) {
     return { error: handleServerError(error, 'updateCommercialPartner') }
   }
@@ -355,9 +372,19 @@ export async function deleteCommercialPartner(partnerId: string) {
     await assertBranchMutationAllowed(auth, partner.branchId)
 
     if (partner._count.commissions > 0 || partner._count.receivableTitles > 0) {
-      throw new Error(
-        `Não é possível excluir o parceiro comercial "${partner.name}" pois existem ${partner._count.receivableTitles} propostas e ${partner._count.commissions} comissões vinculadas a ele. Você pode inativá-lo para impedir novas operações mantendo a rastreabilidade fiscal.`
-      )
+      const updated = await prisma.commercialPartner.update({
+        where: { id: partnerId },
+        data: { isActive: false },
+      })
+
+      ;(revalidateTag as any)('financial-data')
+      revalidatePath('/admin/financial/partners')
+      return {
+        success: true,
+        inactivated: true,
+        data: serializeDecimals(updated),
+        message: 'Parceiro inativado com sucesso. O histórico financeiro foi preservado para auditoria.',
+      }
     }
 
     await prisma.commercialPartner.delete({
@@ -366,7 +393,11 @@ export async function deleteCommercialPartner(partnerId: string) {
 
     ;(revalidateTag as any)('financial-data')
     revalidatePath('/admin/financial/partners')
-    return { success: true }
+    return {
+      success: true,
+      inactivated: false,
+      message: 'Parceiro comercial excluído com sucesso.',
+    }
   } catch (error) {
     return { error: handleServerError(error, 'deleteCommercialPartner') }
   }

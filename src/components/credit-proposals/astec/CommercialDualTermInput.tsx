@@ -18,6 +18,19 @@ export interface CommercialDualTermInputProps {
 }
 
 /**
+ * Formata prazo em meses com conversão automática para anos no ano comercial (360 dias / 12 meses).
+ * Exemplo: 128 meses -> "128 meses (10 anos e 8 meses)"
+ */
+export function formatDualTermMonths(months: number): string {
+  if (!months || months <= 0) return '0 meses'
+  const years = Math.floor(months / 12)
+  const remainingMonths = months % 12
+  if (years === 0) return `${months} meses`
+  if (remainingMonths === 0) return `${months} meses (${years} ${years === 1 ? 'ano' : 'anos'})`
+  return `${months} meses (${years} ${years === 1 ? 'ano' : 'anos'} e ${remainingMonths} ${remainingMonths === 1 ? 'mês' : 'meses'})`
+}
+
+/**
  * Componente de Prazo Dual (Meses & Anos) sincronizado
  * baseado na convenção do Ano Comercial Agrícola (360 dias = 12 meses = 1 ano).
  */

@@ -36,20 +36,20 @@ export interface OfficialCreditLine {
 }
 
 export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
-  // 1) PRONAMP (Custeio e Investimento)
+  // 1) PRONAMP Custeio
   {
-    id: 'PRONAMP',
-    code: 'PRONAMP',
-    name: 'PRONAMP (Custeio e Investimento)',
-    shortName: 'PRONAMP',
-    axis: 'AMBOS',
+    id: 'PRONAMP_CUSTEIO',
+    code: 'PRONAMP_CUSTEIO',
+    name: 'PRONAMP Custeio',
+    shortName: 'PRONAMP Custeio',
+    axis: 'CUSTEIO',
     group: 'PRONAMP',
-    description: 'Programa Nacional de Apoio ao Médio Produtor Rural. Focado em custeio anual de lavouras e pecuária ou investimentos em máquinas e matrizes.',
+    description: 'Programa Nacional de Apoio ao Médio Produtor Rural. Focado estritamente em custeio anual de lavouras e pecuária (recria/engorda).',
     defaultInterestRate: 8.0,
-    defaultTermYears: 3,
-    defaultGraceMonths: 12,
-    maxTermYears: 8,
-    maxGraceMonths: 36,
+    defaultTermYears: 1,
+    defaultGraceMonths: 0,
+    maxTermYears: 2,
+    maxGraceMonths: 0,
     targetAudience: 'Médios produtores rurais com renda bruta anual de até R$ 3 milhões.',
     recommendedTemplate: 'PROJETO_CUSTEIO_SAFRA',
     requiresAreaHa: true,
@@ -57,10 +57,61 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
     suggestedItems: [
       'Custeio de Soja, Milho e Grãos',
       'Custeio Pecuário (Recria e Engorda)',
+      'Insumos, Adubação e Nutrição Animal'
+    ],
+    badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200'
+  },
+
+  // 2) PRONAMP Investimento
+  {
+    id: 'PRONAMP_INVESTIMENTO',
+    code: 'PRONAMP_INVESTIMENTO',
+    name: 'PRONAMP Investimento',
+    shortName: 'PRONAMP Investimento',
+    axis: 'INVESTIMENTO',
+    group: 'PRONAMP',
+    description: 'Investimento fixo e semifixo para médios produtores: máquinas, implementos, reprodutores, matrizes e construções rurais.',
+    defaultInterestRate: 8.0,
+    defaultTermYears: 8,
+    defaultGraceMonths: 24,
+    maxTermYears: 8,
+    maxGraceMonths: 36,
+    targetAudience: 'Médios produtores rurais com renda bruta anual de até R$ 3 milhões.',
+    recommendedTemplate: 'PROJETO_RENOVAGRO',
+    requiresAreaHa: false,
+    requiresUnitOrHeads: true,
+    suggestedItems: [
       'Aquisição de Tratores e Implementos',
-      'Aquisição de Matrizes e Reprodutores'
+      'Aquisição de Matrizes e Reprodutores',
+      'Construção de Obras Rurais e Benfeitorias'
     ],
     badgeColor: 'bg-slate-100 text-slate-700 border-slate-200'
+  },
+
+  // 3) PRONAF Custeio
+  {
+    id: 'PRONAF_CUSTEIO',
+    code: 'PRONAF_CUSTEIO',
+    name: 'PRONAF Custeio',
+    shortName: 'Pronaf Custeio',
+    axis: 'CUSTEIO',
+    group: 'PRONAF',
+    description: 'Financiamento de despesas correntes de ciclos agrícolas e pecuários para agricultores familiares.',
+    defaultInterestRate: 5.0,
+    defaultTermYears: 1,
+    defaultGraceMonths: 0,
+    maxTermYears: 2,
+    maxGraceMonths: 0,
+    targetAudience: 'Agricultores familiares e assentados da reforma agrária com CAF ativo.',
+    recommendedTemplate: 'PROJETO_CUSTEIO_SAFRA',
+    requiresAreaHa: true,
+    requiresUnitOrHeads: true,
+    suggestedItems: [
+      'Custeio de Soja, Milho e Feijão',
+      'Custeio Pecuário Familiar',
+      'Sementes, Fertilizantes e Defensivos'
+    ],
+    badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200'
   },
 
   // 2) PRONAF Mais Alimentos - Investimento Fixo
@@ -177,7 +228,7 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
     code: 'PRONAF_B',
     name: 'PRONAF B (Microcrédito Produtivo Orientado)',
     shortName: 'Pronaf B (Microcrédito)',
-    axis: 'AMBOS',
+    axis: 'INVESTIMENTO',
     group: 'PRONAF',
     description: 'Microcrédito de baixíssimo custo com bônus de adimplência para agricultores de menor renda familiar (R$ 50 mil/ano).',
     defaultInterestRate: 0.5,
@@ -186,8 +237,8 @@ export const OFFICIAL_CREDIT_LINES: OfficialCreditLine[] = [
     maxTermYears: 3,
     maxGraceMonths: 12,
     targetAudience: 'Famílias rurais enquadradas no Grupo B da agricultura familiar.',
-    recommendedTemplate: 'PROJETO_CUSTEIO_SAFRA',
-    requiresAreaHa: true,
+    recommendedTemplate: 'PROJETO_RENOVAGRO',
+    requiresAreaHa: false,
     requiresUnitOrHeads: true,
     suggestedItems: [
       'Insumos Agrícolas e Adubação Básica',
@@ -452,7 +503,7 @@ export function getOfficialCreditLinesByAxis(axis?: CreditLineAxis | 'TODOS'): O
   if (!axis || axis === 'TODOS') {
     return OFFICIAL_CREDIT_LINES
   }
-  return OFFICIAL_CREDIT_LINES.filter(line => line.axis === axis || line.axis === 'AMBOS')
+  return OFFICIAL_CREDIT_LINES.filter(line => line.axis === axis)
 }
 
 /**
@@ -461,7 +512,12 @@ export function getOfficialCreditLinesByAxis(axis?: CreditLineAxis | 'TODOS'): O
 export function findOfficialCreditLine(idOrCode?: string): OfficialCreditLine | undefined {
   if (!idOrCode) return undefined
   const query = idOrCode.toUpperCase().trim()
-  return OFFICIAL_CREDIT_LINES.find(l => l.id.toUpperCase() === query || l.code.toUpperCase() === query)
+  const found = OFFICIAL_CREDIT_LINES.find(l => l.id.toUpperCase() === query || l.code.toUpperCase() === query)
+  if (found) return found
+  if (query === 'PRONAMP') {
+    return OFFICIAL_CREDIT_LINES.find(l => l.id === 'PRONAMP_CUSTEIO')
+  }
+  return undefined
 }
 
 /**

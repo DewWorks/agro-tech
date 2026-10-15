@@ -26,6 +26,7 @@ import { Sparkles, FileCheck, ShieldCheck } from 'lucide-react'
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
 import { AmortizationSystem, CreditLineAxis, FinancialEngineResult } from '@/lib/financial-engine'
 import { PURPOSE_OPTIONS, BANK_OPTIONS } from './options'
+import { formatDualTermMonths } from '@/components/credit-proposals/astec/CommercialDualTermInput'
 
 interface AmortizationAndIcsdGaugeProps {
   activeForm: UseFormReturn<any>
@@ -258,8 +259,13 @@ export function AmortizationAndIcsdGauge({
           </div>
 
           <div>
-            <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-              Prazo Total (Meses)
+            <Label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center justify-between">
+              <span>Prazo Total (Meses)</span>
+              {Number(watch('creditLimitTermMonths')) > 0 && (
+                <span className="text-[10px] font-normal text-emerald-700 dark:text-emerald-400">
+                  {formatDualTermMonths(Number(watch('creditLimitTermMonths')))}
+                </span>
+              )}
             </Label>
             <Input
               type="number"

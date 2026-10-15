@@ -204,6 +204,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-area"
             type="number"
+            step="any"
             value={customOptions.renovagroAreaHa || ''}
             onChange={(e) => {
               const qty = Number(e.target.value)
@@ -239,6 +240,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-cost"
             type="number"
+            step="any"
             value={customOptions.renovagroCostPerHa || ''}
             onChange={(e) => {
               const cost = Number(e.target.value)
@@ -285,6 +287,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-total"
             type="number"
+            step="any"
             value={customOptions.renovagroTotalInvestment || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
@@ -318,6 +321,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-own"
             type="number"
+            step="any"
             value={customOptions.renovagroOwnResources || ''}
             onChange={(e) => {
               const ownVal = Number(e.target.value)
@@ -345,6 +349,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
           <Input
             id="field-renovagro-financed"
             type="number"
+            step="any"
             value={customOptions.renovagroFinanced || ''}
             onChange={(e) => {
               const val = Number(e.target.value)
@@ -424,7 +429,7 @@ export function RenovagroParams({ customOptions, setCustomOptions }: ParamsProps
             <Input
               id="field-renovagro-interest"
               type="number"
-              step="0.1"
+              step="any"
               value={customOptions.renovagroInterestRate || ''}
               onChange={(e) =>
                 setCustomOptions((prev) => ({ ...prev, renovagroInterestRate: Number(e.target.value) }))

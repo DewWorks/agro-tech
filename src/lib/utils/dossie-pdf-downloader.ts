@@ -50,7 +50,10 @@ export async function downloadCreditLimitDossierPdf(html: string, fileName: stri
       compress: true,
     })
 
-    const pages = host.querySelectorAll<HTMLElement>('.page-sheet, .dossie-page, .document-page')
+    const rawPages = host.querySelectorAll<HTMLElement>('.page-sheet, .dossie-page, .document-page')
+    const pages = Array.from(rawPages).filter(
+      (p) => p.offsetHeight >= 10 || p.scrollHeight >= 10
+    )
 
     if (pages.length > 0) {
       for (let i = 0; i < pages.length; i++) {
