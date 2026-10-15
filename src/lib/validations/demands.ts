@@ -74,6 +74,7 @@ export const RURAL_SERVICES_CATALOG: Record<RuralServiceTypeCode, RuralServiceMe
       'CAR - Cadastro Ambiental Rural',
       'Proposta Comercial do Fornecedor / Concessionária',
       'Memorial Descritivo da Benfeitoria',
+      'Comprovante de Exploração Pecuária',
       'CND Federal / Receita Federal',
     ],
     estimatedDaysDefault: 20,
