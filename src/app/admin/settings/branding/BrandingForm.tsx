@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { BrandingLivePreview } from './components/BrandingLivePreview'
+import { brandingUpdateSchema } from '@/lib/validations/branding'
 
 interface BrandingFormProps {
   organization: {
@@ -80,6 +81,42 @@ export default function BrandingForm({
   const refDark = useRef<HTMLInputElement>(null)
   const refIcon = useRef<HTMLInputElement>(null)
 
+  // Função defensiva para criação segura de URLs de pré-visualização
+  function getSafePreviewUrl(fileOrUrl: unknown): string | null {
+    if (!fileOrUrl) return null
+    if (typeof fileOrUrl === 'string') return fileOrUrl
+    if (typeof window !== 'undefined' && (fileOrUrl instanceof Blob || fileOrUrl instanceof File)) {
+      try {
+        return URL.createObjectURL(fileOrUrl)
+      } catch (e) {
+        console.error('Falha ao criar ObjectURL:', e)
+        return null
+      }
+    }
+    return null
+  }
+
+  // Revogação segura de ObjectURLs no desmonte ou alteração de estado para evitar vazamentos e crashes
+  React.useEffect(() => {
+    return () => {
+      if (logoHorizontalPreview && logoHorizontalPreview.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(logoHorizontalPreview)
+        } catch {}
+      }
+      if (logoDarkPreview && logoDarkPreview.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(logoDarkPreview)
+        } catch {}
+      }
+      if (logoIconPreview && logoIconPreview.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(logoIconPreview)
+        } catch {}
+      }
+    }
+  }, [logoHorizontalPreview, logoDarkPreview, logoIconPreview])
+
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     setFile: (f: File | null) => void,
@@ -98,9 +135,12 @@ export default function BrandingForm({
       return
     }
 
-    setFile(file)
-    setPreview(URL.createObjectURL(file))
-    setRemove(false)
+    const safeUrl = getSafePreviewUrl(file)
+    if (safeUrl) {
+      setFile(file)
+      setPreview(safeUrl)
+      setRemove(false)
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -111,8 +151,9 @@ export default function BrandingForm({
     try {
       const formData = new FormData()
       formData.append('orgId', organization.id)
-      formData.append('name', name)
-      formData.append('tradeName', tradeName)
+      formData.append('name', name.trim() || organization.name)
+      formData.append('tradeName', tradeName.trim())
+      formData.append('cnpj', organization.cnpj)
       formData.append('primaryColorHex', primaryColor)
       formData.append('accentColorHex', accentColor)
 
@@ -153,6 +194,9 @@ export default function BrandingForm({
 
   return (
     <form onSubmit={handleSubmit}>
+      <input type="hidden" name="orgId" value={organization.id} />
+      <input type="hidden" name="cnpj" value={organization.cnpj} />
+
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         {/* =================================================================== */}
         {/* COLUNA ESQUERDA: FORMULÁRIO (w-full lg:w-7/12)                      */}
@@ -488,11 +532,15 @@ export default function BrandingForm({
             </Label>
             <Input
               id="tradeName"
+              name="tradeName"
               value={tradeName}
               onChange={(e) => setTradeName(e.target.value)}
               placeholder="Ex: LN Consultoria e Projetos"
-              disabled={!canEdit}
-              className="rounded-xl h-10 text-sm font-medium"
+              readOnly={!canEdit}
+              className={cn(
+                'rounded-xl h-10 text-sm font-medium',
+                !canEdit && 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+              )}
             />
             <p className="text-[11px] text-gray-400">Nome prioritário na exibição do sistema</p>
           </div>
@@ -503,11 +551,15 @@ export default function BrandingForm({
             </Label>
             <Input
               id="name"
+              name="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Lindomar Pereira Cardoso EIRELI"
-              disabled={!canEdit}
-              className="rounded-xl h-10 text-sm font-medium"
+              readOnly={!canEdit}
+              className={cn(
+                'rounded-xl h-10 text-sm font-medium',
+                !canEdit && 'bg-slate-100 text-slate-500 cursor-not-allowed select-none'
+              )}
             />
             <p className="text-[11px] text-gray-400">Utilizado no rodapé pericial e assinaturas</p>
           </div>
@@ -518,9 +570,10 @@ export default function BrandingForm({
             </Label>
             <Input
               id="cnpj"
+              name="cnpj"
               value={organization.cnpj}
-              disabled={true}
-              className="rounded-xl h-10 text-sm font-medium bg-gray-50 text-gray-500 cursor-not-allowed"
+              readOnly
+              className="rounded-xl h-10 text-sm font-medium bg-slate-100 text-slate-500 cursor-not-allowed select-none"
             />
             <p className="text-[11px] text-gray-400">Cadastrado no registro inicial da organização</p>
           </div>

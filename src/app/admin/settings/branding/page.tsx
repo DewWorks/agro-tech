@@ -1,4 +1,5 @@
 import { getUserContext } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 import BrandingForm from './BrandingForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, Palette } from 'lucide-react'
@@ -11,14 +12,36 @@ export default async function BrandingPage() {
     redirect('/login')
   }
 
-  if (!dbUser.organization) return null
+  // Recuperação resiliente da organização (suporta impersonation e SUPER_ADMIN)
+  let organization = dbUser.organization
+  if (!organization) {
+    if (dbUser.organizationId) {
+      organization = await prisma.organization.findUnique({
+        where: { id: dbUser.organizationId },
+      })
+    } else if (dbUser.role === 'SUPER_ADMIN' || dbUser.realRole === 'SUPER_ADMIN') {
+      organization = await prisma.organization.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'asc' },
+      })
+    }
+  }
+
+  if (!organization) {
+    return (
+      <div className="p-8 text-center bg-white border border-slate-200 rounded-2xl shadow-xs">
+        <p className="text-sm font-semibold text-slate-700">Organização não identificada na sessão atual.</p>
+        <p className="text-xs text-slate-500 mt-1">Por favor, selecione uma filial ativa ou recarregue a página.</p>
+      </div>
+    )
+  }
 
   const isOwner = dbUser.role === 'OWNER'
   const isSuperAdmin = dbUser.realRole === 'SUPER_ADMIN'
   const canEdit = isOwner || isSuperAdmin
 
   return (
-    <div className="grid gap-6">
+    <div className="w-full">
       <Card className="border-none shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
@@ -43,7 +66,7 @@ export default async function BrandingPage() {
           )}
 
           <BrandingForm
-            organization={dbUser.organization}
+            organization={organization}
             canEdit={canEdit}
             isSuperAdmin={isSuperAdmin}
           />

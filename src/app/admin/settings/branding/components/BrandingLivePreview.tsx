@@ -15,10 +15,10 @@ import {
 import { cn } from '@/lib/utils'
 
 interface BrandingLivePreviewProps {
-  name: string
-  tradeName: string
-  primaryColor: string
-  accentColor: string
+  name?: string | null
+  tradeName?: string | null
+  primaryColor?: string | null
+  accentColor?: string | null
   logoHorizontalUrl?: string | null
   logoDarkUrl?: string | null
   logoIconUrl?: string | null
@@ -37,7 +37,13 @@ export function BrandingLivePreview({
   logoHorizontalFile,
   logoDarkFile,
 }: BrandingLivePreviewProps) {
-  const displayName = (tradeName.trim() || name.trim() || 'Sua Empresa').toUpperCase()
+  // Fallbacks defensivos para evitar qualquer exceção de null/undefined
+  const safeDisplayName = (tradeName?.trim() || name?.trim() || 'Sua Empresa').toUpperCase()
+  const safePrimaryColor = primaryColor || '#05964F'
+  const safeAccentColor = accentColor || '#FFAC00'
+
+  const [imgErrorHorizontal, setImgErrorHorizontal] = useState(false)
+  const [imgErrorDark, setImgErrorDark] = useState(false)
 
   // Análise em tempo real das dimensões e proporção da imagem
   const [aspectAnalysis, setAspectAnalysis] = useState<{
@@ -50,39 +56,52 @@ export function BrandingLivePreview({
   } | null>(null)
 
   useEffect(() => {
-    if (!logoHorizontalUrl) {
+    setImgErrorHorizontal(false)
+    if (!logoHorizontalUrl || typeof logoHorizontalUrl !== 'string') {
       setAspectAnalysis(null)
       return
     }
 
-    const img = new Image()
-    img.onload = () => {
-      const w = img.naturalWidth || img.width
-      const h = img.naturalHeight || img.height
-      const ratio = h > 0 ? w / h : 1
+    try {
+      const img = new Image()
+      img.onload = () => {
+        try {
+          const w = img.naturalWidth || img.width
+          const h = img.naturalHeight || img.height
+          const ratio = h > 0 ? w / h : 1
 
-      // Verifica se é imagem transparente recomendada (PNG ou SVG)
-      const isTransparent = logoHorizontalFile
-        ? ['image/png', 'image/svg+xml'].includes(logoHorizontalFile.type)
-        : logoHorizontalUrl.toLowerCase().includes('.png') ||
-          logoHorizontalUrl.toLowerCase().includes('.svg') ||
-          logoHorizontalUrl.startsWith('data:image/png') ||
-          logoHorizontalUrl.startsWith('data:image/svg+xml')
+          const isTransparent = logoHorizontalFile
+            ? ['image/png', 'image/svg+xml'].includes(logoHorizontalFile.type)
+            : logoHorizontalUrl.toLowerCase().includes('.png') ||
+              logoHorizontalUrl.toLowerCase().includes('.svg') ||
+              logoHorizontalUrl.startsWith('data:image/png') ||
+              logoHorizontalUrl.startsWith('data:image/svg+xml')
 
-      setAspectAnalysis({
-        width: w,
-        height: h,
-        ratio,
-        isIdeal: ratio >= 3.0 && ratio <= 4.8,
-        isSquareOrVertical: ratio <= 1.4,
-        isTransparent,
-      })
-    }
-    img.onerror = () => {
+          setAspectAnalysis({
+            width: w,
+            height: h,
+            ratio,
+            isIdeal: ratio >= 3.0 && ratio <= 4.8,
+            isSquareOrVertical: ratio <= 1.4,
+            isTransparent,
+          })
+        } catch {
+          setAspectAnalysis(null)
+        }
+      }
+      img.onerror = () => {
+        setAspectAnalysis(null)
+        setImgErrorHorizontal(true)
+      }
+      img.src = logoHorizontalUrl
+    } catch {
       setAspectAnalysis(null)
     }
-    img.src = logoHorizontalUrl
   }, [logoHorizontalUrl, logoHorizontalFile])
+
+  useEffect(() => {
+    setImgErrorDark(false)
+  }, [logoDarkUrl])
 
   return (
     <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-5 shadow-xs space-y-5">
@@ -128,24 +147,25 @@ export function BrandingLivePreview({
               height: '52px',
               minHeight: '52px',
               maxHeight: '52px',
-              borderBottom: `2px solid ${primaryColor}`,
+              borderBottom: `2px solid ${safePrimaryColor}`,
             }}
           >
             {/* Lado Esquerdo: Bounding Box Rígido da Logo (170px x 50px) */}
             <div className="flex items-center gap-2.5 h-[50px] overflow-hidden">
               <div className="w-[170px] h-[50px] min-w-[170px] max-w-[170px] flex items-center justify-start overflow-hidden box-border">
-                {logoHorizontalUrl ? (
+                {logoHorizontalUrl && !imgErrorHorizontal ? (
                   <img
                     src={logoHorizontalUrl}
-                    alt={displayName}
+                    alt={safeDisplayName}
+                    onError={() => setImgErrorHorizontal(true)}
                     className="max-w-full max-h-full w-auto h-auto object-contain object-left block"
                   />
                 ) : (
                   <div
                     className="text-[12px] font-extrabold uppercase leading-tight tracking-tight line-clamp-2"
-                    style={{ color: primaryColor }}
+                    style={{ color: safePrimaryColor }}
                   >
-                    {displayName}
+                    {safeDisplayName}
                   </div>
                 )}
               </div>
@@ -154,7 +174,7 @@ export function BrandingLivePreview({
               <div className="flex flex-col justify-center leading-tight">
                 <h4
                   className="text-[9.5px] font-extrabold uppercase tracking-wide m-0"
-                  style={{ color: primaryColor }}
+                  style={{ color: safePrimaryColor }}
                 >
                   DOSSIÊ TÉCNICO DE LIMITE DE CRÉDITO
                 </h4>
@@ -166,7 +186,7 @@ export function BrandingLivePreview({
 
             {/* Lado Direito: Controle de Folhas */}
             <div className="text-right text-[7.5px] text-slate-500 leading-tight shrink-0">
-              <span className="font-bold" style={{ color: primaryColor }}>
+              <span className="font-bold" style={{ color: safePrimaryColor }}>
                 Dossiê Técnico
               </span>
               <br />
@@ -187,7 +207,7 @@ export function BrandingLivePreview({
             <div className="border border-slate-200 rounded overflow-hidden text-[7.5px] mt-2">
               <div
                 className="px-2 py-0.5 font-bold text-white flex justify-between items-center"
-                style={{ backgroundColor: primaryColor }}
+                style={{ backgroundColor: safePrimaryColor }}
               >
                 <span>Demonstrativo Financeiro & Capacidade de Pagamento</span>
                 <span className="text-[6.5px] opacity-90">Exercício 2026/27</span>
@@ -228,16 +248,17 @@ export function BrandingLivePreview({
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
             <div className="flex flex-col gap-1 overflow-hidden">
               <div className="h-9 flex items-center justify-start overflow-hidden">
-                {logoDarkUrl || logoHorizontalUrl ? (
+                {(logoDarkUrl || logoHorizontalUrl) && !imgErrorDark ? (
                   <img
                     src={(logoDarkUrl || logoHorizontalUrl) || undefined}
-                    alt={displayName}
+                    alt={safeDisplayName}
+                    onError={() => setImgErrorDark(true)}
                     className="max-h-8 max-w-[170px] object-contain object-left"
                   />
                 ) : (
                   <div className="flex items-center gap-1.5">
                     <span className="text-base font-black tracking-tight text-white leading-none">
-                      {displayName}
+                      {safeDisplayName}
                     </span>
                   </div>
                 )}
@@ -257,7 +278,7 @@ export function BrandingLivePreview({
           <div className="mt-2.5 flex items-center gap-2 px-2 py-1 rounded-md bg-white/5 text-[10px] text-emerald-100 font-medium">
             <div
               className="w-1.5 h-1.5 rounded-full shrink-0"
-              style={{ backgroundColor: accentColor }}
+              style={{ backgroundColor: safeAccentColor }}
             />
             <span className="truncate">Painel de Operações de Crédito</span>
           </div>
