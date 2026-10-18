@@ -3,6 +3,7 @@
 import prisma from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { getUserContext } from '@/lib/auth'
+import { requireActiveSubscription } from '@/lib/billing/action-guard'
 import { revalidatePath } from 'next/cache'
 import { DEMAND_STATUS_METAS } from '@/lib/validations/demands'
 import {
@@ -471,6 +472,8 @@ export async function saveCreditProjectData(
   const user = await getUserContext()
   if (!user) throw new Error('Não autorizado')
 
+  await requireActiveSubscription(user.organizationId, (user as any).realRole || user.role)
+
   const producer = await prisma.producer.findUnique({
     where: { id: producerId },
     select: { branchId: true }
@@ -862,6 +865,8 @@ export async function recordDocumentEmission({
 }) {
   const user = await getUserContext()
   if (!user) throw new Error('Não autorizado')
+
+  await requireActiveSubscription(user.organizationId, (user as any).realRole || user.role)
 
   const producer = await prisma.producer.findUnique({
     where: { id: producerId },
@@ -1648,6 +1653,8 @@ export async function createDemandFromCreditProject({
     const user = await getUserContext()
     if (!user) throw new Error('Não autorizado')
 
+    await requireActiveSubscription(user.organizationId, (user as any).realRole || user.role)
+
     const producer = await prisma.producer.findUnique({
       where: { id: producerId },
       select: { branchId: true, branch: { select: { organizationId: true } } },
@@ -1811,6 +1818,8 @@ export async function linkProjectToExistingDemand({
   try {
     const user = await getUserContext()
     if (!user) throw new Error('Não autorizado')
+
+    await requireActiveSubscription(user.organizationId, (user as any).realRole || user.role)
 
     const demand = await prisma.serviceDemand.findUnique({
       where: { id: demandId },
@@ -1976,6 +1985,8 @@ export async function createProjectReceivableTitle({
   try {
     const user = await getUserContext()
     if (!user) throw new Error('Não autorizado')
+
+    await requireActiveSubscription(user.organizationId, (user as any).realRole || user.role)
 
     const producer = await prisma.producer.findUnique({
       where: { id: producerId },

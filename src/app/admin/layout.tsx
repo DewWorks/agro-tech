@@ -9,11 +9,33 @@ import NavigationProgress from '@/components/admin/layout/NavigationProgress'
 import AdminContentWrapper from '@/components/admin/layout/AdminContentWrapper'
 import { AlertTriangle } from 'lucide-react'
 
+import { checkSubscriptionGate, type SubscriptionGateResult } from '@/lib/billing/subscription-gate'
+import SuspendedScreen from '@/components/billing/SuspendedScreen'
+import OverdueBanner from '@/components/billing/OverdueBanner'
+
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const userContext = await getUserContext()
 
   if (!userContext) {
     redirect('/login')
+  }
+
+  // === BILLING PAYWALL GATE ===
+  let gateResult: SubscriptionGateResult = { allowed: true }
+
+  // SUPER_ADMIN possui bypass irrestrito
+  if (userContext.realRole !== 'SUPER_ADMIN' && userContext.organizationId) {
+    gateResult = await checkSubscriptionGate(userContext.organizationId)
+
+    // Bloqueio Total (SUSPENDED / CANCELLED após 15 dias de tolerância)
+    if (!gateResult.allowed && gateResult.reason === 'SUSPENDED') {
+      return (
+        <SuspendedScreen
+          invoice={gateResult.invoice}
+          organizationName={userContext.organization?.name || 'Sua Organização'}
+        />
+      )
+    }
   }
 
   const role = userContext.role
@@ -50,6 +72,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </form>
           </div>
         )}
+
+        {/* Banner de Tolerância OVERDUE (não-impeditivo) */}
+        {!gateResult.allowed && gateResult.reason === 'OVERDUE' && (
+          <div className="print:hidden">
+            <OverdueBanner
+              dueDate={gateResult.dueDate}
+              daysRemaining={gateResult.daysRemaining}
+              invoice={gateResult.invoice}
+            />
+          </div>
+        )}
+
         <div className="print:hidden">
           <ModuleWarningBanner 
             realRole={userContext.realRole}
