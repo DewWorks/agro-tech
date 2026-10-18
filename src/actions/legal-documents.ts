@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 import { CREDIT_TEMPLATES_REGISTRY } from '@/lib/document-templates'
+import { convertRemoteUrlToBase64 } from '@/lib/pdf/resolve-branding'
 
 export async function getMinutasRepository() {
   const user = await getUserContext()
@@ -235,6 +236,23 @@ export async function resolveDocumentData(producerId: string, propertyId: string
   const rawDocument = producer.document || ''
   const formattedDoc = producer.type === 'PF' ? formatCPF(rawDocument) : formatCNPJ(rawDocument)
   resolvedVariables['PRODUCER_DOCUMENT_WITH_TYPE'] = `${producer.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${formattedDoc}`
+
+  // Injeção de Dados Institucionais da Empresa / Organização
+  const orgName = user.organization?.tradeName || user.organization?.name || 'LN Consultoria e Projetos Rurais'
+  const orgCnpj = user.organization?.cnpj ? formatCNPJ(user.organization.cnpj) : ''
+  let logoBase64 = ''
+  if (user.organization?.logoHorizontalUrl) {
+    logoBase64 = (await convertRemoteUrlToBase64(user.organization.logoHorizontalUrl)) || ''
+  }
+
+  resolvedVariables['NOME_EMPRESA'] = orgName
+  resolvedVariables['ORGANIZATION_NAME'] = orgName
+  resolvedVariables['RAZAO_SOCIAL'] = user.organization?.name || orgName
+  resolvedVariables['CNPJ_EMPRESA'] = orgCnpj
+  resolvedVariables['ORGANIZATION_CNPJ'] = orgCnpj
+  resolvedVariables['LOGO_EMPRESA_URL'] = logoBase64 || user.organization?.logoHorizontalUrl || ''
+  resolvedVariables['LOGO_BASE64'] = logoBase64 || ''
+  resolvedVariables['COR_PRIMARIA'] = user.organization?.primaryColorHex || '#1B4D3E'
 
   return {
     template,

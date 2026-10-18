@@ -31,6 +31,8 @@ export interface Page1Params {
   landValuePerHa: number
   totalLandValue: number
   improvementsValue: number
+  logoHorizontalBase64?: string | null
+  primaryColor?: string
 }
 
 export function renderPage1EnquadramentoAndRealEstate(params: Page1Params): string {
@@ -63,6 +65,8 @@ export function renderPage1EnquadramentoAndRealEstate(params: Page1Params): stri
     landValuePerHa,
     totalLandValue,
     improvementsValue,
+    logoHorizontalBase64,
+    primaryColor,
   } = params
 
   const totalRealEstateDeclared = totalLandValue + improvementsValue
@@ -78,7 +82,8 @@ export function renderPage1EnquadramentoAndRealEstate(params: Page1Params): stri
       `Dossiê Técnico para Proposta de Limite de Crédito Rural • ${getBankNameLabel(targetBank)}`,
       1,
       3,
-      'Enquadramento & Terras'
+      'Enquadramento & Terras',
+      { logoHorizontalBase64, companyName: orgName, primaryColor }
     )}
 
     <!-- SEÇÃO I & II: GRID 2 COLUNAS (PROPONENTE E IMÓVEL RURAL) -->

@@ -1,4 +1,4 @@
-import { Bell, LogOut, Settings, User as UserIcon, Building2 } from 'lucide-react'
+import { Bell, LogOut, Settings, User as UserIcon, Building2, Palette } from 'lucide-react'
 import { User } from '@supabase/supabase-js'
 import Link from 'next/link'
 import {
@@ -16,12 +16,35 @@ const ROLE_LABELS: Record<string, string> = {
   OPERATOR: 'Usuário',
 }
 
-export default function AdminHeader({ email, role }: { email: string, role: string }) {
+interface AdminHeaderProps {
+  email: string
+  role: string
+  organizationName?: string | null
+  logoIconUrl?: string | null
+}
+
+export default function AdminHeader({ email, role, organizationName, logoIconUrl }: AdminHeaderProps) {
   const roleLabel = ROLE_LABELS[role] || role
 
   return (
     <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 shadow-sm print:hidden">
-      <div className="flex items-center">
+      <div className="flex items-center gap-3">
+        {organizationName && (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+            {logoIconUrl ? (
+              <img
+                src={logoIconUrl}
+                alt={organizationName}
+                className="w-5 h-5 rounded object-contain shrink-0"
+              />
+            ) : (
+              <Building2 className="w-4 h-4 text-[#1B4D3E] shrink-0" />
+            )}
+            <span className="text-xs font-bold text-gray-800 tracking-tight truncate max-w-[240px]">
+              {organizationName}
+            </span>
+          </div>
+        )}
       </div>
       <div className="flex items-center gap-4">
         <button className="text-gray-500 hover:text-[#1B4D3E] transition-colors relative">
@@ -46,13 +69,21 @@ export default function AdminHeader({ email, role }: { email: string, role: stri
                   <span>Meu Perfil</span>
                 </Link>
               </DropdownMenuItem>
-              {role === 'OWNER' && (
-                <DropdownMenuItem>
-                  <Link href="/admin/settings/organization" prefetch={true} className="flex items-center cursor-pointer w-full">
-                    <Building2 className="mr-2 h-4 w-4" />
-                    <span>Minha Empresa</span>
-                  </Link>
-                </DropdownMenuItem>
+              {(role === 'OWNER' || role === 'SUPER_ADMIN') && (
+                <>
+                  <DropdownMenuItem>
+                    <Link href="/admin/settings/organization" prefetch={true} className="flex items-center cursor-pointer w-full">
+                      <Building2 className="mr-2 h-4 w-4" />
+                      <span>Minha Empresa</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link href="/admin/settings/branding" prefetch={true} className="flex items-center cursor-pointer w-full">
+                      <Palette className="mr-2 h-4 w-4" />
+                      <span>Identidade Visual</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600 focus:text-red-600 cursor-pointer">

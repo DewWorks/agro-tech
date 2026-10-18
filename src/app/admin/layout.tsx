@@ -49,7 +49,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         realRole={userContext.realRole} 
         modules={userContext.organization?.modules || []} 
         globalModules={globalModules.map(m => ({ code: m.code, isActive: m.isActive }))} 
-        organizationName={userContext.impersonatedOrgName || userContext.organization?.name || null}
+        organizationName={userContext.organization?.tradeName || userContext.impersonatedOrgName || userContext.organization?.name || null}
+        logoDarkUrl={userContext.organization?.logoDarkUrl || null}
+        logoHorizontalUrl={userContext.organization?.logoHorizontalUrl || null}
         user={{
           fullName: userContext.fullName,
           email: userContext.email,
@@ -91,7 +93,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             globalModules={globalModules.map(m => ({ code: m.code, isActive: m.isActive }))}
           />
         </div>
-        <AdminHeader email={userContext.email} role={role} />
+        <AdminHeader 
+          email={userContext.email} 
+          role={role} 
+          organizationName={userContext.organization?.tradeName || userContext.impersonatedOrgName || userContext.organization?.name || null}
+          logoIconUrl={userContext.organization?.logoIconUrl || null}
+        />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-[#F8FAFC] p-8 print:p-0 print:m-0 print:bg-white print:overflow-visible print:h-auto print:block">
           <AdminContentWrapper>
             {children}

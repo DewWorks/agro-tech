@@ -19,6 +19,8 @@ export interface Page3Params {
   orgName: string
   crea: string
   art: string
+  logoHorizontalBase64?: string | null
+  primaryColor?: string
 }
 
 export function renderPage3DebtServiceIcsdAndSignatures(params: Page3Params): string {
@@ -62,7 +64,8 @@ export function renderPage3DebtServiceIcsdAndSignatures(params: Page3Params): st
       'Cronograma de Amortização Bancária • Teste de Estresse (ICSD ≥ 1,20) • Diretrizes e Assinaturas',
       3,
       3,
-      'Parecer Conclusivo'
+      'Parecer Conclusivo',
+      { logoHorizontalBase64: params.logoHorizontalBase64, companyName: orgName, primaryColor: params.primaryColor }
     )}
 
     <!-- SEÇÃO IX - SERVIÇO DA DÍVIDA & AMORTIZAÇÃO -->

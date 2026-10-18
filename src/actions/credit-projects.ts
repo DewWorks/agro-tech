@@ -29,6 +29,7 @@ import {
   maskCCIR,
   maskITR,
 } from '@/lib/utils/masks'
+import { convertRemoteUrlToBase64 } from '@/lib/pdf/resolve-branding'
 
 export async function getCreditTemplatesList(): Promise<CreditTemplateMeta[]> {
   const user = await getUserContext()
@@ -379,10 +380,15 @@ export async function resolveCreditProjectDocument(
         status: d.complianceStatus
       })),
       organization: {
-        name: org?.name || 'Organização',
+        name: org?.tradeName || org?.name || 'Organização',
+        tradeName: org?.tradeName || undefined,
         cnpj: org?.cnpj || undefined,
         ownerName: ownerName,
         phone: undefined,
+        logoHorizontalUrl: org?.logoHorizontalUrl || undefined,
+        logoHorizontalBase64: (await convertRemoteUrlToBase64(org?.logoHorizontalUrl)) || undefined,
+        primaryColorHex: org?.primaryColorHex || undefined,
+        accentColorHex: org?.accentColorHex || undefined,
       },
       branch: branch ? {
         name: branch.name

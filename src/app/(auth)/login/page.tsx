@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { login } from '@/actions/auth'
+import { getPublicBranding } from '@/actions/branding'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,6 +33,21 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [termsOpen, setTermsOpen] = useState(false)
   const [privacyOpen, setPrivacyOpen] = useState(false)
+  const [branding, setBranding] = useState<{
+    name?: string
+    tradeName?: string
+    logoDarkUrl?: string | null
+    logoHorizontalUrl?: string | null
+    logoIconUrl?: string | null
+  } | null>(null)
+
+  useEffect(() => {
+    getPublicBranding()
+      .then((data) => {
+        if (data) setBranding(data)
+      })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(formData: FormData) {
     setIsPending(true)
@@ -85,21 +101,33 @@ export default function LoginPage() {
 
         {/* 1.A. Cabeçalho de Marca */}
         <div className="relative z-10 h-11 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-[#1B4D3E] p-0.5 shadow-md shadow-emerald-950/50 flex items-center justify-center shrink-0">
-            <div className="w-full h-full bg-[#0A2219] rounded-[9px] flex items-center justify-center">
-              <Sprout className="w-5 h-5 text-emerald-400" />
+          {branding?.logoDarkUrl || branding?.logoHorizontalUrl ? (
+            <div className="h-11 flex items-center overflow-hidden">
+              <img
+                src={(branding.logoDarkUrl || branding.logoHorizontalUrl) || undefined}
+                alt={branding.tradeName || 'AgroTech'}
+                className="max-h-10 max-w-[200px] object-contain object-left"
+              />
             </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="text-2xl font-black tracking-tight text-white leading-none">
-                Agro<span className="text-emerald-400 font-extrabold">Tech</span>
-              </span>
-            </div>
-            <p className="text-xs font-bold text-emerald-300/80 uppercase tracking-wider mt-1">
-              Inteligência &amp; Gestão de Crédito Rural
-            </p>
-          </div>
+          ) : (
+            <>
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-[#1B4D3E] p-0.5 shadow-md shadow-emerald-950/50 flex items-center justify-center shrink-0">
+                <div className="w-full h-full bg-[#0A2219] rounded-[9px] flex items-center justify-center">
+                  <Sprout className="w-5 h-5 text-emerald-400" />
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-2xl font-black tracking-tight text-white leading-none">
+                    Agro<span className="text-emerald-400 font-extrabold">Tech</span>
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-emerald-300/80 uppercase tracking-wider mt-1">
+                  Inteligência &amp; Gestão de Crédito Rural
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
         {/* 1.B. Showcase Executivo Minimalista e de Alto Impacto */}
@@ -110,7 +138,7 @@ export default function LoginPage() {
         {/* 1.C. Rodapé do Painel Esquerdo (Nivelado Rigorosamente com o Direito) */}
         <div className="relative z-10 pt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/50 h-12 shrink-0">
           <span className="truncate">
-            &copy; {new Date().getFullYear()} LN Consultoria &bull; Todos os direitos reservados
+            &copy; {new Date().getFullYear()} {branding?.tradeName || branding?.name || 'LN Consultoria'} &bull; Todos os direitos reservados
           </span>
           <span className="flex items-center gap-1.5 text-emerald-300/80 font-medium shrink-0 ml-4">
             <Lock className="w-3.5 h-3.5 text-emerald-400" />
@@ -127,19 +155,31 @@ export default function LoginPage() {
         <div className="h-11 flex items-center justify-between w-full">
           {/* Logo no Mobile */}
           <div className="flex lg:hidden items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-[#1B4D3E] p-0.5 flex items-center justify-center shadow-xs">
-              <div className="w-full h-full bg-[#0A2219] rounded-[10px] flex items-center justify-center">
-                <Sprout className="w-4 h-4 text-emerald-400" />
+            {branding?.logoHorizontalUrl || branding?.logoIconUrl ? (
+              <div className="h-9 flex items-center">
+                <img
+                  src={(branding.logoHorizontalUrl || branding.logoIconUrl) || undefined}
+                  alt={branding.tradeName || 'AgroTech'}
+                  className="max-h-8 max-w-[160px] object-contain object-left"
+                />
               </div>
-            </div>
-            <div>
-              <span className="text-lg font-black tracking-tight text-slate-900 leading-none">
-                Agro<span className="text-emerald-700 font-extrabold">Tech</span>
-              </span>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                Crédito Rural
-              </p>
-            </div>
+            ) : (
+              <>
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-[#1B4D3E] p-0.5 flex items-center justify-center shadow-xs">
+                  <div className="w-full h-full bg-[#0A2219] rounded-[10px] flex items-center justify-center">
+                    <Sprout className="w-4 h-4 text-emerald-400" />
+                  </div>
+                </div>
+                <div>
+                  <span className="text-lg font-black tracking-tight text-slate-900 leading-none">
+                    Agro<span className="text-emerald-700 font-extrabold">Tech</span>
+                  </span>
+                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wide">
+                    Crédito Rural
+                  </p>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Selo de Ambiente Corporativo Seguro */}

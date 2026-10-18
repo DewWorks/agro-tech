@@ -40,6 +40,20 @@ export async function downloadCreditLimitDossierPdf(html: string, fileName: stri
   if (typeof document !== 'undefined' && document.fonts) {
     await document.fonts.ready
   }
+
+  // Aguarda carregamento formal de todas as imagens presentes no DOM
+  const images = Array.from(host.querySelectorAll('img'))
+  await Promise.all(
+    images.map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise((resolve) => {
+            img.onload = () => resolve(null)
+            img.onerror = () => resolve(null)
+          })
+    )
+  )
+
   await new Promise((resolve) => setTimeout(resolve, 150))
 
   try {

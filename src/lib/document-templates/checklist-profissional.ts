@@ -34,9 +34,14 @@ export interface ChecklistDocumentData {
   }>
   organization: {
     name: string
+    tradeName?: string
     cnpj?: string
     phone?: string
     ownerName?: string
+    logoHorizontalUrl?: string
+    logoHorizontalBase64?: string
+    primaryColorHex?: string
+    accentColorHex?: string
   }
   branch?: {
     name: string
@@ -57,7 +62,9 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
   const prop = data.property
   const opt = data.options || {}
   
-  const orgName = data.organization?.name || 'Organização'
+  const orgName = data.organization?.tradeName || data.organization?.name || 'LN Consultoria e Projetos'
+  const logoHorizontalBase64 = data.organization?.logoHorizontalBase64 || null
+  const primaryColor = data.organization?.primaryColorHex || '#1B4D3E'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
   const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Responsável Técnico'
 
@@ -90,17 +97,34 @@ export function generateChecklistProfissionalHtml(data: ChecklistDocumentData): 
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.5; padding: 20px 24px; width: 794px; height: 1040px; max-height: 1040px; overflow: hidden; box-sizing: border-box; margin: 0 auto; background: #fff;">
     
-    <!-- CABEÇALHO OFICIAL -->
-    <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
-      <div>
-        <h1 style="font-size: 18px; font-weight: 800; color: #1B4D3E; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
-          Checklist de Atendimento – Projeto de Crédito Rural
-        </h1>
-        <p style="font-size: 11px; color: #6b7280; margin: 4px 0 0 0;">
-          ${data.organization.name} ${data.branch?.name ? '• ' + data.branch.name : ''} • Esteira Operacional de Crédito
-        </p>
+    <!-- CABEÇALHO OFICIAL CHECKLIST (RIGID BOUNDING BOX 52PX) -->
+    <div class="dossie-header-container" style="min-height: 52px; max-height: 52px; height: 52px; border-bottom: 2px solid ${primaryColor}; padding-bottom: 4px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; overflow: hidden; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; gap: 12px; height: 50px; overflow: hidden;">
+        <div style="width: 170px; height: 50px; min-width: 170px; max-width: 170px; display: flex; align-items: center; justify-content: flex-start; overflow: hidden; box-sizing: border-box;">
+          ${logoHorizontalBase64 ? `
+            <img 
+              src="${logoHorizontalBase64}" 
+              alt="${orgName}" 
+              style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: left center; display: block !important; margin: 0; padding: 0;" 
+            />
+          ` : `
+            <div style="font-size: 13px; font-weight: 800; color: ${primaryColor}; text-transform: uppercase; line-height: 1.1; letter-spacing: -0.3px;">
+              ${orgName}
+            </div>
+          `}
+        </div>
+
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+          <h1 style="font-size: 13.5px; font-weight: 800; color: ${primaryColor}; margin: 0; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2;">
+            Checklist de Atendimento – Projeto de Crédito Rural
+          </h1>
+          <p style="font-size: 8.5px; color: #6b7280; margin: 2px 0 0 0; font-weight: 600; line-height: 1.2;">
+            ${orgName} ${data.branch?.name ? '• ' + data.branch.name : ''} • Esteira Operacional de Crédito
+          </p>
+        </div>
       </div>
-      <div style="text-align: right; font-size: 11px; color: #374151;">
+
+      <div style="text-align: right; font-size: 9px; color: #374151; flex-shrink: 0;">
         <span style="display: inline-block; background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; padding: 3px 8px; border-radius: 4px; font-weight: bold;">
           Foco ${bank}
         </span>

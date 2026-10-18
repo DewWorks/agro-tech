@@ -1,32 +1,64 @@
 import { getBankNameLabel, formatBRL, sanitizeAccessRoute } from '../formatters'
 import { CreditLineDefinition } from '@/constants/credit-lines'
 
+export interface HeaderBrandingParams {
+  logoHorizontalBase64?: string | null
+  companyName?: string
+  primaryColor?: string
+}
+
 export function renderPageHeader(
   title: string,
   subtitle: string,
   pageNumber: number,
   totalPages: number = 3,
-  pageSubtitle: string = 'Enquadramento'
+  pageSubtitle: string = 'Enquadramento',
+  branding?: HeaderBrandingParams
 ): string {
+  const companyName = branding?.companyName || 'LN Consultoria e Projetos Rurais'
+  const primaryColor = branding?.primaryColor || '#1B4D3E'
+  const logoHorizontalBase64 = branding?.logoHorizontalBase64 || null
+
   return `
-    <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 5px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-end;">
-      <div>
-        <h1 style="font-size: 14.5px; font-weight: 800; color: #1B4D3E; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">
-          ${title}
-        </h1>
-        <p style="font-size: 9.5px; color: #4b5563; margin: 1px 0 0 0; font-weight: 600;">
-          ${subtitle}
-        </p>
+    <div class="dossie-header-container" style="min-height: 52px; max-height: 52px; height: 52px; border-bottom: 2px solid ${primaryColor}; padding-bottom: 4px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; overflow: hidden; box-sizing: border-box;">
+      
+      <!-- Lado Esquerdo: Bounding Box Rígido da Logo -->
+      <div style="display: flex; align-items: center; gap: 12px; height: 50px; overflow: hidden;">
+        <div style="width: 170px; height: 50px; min-width: 170px; max-width: 170px; display: flex; align-items: center; justify-content: flex-start; overflow: hidden; box-sizing: border-box;">
+          ${logoHorizontalBase64 ? `
+            <img 
+              src="${logoHorizontalBase64}" 
+              alt="${companyName}" 
+              style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: left center; display: block !important; margin: 0; padding: 0;" 
+            />
+          ` : `
+            <div style="font-size: 13px; font-weight: 800; color: ${primaryColor}; text-transform: uppercase; line-height: 1.1; letter-spacing: -0.3px;">
+              ${companyName}
+            </div>
+          `}
+        </div>
+
+        <!-- Identificação Técnica do Documento -->
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+          <h1 style="font-size: 13px; font-weight: 800; color: ${primaryColor}; margin: 0; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2;">
+            ${title}
+          </h1>
+          <p style="font-size: 8.5px; color: #4b5563; margin: 2px 0 0 0; font-weight: 600; line-height: 1.2;">
+            ${subtitle}
+          </p>
+        </div>
       </div>
-      <div style="text-align: right; font-size: 8.5px; color: #6b7280; line-height: 1.25;">
-        <span style="font-weight: bold; color: #1B4D3E;">Dossiê Técnico de Crédito</span><br />
+
+      <!-- Lado Direito: Controle de Folhas -->
+      <div style="text-align: right; font-size: 8px; color: #6b7280; line-height: 1.25; flex-shrink: 0;">
+        <span style="font-weight: bold; color: ${primaryColor};">Dossiê Técnico de Crédito</span><br />
         Folha 0${pageNumber} / 0${totalPages} • ${pageSubtitle}
       </div>
     </div>
   `
 }
 
-export function renderPageFooter(orgName: string, _marginTop?: number): string {
+export function renderPageFooter(orgName: string = 'LN Consultoria e Projetos Rurais', _marginTop?: number): string {
   return `
     <div class="dossie-footer">
       <span>AgroTech Systems • Módulo de Análise e Limites de Crédito</span>

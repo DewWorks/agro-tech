@@ -11,6 +11,7 @@ import { saveCreditAnalysis, checkProducerCreditAnalysis } from '@/actions/credi
 import { CREDIT_LINES_CATALOG } from '@/constants/credit-lines'
 import { COLLATERAL_WEIGHTS, calculatePaymentCapacity } from '@/lib/financial-engine'
 import { sanitizeAccessRoute } from '@/lib/document-templates/limite-credito-bb/formatters'
+import { convertRemoteUrlToBase64 } from '@/lib/pdf/resolve-branding'
 import type {
   CreditLimitFilter,
   CreditLimitPropertyItem,
@@ -903,8 +904,13 @@ export async function generateCreditLimitDossierHtml(
       },
       organization: {
         name: property.branch.organization.name,
+        tradeName: property.branch.organization.tradeName || undefined,
         cnpj: property.branch.organization.cnpj || undefined,
         ownerName: (property.branch.organization as any).ownerName || undefined,
+        logoHorizontalUrl: property.branch.organization.logoHorizontalUrl || undefined,
+        logoHorizontalBase64: await convertRemoteUrlToBase64(property.branch.organization.logoHorizontalUrl) || undefined,
+        primaryColorHex: property.branch.organization.primaryColorHex || undefined,
+        accentColorHex: property.branch.organization.accentColorHex || undefined,
       },
       branch: {
         name: property.branch.name,

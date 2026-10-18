@@ -27,8 +27,13 @@ export interface CusteioSafraDocumentData {
   }
   organization: {
     name: string
+    tradeName?: string
     cnpj?: string
     ownerName?: string
+    logoHorizontalUrl?: string
+    logoHorizontalBase64?: string
+    primaryColorHex?: string
+    accentColorHex?: string
   }
   branch?: {
     name: string
@@ -53,7 +58,9 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
   const prop = data.property
   const opt = data.options || {}
   
-  const orgName = data.organization?.name || 'Organização'
+  const orgName = data.organization?.tradeName || data.organization?.name || 'LN Consultoria e Projetos'
+  const logoHorizontalBase64 = data.organization?.logoHorizontalBase64 || null
+  const primaryColor = data.organization?.primaryColorHex || '#1B4D3E'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
   const orgOwnerName = data.organization?.ownerName || opt.responsibleName || opt.agronomistName || 'Responsável Técnico'
 
@@ -77,18 +84,35 @@ export function generateProjetoCusteioSafraHtml(data: CusteioSafraDocumentData):
   return `
   <div class="document-page" style="font-family: 'Segoe UI', Arial, sans-serif; color: #1f2937; line-height: 1.45; padding: 20px 24px; width: 794px; height: 1040px; max-height: 1040px; overflow: hidden; box-sizing: border-box; margin: 0 auto; background: #fff; font-size: 11px;">
     
-    <!-- CABEÇALHO OFICIAL CUSTEIO -->
-    <div style="border-bottom: 2px solid #1B4D3E; padding-bottom: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: flex-start;">
-      <div>
-        <h1 style="font-size: 16px; font-weight: 800; color: #1B4D3E; margin: 0; text-transform: uppercase;">
-          PROJETO DE CUSTEIO AGRÍCOLA – SAFRA ${safra}
-        </h1>
-        <p style="font-size: 10px; color: #6b7280; margin: 2px 0 0 0;">
-          Plano de Aplicação e Orçamento Técnico • Banco do Brasil / SICOR
-        </p>
+    <!-- CABEÇALHO OFICIAL CUSTEIO (RIGID BOUNDING BOX 52PX) -->
+    <div class="dossie-header-container" style="min-height: 52px; max-height: 52px; height: 52px; border-bottom: 2px solid ${primaryColor}; padding-bottom: 4px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; overflow: hidden; box-sizing: border-box;">
+      <div style="display: flex; align-items: center; gap: 12px; height: 50px; overflow: hidden;">
+        <div style="width: 170px; height: 50px; min-width: 170px; max-width: 170px; display: flex; align-items: center; justify-content: flex-start; overflow: hidden; box-sizing: border-box;">
+          ${logoHorizontalBase64 ? `
+            <img 
+              src="${logoHorizontalBase64}" 
+              alt="${orgName}" 
+              style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain; object-position: left center; display: block !important; margin: 0; padding: 0;" 
+            />
+          ` : `
+            <div style="font-size: 13px; font-weight: 800; color: ${primaryColor}; text-transform: uppercase; line-height: 1.1; letter-spacing: -0.3px;">
+              ${orgName}
+            </div>
+          `}
+        </div>
+
+        <div style="display: flex; flex-direction: column; justify-content: center;">
+          <h1 style="font-size: 13.5px; font-weight: 800; color: ${primaryColor}; margin: 0; text-transform: uppercase; letter-spacing: 0.3px; line-height: 1.2;">
+            PROJETO DE CUSTEIO AGRÍCOLA – SAFRA ${safra}
+          </h1>
+          <p style="font-size: 8.5px; color: #4b5563; margin: 2px 0 0 0; font-weight: 600; line-height: 1.2;">
+            Plano de Aplicação e Orçamento Técnico • Banco do Brasil / SICOR
+          </p>
+        </div>
       </div>
-      <div style="text-align: right; font-size: 10px;">
-        <span style="background: #1B4D3E; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold;">
+
+      <div style="text-align: right; font-size: 9px; flex-shrink: 0;">
+        <span style="background: ${primaryColor}; color: #fff; padding: 3px 8px; border-radius: 4px; font-weight: bold; text-transform: uppercase;">
           CUSTEIO SAFRA
         </span>
       </div>

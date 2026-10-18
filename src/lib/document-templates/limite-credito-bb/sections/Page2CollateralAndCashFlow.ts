@@ -21,6 +21,8 @@ export interface Page2Params {
   operationalExp: number
   familyCosts: number
   existingDebt: number
+  logoHorizontalBase64?: string | null
+  primaryColor?: string
 }
 
 export function renderPage2CollateralAndCashFlow(params: Page2Params): string {
@@ -134,7 +136,8 @@ export function renderPage2CollateralAndCashFlow(params: Page2Params): string {
       'Dimensionamento do Rebanho, Máquinas, Frotas, Lastro Ponderado MCR e Capacidade de Pagamento',
       2,
       3,
-      'Garantias & Fluxo de Caixa'
+      'Garantias & Fluxo de Caixa',
+      { logoHorizontalBase64: params.logoHorizontalBase64, companyName: orgName, primaryColor: params.primaryColor }
     )}
 
     <!-- SEÇÃO VI - SEMOVENTES & MÁQUINAS -->
