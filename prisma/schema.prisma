@@ -14,19 +14,27 @@ enum Role {
 }
 
 model Organization {
-  id        String   @id @default(uuid())
-  name      String
-  cnpj      String   @unique
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  modules   String[] @default(["CRM"]) // Módulos ativos para esta organização
+  id                 String    @id @default(uuid())
+  name               String    // Mantido como Razão Social Oficial
+  tradeName          String?   @map("trade_name") // Nome Fantasia
+  cnpj               String    @unique
+  isActive           Boolean   @default(true)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  modules            String[]  @default(["CRM"]) // Módulos ativos para esta organização
 
-  branches Branch[]
-  users    User[]
-  financialSettings   FinancialSettings?
+  // Novos campos de Branding Multi-Tenant (opcionais com retrocompatibilidade total)
+  logoHorizontalUrl  String?   @map("logo_horizontal_url") // Cabeçalhos de PDF e Topbar (Proporção ~4:1)
+  logoIconUrl        String?   @map("logo_icon_url")       // Favicon e Sidebar colapsada (Proporção 1:1)
+  logoDarkUrl        String?   @map("logo_dark_url")       // Versão Monocromática Branca para Sidebar escura
+  primaryColorHex    String?   @default("#05964F") @map("primary_color_hex")
+  accentColorHex     String?   @default("#FFAC00") @map("accent_color_hex")
+
+  branches           Branch[]
+  users              User[]
+  financialSettings  FinancialSettings?
   financialCategories FinancialCategory[]
-  subscription        OrganizationSubscription?
+  subscription       OrganizationSubscription?
 
   @@map("organizations")
 }

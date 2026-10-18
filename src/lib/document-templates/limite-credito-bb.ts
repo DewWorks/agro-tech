@@ -95,8 +95,13 @@ export interface LimiteCreditoDocumentData {
   }
   organization: {
     name: string
+    tradeName?: string
     cnpj?: string
     ownerName?: string
+    logoHorizontalUrl?: string
+    logoHorizontalBase64?: string
+    primaryColorHex?: string
+    accentColorHex?: string
   }
   branch?: {
     name: string
@@ -140,7 +145,9 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
   const prop = data.property
   const opt = data.options || {}
 
-  const orgName = data.organization?.name || 'LN Consultoria e Projetos'
+  const orgName = data.organization?.tradeName || data.organization?.name || 'LN Consultoria e Projetos'
+  const logoHorizontalBase64 = data.organization?.logoHorizontalBase64 || null
+  const primaryColor = data.organization?.primaryColorHex || '#1B4D3E'
   const orgCnpj = data.organization?.cnpj ? formatCNPJ(data.organization.cnpj) : ''
   const orgOwnerName = data.organization?.ownerName || opt.responsibleName || 'Lindomar Pereira Cardoso'
   const crea = opt.creaNumber || 'CREA-TO / Visto'
@@ -334,6 +341,8 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
     landValuePerHa,
     totalLandValue,
     improvementsValue,
+    logoHorizontalBase64,
+    primaryColor,
   })}
 
   ${renderPage2CollateralAndCashFlow({
@@ -354,6 +363,8 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
     operationalExp,
     familyCosts,
     existingDebt,
+    logoHorizontalBase64,
+    primaryColor,
   })}
 
   ${renderPage3DebtServiceIcsdAndSignatures({
@@ -372,6 +383,8 @@ export function generateLimiteCreditoBbHtml(data: LimiteCreditoDocumentData): st
     orgName,
     crea,
     art,
+    logoHorizontalBase64,
+    primaryColor,
   })}
   `
 }

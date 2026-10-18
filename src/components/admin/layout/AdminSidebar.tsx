@@ -46,6 +46,8 @@ interface AdminSidebarProps {
   realRole?: string
   globalModules?: { code: string; isActive: boolean }[]
   organizationName?: string | null
+  logoDarkUrl?: string | null
+  logoHorizontalUrl?: string | null
   user?: {
     fullName?: string | null
     email?: string | null
@@ -416,6 +418,8 @@ export default function AdminSidebar({
   realRole,
   globalModules = [],
   organizationName,
+  logoDarkUrl,
+  logoHorizontalUrl,
   user,
 }: AdminSidebarProps) {
   const pathname = usePathname()
@@ -467,20 +471,37 @@ export default function AdminSidebar({
       className="w-64 bg-[#1B4D3E] text-white flex flex-col h-full shrink-0 shadow-xl transition-all duration-300 print:hidden"
       aria-label="Menu Principal Administrativo"
     >
-      {/* 2.A & 2.B. Identidade Institucional Tipográfica Limpa com Nome Dinâmico */}
+      {/* 2.A & 2.B. Identidade Institucional Dinâmica com Fallback Tipográfico */}
       <div className="p-5 border-b border-white/10">
         <Link href="/admin" className="block group">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl font-black tracking-tight text-white leading-none">
-              Agro<span className="text-emerald-400 font-extrabold">Tech</span>
-            </span>
-            <span className="text-[10px] font-bold bg-white/10 text-emerald-300 px-1.5 py-0.5 rounded border border-white/10 uppercase tracking-widest">
-              SaaS
-            </span>
-          </div>
-          <p className="text-xs text-white/70 font-medium tracking-normal truncate mt-1.5 group-hover:text-white/90 transition-colors">
-            {orgSubtitle}
-          </p>
+          {logoDarkUrl || logoHorizontalUrl ? (
+            <div className="flex flex-col gap-1.5">
+              <div className="h-10 flex items-center justify-start overflow-hidden">
+                <img
+                  src={(logoDarkUrl || logoHorizontalUrl) || undefined}
+                  alt={orgSubtitle}
+                  className="max-h-9 max-w-[190px] object-contain object-left"
+                />
+              </div>
+              <p className="text-[11px] text-white/70 font-medium tracking-normal truncate group-hover:text-white/90 transition-colors">
+                {orgSubtitle}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-black tracking-tight text-white leading-none">
+                  Agro<span className="text-emerald-400 font-extrabold">Tech</span>
+                </span>
+                <span className="text-[10px] font-bold bg-white/10 text-emerald-300 px-1.5 py-0.5 rounded border border-white/10 uppercase tracking-widest">
+                  SaaS
+                </span>
+              </div>
+              <p className="text-xs text-white/70 font-medium tracking-normal truncate mt-1.5 group-hover:text-white/90 transition-colors">
+                {orgSubtitle}
+              </p>
+            </>
+          )}
         </Link>
       </div>
 
