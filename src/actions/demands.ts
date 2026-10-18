@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { getUserContext } from '@/lib/auth'
+import { requireActiveSubscription } from '@/lib/billing/action-guard'
 import {
   createDemandSchema,
   updateDemandSchema,
@@ -402,6 +403,8 @@ export async function createDemand(rawData: any) {
       throw new Error('Usuário não autenticado.')
     }
 
+    await requireActiveSubscription(dbUser.organizationId, dbUser.realRole)
+
     const parsed = createDemandSchema.parse(rawData)
     const assignedToId = parsed.assignedToId || parsed.assigneeId || null
 
@@ -547,6 +550,8 @@ export async function updateDemand(id: string, rawData: any) {
       throw new Error('Usuário não autenticado.')
     }
 
+    await requireActiveSubscription(dbUser.organizationId, dbUser.realRole)
+
     const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
     if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário não autenticado ou sem organização.')
@@ -624,6 +629,8 @@ export async function updateDemandStatus(
     if (!dbUser) {
       throw new Error('Usuário não autenticado.')
     }
+
+    await requireActiveSubscription(dbUser.organizationId, dbUser.realRole)
 
     const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
     if (!isSuperAdmin && !dbUser.organizationId) {
@@ -854,6 +861,8 @@ export async function toggleChecklistItem(
     if (!dbUser) {
       throw new Error('Usuário não autenticado.')
     }
+
+    await requireActiveSubscription(dbUser.organizationId, dbUser.realRole)
 
     const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
     if (!isSuperAdmin && !dbUser.organizationId) {

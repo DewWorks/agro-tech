@@ -99,11 +99,7 @@ export async function updateOrganization(formData: FormData) {
       })
 
       if (subscription?.asaasCustomerId) {
-        await updateAsaasCustomer(subscription.asaasCustomerId, {
-          name: updatedOrg.name,
-          cpfCnpj: updatedOrg.cnpj,
-        })
-
+        // 1. Atualiza a persistência cadastral/fiscal local
         await prisma.organizationSubscription.update({
           where: { organizationId: targetOrgId },
           data: {
@@ -111,6 +107,16 @@ export async function updateOrganization(formData: FormData) {
             billingCpfCnpj: updatedOrg.cnpj,
           },
         })
+
+        // 2. Dispara sincronização remota com Asaas com tratamento gracioso
+        try {
+          await updateAsaasCustomer(subscription.asaasCustomerId, {
+            name: updatedOrg.name,
+            cpfCnpj: updatedOrg.cnpj,
+          })
+        } catch (asaasErr) {
+          serverLog('warn', 'Settings - updateOrganization:updateAsaasCustomer', asaasErr)
+        }
       }
     } catch (syncErr) {
       serverLog('warn', 'Settings - updateOrganization:syncFiscal', syncErr)

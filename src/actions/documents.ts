@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import { getUserContext } from '@/lib/auth'
+import { requireActiveSubscription } from '@/lib/billing/action-guard'
 import { DocumentType, Prisma } from '@prisma/client'
 import {
   buildStoragePath,
@@ -204,6 +205,8 @@ export async function createDocumentRecord(metadata: {
     const dbUser = await getUserContext()
     if (!dbUser) throw new Error('Não autenticado')
 
+    await requireActiveSubscription(dbUser.organizationId, dbUser.realRole || dbUser.role)
+
     if (dbUser.role !== 'SUPER_ADMIN') {
       const branch = await prisma.branch.findFirst({
         where: {
@@ -335,6 +338,8 @@ export async function replaceDocument(
     const dbUser = await getUserContext()
     if (!dbUser) throw new Error('Não autenticado')
 
+    await requireActiveSubscription(dbUser.organizationId, dbUser.realRole || dbUser.role)
+
     const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
     if (!isSuperAdmin && !dbUser.organizationId) {
       throw new Error('Usuário sem organização')
@@ -410,6 +415,8 @@ export async function archiveDocument(documentId: string) {
   try {
     const dbUser = await getUserContext()
     if (!dbUser) throw new Error('Não autenticado')
+
+    await requireActiveSubscription(dbUser.organizationId, dbUser.realRole || dbUser.role)
 
     const isSuperAdmin = dbUser.role === 'SUPER_ADMIN' || Boolean(dbUser.isSuperAdminImpersonating)
     if (!isSuperAdmin && !dbUser.organizationId) {

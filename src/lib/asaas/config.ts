@@ -11,7 +11,7 @@ export const asaasConfig = {
     return process.env.ASAAS_API_KEY || ''
   },
   get webhookToken() {
-    return process.env.ASAAS_WEBHOOK_TOKEN || ''
+    return process.env.ASAAS_WEBHOOK_TOKEN || 'agrotech_webhook_token_dev'
   },
   timeoutMs: 15000,
   maxRetries: 3,
