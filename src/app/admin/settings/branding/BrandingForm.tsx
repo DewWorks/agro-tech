@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import { BrandingLivePreview } from './components/BrandingLivePreview'
 
 interface BrandingFormProps {
   organization: {
@@ -151,13 +152,18 @@ export default function BrandingForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      {/* =================================================================== */}
-      {/* 1. SEÇÃO DE LOGOMARCAS & ATIVOS VISUAIS                           */}
-      {/* =================================================================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card 1: Logo Horizontal (Padrão para Documentos e Cabeçalho) */}
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs space-y-4 flex flex-col justify-between">
+    <form onSubmit={handleSubmit}>
+      <div className="flex flex-col lg:flex-row gap-8 items-start">
+        {/* =================================================================== */}
+        {/* COLUNA ESQUERDA: FORMULÁRIO (w-full lg:w-7/12)                      */}
+        {/* =================================================================== */}
+        <div className="w-full lg:w-7/12 space-y-6">
+          {/* =================================================================== */}
+          {/* 1. SEÇÃO DE LOGOMARCAS & ATIVOS VISUAIS                           */}
+          {/* =================================================================== */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Card 1: Logo Horizontal (Padrão para Documentos e Cabeçalho) */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-2xs space-y-4 flex flex-col justify-between">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-bold text-gray-900 flex items-center gap-2">
@@ -521,30 +527,49 @@ export default function BrandingForm({
         </div>
       </div>
 
-      {/* =================================================================== */}
-      {/* 3. BOTÃO DE AÇÃO                                                   */}
-      {/* =================================================================== */}
-      {canEdit && (
-        <div className="flex justify-end pt-2">
-          <Button
-            type="submit"
-            disabled={isPending}
-            className="bg-[#1B4D3E] hover:bg-[#13382D] text-white px-6 h-11 rounded-xl font-bold shadow-sm transition-all"
-          >
-            {isPending ? (
-              <span className="flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                A Guardar Alterações...
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" />
-                Guardar Identidade Visual
-              </span>
-            )}
-          </Button>
+          {/* =================================================================== */}
+          {/* 3. BOTÃO DE AÇÃO                                                   */}
+          {/* =================================================================== */}
+          {canEdit && (
+            <div className="flex justify-end pt-2">
+              <Button
+                type="submit"
+                disabled={isPending}
+                className="bg-[#1B4D3E] hover:bg-[#13382D] text-white px-6 h-11 rounded-xl font-bold shadow-sm transition-all cursor-pointer"
+              >
+                {isPending ? (
+                  <span className="flex items-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    A Guardar Alterações...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Guardar Identidade Visual
+                  </span>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* =================================================================== */}
+        {/* COLUNA DIREITA: LIVE PREVIEW & DIAGNÓSTICO (w-full lg:w-5/12)       */}
+        {/* =================================================================== */}
+        <div className="w-full lg:w-5/12 lg:sticky lg:top-6 space-y-4">
+          <BrandingLivePreview
+            name={name}
+            tradeName={tradeName}
+            primaryColor={primaryColor}
+            accentColor={accentColor}
+            logoHorizontalUrl={removeLogoHorizontal ? null : logoHorizontalPreview}
+            logoDarkUrl={removeLogoDark ? null : logoDarkPreview}
+            logoIconUrl={removeLogoIcon ? null : logoIconPreview}
+            logoHorizontalFile={logoHorizontalFile}
+            logoDarkFile={logoDarkFile}
+          />
+        </div>
+      </div>
     </form>
   )
 }

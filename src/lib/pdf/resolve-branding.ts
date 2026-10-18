@@ -4,7 +4,10 @@
  * Neutraliza erros de CORS, canvas tainting e elimina atrasos assíncronos no html2canvas.
  */
 
-export async function convertRemoteUrlToBase64(url?: string | null): Promise<string | null> {
+export async function convertRemoteUrlToBase64(
+  url?: string | null,
+  timeoutMs = 2500
+): Promise<string | null> {
   if (!url) return null
 
   // Se já for Base64 Data URI, retorna diretamente
@@ -12,10 +15,17 @@ export async function convertRemoteUrlToBase64(url?: string | null): Promise<str
     return url
   }
 
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+
   try {
-    const response = await fetch(url)
+    const response = await fetch(url, { signal: controller.signal })
+    clearTimeout(timeoutId)
+
     if (!response.ok) {
-      console.warn(`[convertRemoteUrlToBase64] Falha ao carregar logo remota (${response.status}): ${url}`)
+      console.warn(
+        `[convertRemoteUrlToBase64] Falha ao carregar logo remota (${response.status}): ${url}`
+      )
       return null
     }
 
@@ -25,10 +35,21 @@ export async function convertRemoteUrlToBase64(url?: string | null): Promise<str
 
     return `data:${contentType};base64,${base64}`
   } catch (error: any) {
-    console.warn(`[convertRemoteUrlToBase64] Erro de rede ao converter logo (${url}):`, error?.message)
+    clearTimeout(timeoutId)
+    const isTimeout = error?.name === 'AbortError' || error?.message?.includes('aborted')
+    console.warn(
+      `[convertRemoteUrlToBase64] ${isTimeout ? `Timeout de ${timeoutMs}ms excedido` : 'Erro de rede'} ao converter logo (${url}):`,
+      error?.message
+    )
     return null
   }
 }
+
+/**
+ * Helper com assinatura canônica para resolução da logomarca em Base64 Data URI
+ * com garantia de retorno null em caso de timeout (2.500ms) ou falha de rede.
+ */
+export const resolveOrganizationLogoBase64 = convertRemoteUrlToBase64
 
 export interface ResolvedBranding {
   companyName: string

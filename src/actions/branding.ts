@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { handleServerError } from '@/lib/errorHandler'
 import {
   uploadBrandingImage,
+  deleteBrandingImageFromStorage,
   ALLOWED_IMAGE_MIME_TYPES,
   MAX_IMAGE_SIZE_BYTES,
 } from '@/lib/storage/branding-storage'
@@ -74,25 +75,59 @@ export async function updateOrganizationBranding(formData: FormData) {
       return await uploadBrandingImage(targetOrgId, type, file, file.type)
     }
 
+    // Busca URLs anteriores para limpeza de arquivos órfãos no storage
+    const currentOrg = await prisma.organization.findUnique({
+      where: { id: targetOrgId },
+      select: {
+        logoHorizontalUrl: true,
+        logoDarkUrl: true,
+        logoIconUrl: true,
+      },
+    })
+
     if (removeLogoHorizontal) {
       updateData.logoHorizontalUrl = null
+      if (currentOrg?.logoHorizontalUrl) {
+        await deleteBrandingImageFromStorage(currentOrg.logoHorizontalUrl)
+      }
     } else if (logoHorizontalFile && logoHorizontalFile.size > 0) {
       const url = await validateAndUpload(logoHorizontalFile, 'logo_horizontal')
-      if (url) updateData.logoHorizontalUrl = url
+      if (url) {
+        updateData.logoHorizontalUrl = url
+        if (currentOrg?.logoHorizontalUrl && currentOrg.logoHorizontalUrl !== url) {
+          await deleteBrandingImageFromStorage(currentOrg.logoHorizontalUrl)
+        }
+      }
     }
 
     if (removeLogoDark) {
       updateData.logoDarkUrl = null
+      if (currentOrg?.logoDarkUrl) {
+        await deleteBrandingImageFromStorage(currentOrg.logoDarkUrl)
+      }
     } else if (logoDarkFile && logoDarkFile.size > 0) {
       const url = await validateAndUpload(logoDarkFile, 'logo_dark')
-      if (url) updateData.logoDarkUrl = url
+      if (url) {
+        updateData.logoDarkUrl = url
+        if (currentOrg?.logoDarkUrl && currentOrg.logoDarkUrl !== url) {
+          await deleteBrandingImageFromStorage(currentOrg.logoDarkUrl)
+        }
+      }
     }
 
     if (removeLogoIcon) {
       updateData.logoIconUrl = null
+      if (currentOrg?.logoIconUrl) {
+        await deleteBrandingImageFromStorage(currentOrg.logoIconUrl)
+      }
     } else if (logoIconFile && logoIconFile.size > 0) {
       const url = await validateAndUpload(logoIconFile, 'logo_icon')
-      if (url) updateData.logoIconUrl = url
+      if (url) {
+        updateData.logoIconUrl = url
+        if (currentOrg?.logoIconUrl && currentOrg.logoIconUrl !== url) {
+          await deleteBrandingImageFromStorage(currentOrg.logoIconUrl)
+        }
+      }
     }
 
     const updatedOrg = await prisma.organization.update({

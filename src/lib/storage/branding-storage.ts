@@ -84,3 +84,58 @@ export async function uploadBrandingImage(
 
   return publicData.publicUrl
 }
+
+/**
+ * Extrai o caminho relativo no bucket a partir de uma URL pública do Supabase
+ * ou retorna o próprio caminho caso já esteja em formato relativo.
+ */
+export function extractBrandingStoragePath(urlOrPath?: string | null): string | null {
+  if (!urlOrPath) return null
+
+  // Base64 Data URI não reside no Storage
+  if (urlOrPath.startsWith('data:')) return null
+
+  // Se já for caminho relativo (ex: 'org-id/branding/logo_123.png')
+  if (!urlOrPath.startsWith('http://') && !urlOrPath.startsWith('https://')) {
+    return urlOrPath
+  }
+
+  // Se for URL pública do Supabase Storage
+  const marker = `/${BRANDING_BUCKET}/`
+  const index = urlOrPath.indexOf(marker)
+  if (index !== -1) {
+    const rawPath = urlOrPath.slice(index + marker.length)
+    return rawPath.split('?')[0]
+  }
+
+  return null
+}
+
+/**
+ * Remove fisicamente uma imagem do bucket de branding do Supabase Storage.
+ * Neutraliza erros para evitar que falhas de exclusão de arquivos órfãos
+ * bloqueiem o fluxo de atualização cadastral.
+ */
+export async function deleteBrandingImageFromStorage(urlOrPath?: string | null): Promise<boolean> {
+  const storagePath = extractBrandingStoragePath(urlOrPath)
+  if (!storagePath) return false
+
+  try {
+    const { error } = await supabaseAdmin.storage
+      .from(BRANDING_BUCKET)
+      .remove([storagePath])
+
+    if (error) {
+      console.warn(`[deleteBrandingImageFromStorage] Falha ao remover ${storagePath}:`, error.message)
+      return false
+    }
+
+    return true
+  } catch (err: any) {
+    console.warn(
+      `[deleteBrandingImageFromStorage] Erro ao excluir arquivo órfão (${storagePath}):`,
+      err?.message
+    )
+    return false
+  }
+}
