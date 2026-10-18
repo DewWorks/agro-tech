@@ -166,8 +166,8 @@ export default async function OrganizationsPage() {
                     <TableCell className="text-right flex items-center justify-end gap-1">
                       <ConfirmActionModal
                         title={org.isActive ? "Desativar Organização?" : "Ativar Organização?"}
-                        description={org.isActive 
-                          ? `Tem a certeza que deseja desativar a organização ${org.name}? Todos os utilizadores, filiais e produtores associados perderão o acesso.` 
+                        description={org.isActive
+                          ? `Tem a certeza que deseja desativar a organização ${org.name}? Todos os utilizadores, filiais e produtores associados perderão o acesso.`
                           : `Deseja reativar a organização ${org.name}?`
                         }
                         triggerText=""
