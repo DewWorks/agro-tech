@@ -7,9 +7,10 @@ interface DeclarationContentProps {
   producer: any
   property: any
   options: any
+  primaryColor?: string
 }
 
-export const DeclarationContent = React.memo(({ templateCode, producer, property, options }: DeclarationContentProps) => {
+export const DeclarationContent = React.memo(({ templateCode, producer, property, options, primaryColor = '#050E94' }: DeclarationContentProps) => {
   const isLegalTemplate = [
     'AUTORIZACAO_COMPARTILHAMENTO',
     'AUTORIZACAO_SCR',
@@ -206,16 +207,16 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
                           <td style={{ padding: '5px 8px', textAlign: 'center' }}>{item.ageMonths ? `${item.ageMonths}m` : '-'}</td>
                           <td style={{ padding: '5px 8px', textAlign: 'center' }}>{item.avgWeightKg ? `${item.avgWeightKg}kg` : '-'}</td>
                           <td style={{ padding: '5px 8px', textAlign: 'right' }}>{formatBRL(unitVal)}</td>
-                          <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: '#1B4D3E' }}>{formatBRL(tot)}</td>
+                          <td style={{ padding: '5px 8px', textAlign: 'right', fontWeight: 600, color: primaryColor || '#050E94' }}>{formatBRL(tot)}</td>
                           <td style={{ padding: '5px 8px', fontSize: '9px', color: '#6b7280' }}>{brandInfo}</td>
                         </tr>
                       )
                     })}
                     <tr style={{ background: '#f9fafb', fontWeight: 'bold', borderTop: '1px solid #d1d5db' }}>
                       <td colSpan={3} style={{ padding: '6px 8px', textTransform: 'uppercase' }}>Total em Penhor</td>
-                      <td style={{ padding: '6px 8px', textAlign: 'center', color: '#1B4D3E' }}>{totalHeadCount} cab</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'center', color: primaryColor || '#050E94' }}>{totalHeadCount} cab</td>
                       <td colSpan={3}></td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', color: '#1B4D3E' }}>{formatBRL(totalEstimatedValue)}</td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', color: primaryColor || '#050E94' }}>{formatBRL(totalEstimatedValue)}</td>
                       <td></td>
                     </tr>
                   </tbody>
@@ -246,8 +247,8 @@ export const DeclarationContent = React.memo(({ templateCode, producer, property
   }
 
   return (
-    <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '12px', overflow: 'hidden' }}>
-      <div style={{ background: '#f3f4f6', padding: '4px 10px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
+    <div style={{ border: `1px solid ${primaryColor ? primaryColor + '40' : '#d1d5db'}`, borderRadius: '4px', marginBottom: '12px', overflow: 'hidden' }}>
+      <div style={{ background: primaryColor || '#050E94', padding: '6px 14px', fontWeight: 'bold', color: '#ffffff', borderBottom: `1px solid ${primaryColor || '#050E94'}`, textTransform: 'uppercase' }}>
         II - Texto da Declaração / Autorização
       </div>
       {renderContent()}

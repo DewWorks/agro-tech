@@ -24,7 +24,20 @@ export function DocumentPaperPreview({ template, resolvedVariables, onSavePdfMet
   useEffect(() => {
     if (template?.contentHtml) {
       try {
-        const compiledTemplate = Handlebars.compile(template.contentHtml)
+        let content = template.contentHtml
+        // Remove qualquer cabeçalho de texto estático legado do topo do template.content (ex.: <h1>{{EMPRESA_NOME}}</h1> ou referências antigas)
+        content = content.replace(/<h[12][^>]*>\s*\{\{\s*(EMPRESA_NOME|NOME_EMPRESA|ORGANIZATION_NAME|RAZAO_SOCIAL)\s*\}\}\s*<\/h[12]>/gi, '').trim()
+
+        if (resolvedVariables?.HEADER_OFICIAL && !content.includes('{{{HEADER_OFICIAL}}}') && !content.includes('{{HEADER_OFICIAL}}')) {
+          const outerDivMatch = content.match(/^(\s*<div[^>]*>)/i)
+          if (outerDivMatch) {
+            content = content.slice(0, outerDivMatch[0].length) + '\n{{{HEADER_OFICIAL}}}\n' + content.slice(outerDivMatch[0].length)
+          } else {
+            content = '{{{HEADER_OFICIAL}}}\n' + content
+          }
+        }
+
+        const compiledTemplate = Handlebars.compile(content)
         const result = compiledTemplate(resolvedVariables)
         
         setHtmlContent(result)
@@ -152,6 +165,7 @@ export function DocumentPaperPreview({ template, resolvedVariables, onSavePdfMet
         >
           <div
             ref={contentRef}
+            className="document-paper-a4"
             style={{ 
               width: '210mm', 
               minHeight: '296mm', 
@@ -159,8 +173,26 @@ export function DocumentPaperPreview({ template, resolvedVariables, onSavePdfMet
               backgroundColor: '#ffffff',
               boxSizing: 'border-box' 
             }}
-            dangerouslySetInnerHTML={{ __html: htmlContent }}
-          />
+          >
+            <style dangerouslySetInnerHTML={{ __html: `
+              .document-paper-a4 .section-header,
+              .document-paper-a4 .doc-section-header,
+              .document-paper-a4 .secao-titulo,
+              .document-paper-a4 [data-section-title] {
+                border-top: 2px solid ${(resolvedVariables?.COR_PRIMARIA as string) || '#1B4D3E'} !important;
+                color: ${(resolvedVariables?.COR_PRIMARIA as string) || '#1B4D3E'} !important;
+              }
+              .document-paper-a4 .section-bar,
+              .document-paper-a4 .barra-secao {
+                background-color: ${(resolvedVariables?.COR_PRIMARIA as string) || '#1B4D3E'} !important;
+                color: #ffffff !important;
+              }
+              .document-paper-a4 th {
+                border-bottom: 2px solid ${(resolvedVariables?.COR_PRIMARIA as string) || '#1B4D3E'} !important;
+              }
+            `}} />
+            <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
+          </div>
         </div>
       </div>
 

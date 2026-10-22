@@ -53,7 +53,7 @@ export const SignaturesBlock = React.memo(({ organization, options, producer }: 
         <div style={{ textAlign: 'center' }}>
           <div style={{ borderTop: '1px solid #111827', margin: '0 10px', paddingTop: '4px' }}>
             <strong>{organization?.ownerName || options?.responsibleName || 'Responsável Técnico'}</strong><br/>
-            {organization?.tradeName || organization?.name || 'LN Consultoria e Projetos'}<br/>
+            {organization?.tradeName || organization?.name || 'DevWorks'}<br/>
             CREA: {options?.creaNumber || 'Pendente'}
             <div style={{ fontSize: '9.5px', color: '#6b7280', marginTop: '2px' }}>Elaborador / RT</div>
           </div>

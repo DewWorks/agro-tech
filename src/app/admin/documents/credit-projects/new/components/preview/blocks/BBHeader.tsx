@@ -13,8 +13,8 @@ interface BBHeaderProps {
 }
 
 export const BBHeader = React.memo(({ title, subtitle, organization }: BBHeaderProps) => {
-  const companyName = organization?.tradeName || organization?.name || 'LN Consultoria e Projetos Rurais'
-  const primaryColor = organization?.primaryColorHex || '#1B4D3E'
+  const companyName = organization?.tradeName || organization?.name || 'DevWorks'
+  const primaryColor = organization?.primaryColorHex || '#050E94'
   const logo = organization?.logoHorizontalBase64 || organization?.logoHorizontalUrl
 
   return (
@@ -32,6 +32,7 @@ export const BBHeader = React.memo(({ title, subtitle, organization }: BBHeaderP
         alignItems: 'center',
         overflow: 'hidden',
         boxSizing: 'border-box',
+        width: '100%',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', height: '50px', overflow: 'hidden' }}>
@@ -52,9 +53,10 @@ export const BBHeader = React.memo(({ title, subtitle, organization }: BBHeaderP
             <img
               src={logo}
               alt={companyName}
+              crossOrigin="anonymous"
               style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
+                maxWidth: '170px',
+                maxHeight: '48px',
                 width: 'auto',
                 height: 'auto',
                 objectFit: 'contain',
@@ -98,6 +100,11 @@ export const BBHeader = React.memo(({ title, subtitle, organization }: BBHeaderP
             {subtitle}
           </p>
         </div>
+      </div>
+
+      <div style={{ textAlign: 'right', fontSize: '8px', color: '#6b7280', lineHeight: 1.25, flexShrink: 0 }}>
+        <span style={{ fontWeight: 'bold', color: primaryColor }}>{companyName}</span><br />
+        Conformidade MCR / BACEN
       </div>
     </div>
   )

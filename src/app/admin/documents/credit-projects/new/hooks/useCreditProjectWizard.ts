@@ -315,6 +315,7 @@ export function useCreditProjectWizard(props: CreditProjectWizardProps) {
     defaultOrgName: props.defaultOrgName,
     defaultOrgCnpj: props.defaultOrgCnpj,
     defaultResponsibleName: props.defaultResponsibleName,
+    organization: props.organization,
     selectedTemplateCode,
   })
 

@@ -47,9 +47,29 @@ export default async function NewDeclarationPage({
     ? await getSavedCreditProjectData(initialProducerId, initialPropertyId || '', initialTemplateCode)
     : null
 
+  const activeOrgId = user.organizationId || user.organization?.id
+  const activeOrg = activeOrgId
+    ? (await prisma.organization.findUnique({ where: { id: activeOrgId } })) || user.organization
+    : user.organization
+
   const defaultResponsibleName = orgOwner?.fullName || user.fullName || ''
-  const defaultOrgName = user.organization?.name || ''
-  const defaultOrgCnpj = user.organization?.cnpj || ''
+  const defaultOrgName = activeOrg?.tradeName || activeOrg?.name || 'DevWorks'
+  const defaultOrgCnpj = activeOrg?.cnpj || ''
+
+  const { resolveOrganizationLogoBase64 } = await import('@/lib/pdf/resolve-branding')
+  const logoHorizontalBase64 = await resolveOrganizationLogoBase64(activeOrg?.logoHorizontalUrl)
+
+  const organizationData = activeOrg ? {
+    id: activeOrg.id,
+    name: activeOrg.name,
+    tradeName: activeOrg.tradeName,
+    cnpj: activeOrg.cnpj,
+    logoHorizontalUrl: activeOrg.logoHorizontalUrl,
+    logoHorizontalBase64,
+    primaryColorHex: activeOrg.primaryColorHex || '#050E94',
+    accentColorHex: activeOrg.accentColorHex || '#FFAC00',
+    ownerName: defaultResponsibleName
+  } : null
 
   return (
     <CreditProjectWizard 
@@ -58,6 +78,7 @@ export default async function NewDeclarationPage({
       defaultResponsibleName={defaultResponsibleName}
       defaultOrgName={defaultOrgName}
       defaultOrgCnpj={defaultOrgCnpj}
+      organization={organizationData}
       initialTemplateCode={initialTemplateCode}
       initialSavedData={initialSavedData as any}
       backUrl="/admin/documents/declarations"
