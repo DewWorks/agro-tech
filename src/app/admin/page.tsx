@@ -338,25 +338,25 @@ export default async function AdminDashboardPage({
           branding={branding}
         />
 
-        {/* Seção 2: Central de Ações Rápidas (Cards Coloridos e Temáticos) */}
+        {/* Seção 2: Resumo Patrimonial do CRM & Governança (Dados Estratégicos no Topo) */}
+        <PatrimonialSummaryFooter summary={dashboardData.summary} />
+
+        {/* Seção 3: Central de Ações Rápidas (Cards Coloridos e Temáticos) */}
         <QuickActionsGrid />
 
-        {/* Seção 3: Painel Analítico Integrado (Demandas vs. GED em Duas Colunas com Gráficos) */}
+        {/* Seção 4: Painel Analítico Integrado (Demandas vs. GED em Duas Colunas com Gráficos) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           <DemandsOverviewColumn metrics={dashboardData.demands} />
           <GedHealthColumn ged={dashboardData.ged} />
         </div>
 
-        {/* Seção 4: Desempenho Financeiro & Fluxo da Safra (ERP) para Fácil Acesso Executivo */}
+        {/* Seção 5: Desempenho Financeiro & Fluxo da Safra (ERP) para Fácil Acesso Executivo */}
         {financialOverview && (
           <HomeFinancialOverview
             metrics={financialOverview.metrics}
             monthlyData={financialOverview.monthlyData}
           />
         )}
-
-        {/* Seção 5: Resumo Patrimonial do CRM e Governança */}
-        <PatrimonialSummaryFooter summary={dashboardData.summary} />
       </div>
     </Suspense>
   )

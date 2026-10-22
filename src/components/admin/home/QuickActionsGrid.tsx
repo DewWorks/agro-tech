@@ -55,11 +55,14 @@ const QUICK_ACTIONS: QuickActionItem[] = [
 export function QuickActionsGrid() {
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          Central de Ações Rápidas
-        </h2>
-        <span className="text-[11px] text-slate-400 font-medium">Acessos operacionais prioritários</span>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#1B4D3E]" />
+          <h2 className="text-xs font-bold text-[#1B4D3E] uppercase tracking-wider">
+            Central de Ações Rápidas
+          </h2>
+        </div>
+        <span className="text-[11px] text-slate-500 font-medium">Acessos operacionais prioritários</span>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
