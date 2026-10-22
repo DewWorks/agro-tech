@@ -11,6 +11,17 @@ export interface UseCreditProjectCalculationsParams {
   defaultOrgName?: string
   defaultOrgCnpj?: string
   defaultResponsibleName?: string
+  organization?: {
+    id?: string
+    name?: string
+    tradeName?: string | null
+    cnpj?: string | null
+    logoHorizontalUrl?: string | null
+    logoHorizontalBase64?: string | null
+    primaryColorHex?: string | null
+    accentColorHex?: string | null
+    ownerName?: string
+  } | null
   selectedTemplateCode: string
 }
 
@@ -22,6 +33,7 @@ export function useCreditProjectCalculations({
   defaultOrgName = 'Organização',
   defaultOrgCnpj,
   defaultResponsibleName,
+  organization,
   selectedTemplateCode,
 }: UseCreditProjectCalculationsParams) {
   // Calculate BaseData for the Preview synchronously based on customOptions and currentProducer
@@ -105,9 +117,15 @@ export function useCreditProjectCalculations({
         livestocks: customOptions.livestockItems || currentProperty.livestockList || (currentProperty as any).livestocks || [],
       },
       organization: {
-        name: defaultOrgName || 'Organização',
-        cnpj: defaultOrgCnpj,
-        ownerName: defaultResponsibleName,
+        id: organization?.id,
+        name: organization?.tradeName || organization?.name || defaultOrgName || 'DevWorks',
+        tradeName: organization?.tradeName || defaultOrgName || 'DevWorks',
+        cnpj: organization?.cnpj || defaultOrgCnpj,
+        ownerName: organization?.ownerName || defaultResponsibleName,
+        logoHorizontalUrl: organization?.logoHorizontalUrl,
+        logoHorizontalBase64: organization?.logoHorizontalBase64,
+        primaryColorHex: organization?.primaryColorHex || '#050E94',
+        accentColorHex: organization?.accentColorHex || '#FFAC00',
       },
       options: {
         ...customOptions,

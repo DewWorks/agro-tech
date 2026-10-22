@@ -52,6 +52,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         organizationName={userContext.organization?.tradeName || userContext.impersonatedOrgName || userContext.organization?.name || null}
         logoDarkUrl={userContext.organization?.logoDarkUrl || null}
         logoHorizontalUrl={userContext.organization?.logoHorizontalUrl || null}
+        logoIconUrl={userContext.organization?.logoIconUrl || null}
         user={{
           fullName: userContext.fullName,
           email: userContext.email,

@@ -89,6 +89,17 @@ export interface CreditProjectWizardProps {
   defaultResponsibleName?: string
   defaultOrgName?: string
   defaultOrgCnpj?: string
+  organization?: {
+    id?: string
+    name?: string
+    tradeName?: string | null
+    cnpj?: string | null
+    logoHorizontalUrl?: string | null
+    logoHorizontalBase64?: string | null
+    primaryColorHex?: string | null
+    accentColorHex?: string | null
+    ownerName?: string
+  } | null
   initialTemplateCode?: string
   initialProducerId?: string
   initialPropertyId?: string

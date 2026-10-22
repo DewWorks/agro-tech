@@ -48,8 +48,9 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
     producers,
     templates,
     defaultResponsibleName = '',
-    defaultOrgName = '',
+    defaultOrgName = 'DevWorks',
     defaultOrgCnpj = '',
+    organization,
     initialTemplateCode,
     initialProducerId,
     initialPropertyId,
@@ -72,6 +73,7 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
     defaultResponsibleName,
     defaultOrgName,
     defaultOrgCnpj,
+    organization: props.organization,
     initialTemplateCode: initialTemplateCode || initialTemplate,
     initialProducerId,
     initialPropertyId,
@@ -164,13 +166,23 @@ export default function CreditProjectWizard(props: CreditProjectWizardProps) {
       if (typeof document !== 'undefined' && document.fonts) {
         await document.fonts.ready
       }
-      const { jsPDF } = await import('jspdf')
-      const html2canvas = (await import('html2canvas')).default
       const element = contentRef.current
 
       if (!element) {
         throw new Error('Elemento de visualização não encontrado para captura.')
       }
+
+      // Garante que todas as imagens (logomarca em Base64 ou URL) estejam totalmente decodificadas
+      const imgs = Array.from(element.querySelectorAll('img'))
+      await Promise.all(
+        imgs.map((img) => {
+          if (img.complete) return Promise.resolve()
+          return img.decode().catch(() => {})
+        })
+      )
+
+      const { jsPDF } = await import('jspdf')
+      const html2canvas = (await import('html2canvas')).default
 
       const sanitizedTitle = documentData.template.title.replace(/[^a-zA-Z0-9]/g, '_')
       const sanitizedName = documentData.producer.name.replace(/[^a-zA-Z0-9]/g, '_')

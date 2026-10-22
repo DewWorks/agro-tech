@@ -35,6 +35,8 @@ import { DemandsOverviewColumn } from '@/components/admin/home/DemandsOverviewCo
 import { GedHealthColumn } from '@/components/admin/home/GedHealthColumn'
 import { PatrimonialSummaryFooter } from '@/components/admin/home/PatrimonialSummaryFooter'
 import { HomeDashboardSkeleton } from '@/components/admin/home/HomeDashboardSkeleton'
+import { HomeFinancialOverview } from '@/components/admin/home/HomeFinancialOverview'
+import { getCachedFinancialOverview, type FinancialOverviewData } from '@/actions/financial/overview'
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -291,10 +293,36 @@ export default async function AdminDashboardPage({
   }
 
   // 3. Central de Comando e Dashboard Operacional Completo
-  const dashboardData = await getHomeDashboardData(resolvedParams.branchId, dbUser)
+  const [dashboardData, financialOverview] = await Promise.all([
+    getHomeDashboardData(resolvedParams.branchId, dbUser),
+    getCachedFinancialOverview(resolvedParams.branchId || 'ALL', dbUser.organizationId).catch((err) => {
+      console.error('[AdminDashboardPage] Error loading financial overview:', err)
+      return null as FinancialOverviewData | null
+    }),
+  ])
 
   const isOwnerOrSuperAdmin =
     role === 'OWNER' || role === 'SUPER_ADMIN' || dbUser.realRole === 'SUPER_ADMIN'
+
+  // Verificação de isolamento: Identidade visual personalizada com banner fotográfico exclusiva para LN Consultoria
+  const isLNClient = Boolean(
+    dbUser.organization?.cnpj === '46.877.571/0001-00' ||
+    dbUser.organization?.name?.includes('LN - CONSULTORIA') ||
+    dbUser.impersonatedOrgName?.includes('LN - CONSULTORIA') ||
+    dbUser.organizationId === 'd4450841-c4ba-4558-8630-0f37aaec33d4'
+  )
+
+  const org = dbUser.organization
+  const branding = org
+    ? {
+        tradeName: org.tradeName || org.name,
+        logoHorizontalUrl: org.logoHorizontalUrl,
+        logoIconUrl: org.logoIconUrl,
+        logoDarkUrl: org.logoDarkUrl,
+        primaryColorHex: org.primaryColorHex,
+        accentColorHex: org.accentColorHex,
+      }
+    : undefined
 
   return (
     <Suspense fallback={<HomeDashboardSkeleton />}>
@@ -306,18 +334,28 @@ export default async function AdminDashboardPage({
           branches={dashboardData.branches}
           currentBranchId={dashboardData.currentBranchId}
           isOwnerOrSuperAdmin={isOwnerOrSuperAdmin}
+          isLNClient={isLNClient}
+          branding={branding}
         />
 
         {/* Seção 2: Central de Ações Rápidas (Cards Coloridos e Temáticos) */}
         <QuickActionsGrid />
 
-        {/* Seção 3: Painel Analítico Integrado (Demandas vs. GED em Duas Colunas) */}
+        {/* Seção 3: Painel Analítico Integrado (Demandas vs. GED em Duas Colunas com Gráficos) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           <DemandsOverviewColumn metrics={dashboardData.demands} />
           <GedHealthColumn ged={dashboardData.ged} />
         </div>
 
-        {/* Seção 4: Resumo Patrimonial do CRM e Governança */}
+        {/* Seção 4: Desempenho Financeiro & Fluxo da Safra (ERP) para Fácil Acesso Executivo */}
+        {financialOverview && (
+          <HomeFinancialOverview
+            metrics={financialOverview.metrics}
+            monthlyData={financialOverview.monthlyData}
+          />
+        )}
+
+        {/* Seção 5: Resumo Patrimonial do CRM e Governança */}
         <PatrimonialSummaryFooter summary={dashboardData.summary} />
       </div>
     </Suspense>

@@ -1,4 +1,5 @@
 import { getUserContext } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { 
@@ -48,6 +49,25 @@ const DECLARATION_WORKFLOW_STEPS = [
 export default async function DeclarationsHubPage() {
   const user = await getUserContext()
   if (!user) redirect('/login')
+
+  const activeOrgId = user.organizationId || user.organization?.id
+  const activeOrg = activeOrgId
+    ? (await prisma.organization.findUnique({ where: { id: activeOrgId } })) || user.organization
+    : user.organization
+
+  const { resolveOrganizationLogoBase64 } = await import('@/lib/pdf/resolve-branding')
+  const logoHorizontalBase64 = await resolveOrganizationLogoBase64(activeOrg?.logoHorizontalUrl)
+
+  const organizationData = activeOrg ? {
+    id: activeOrg.id,
+    name: activeOrg.name,
+    tradeName: activeOrg.tradeName,
+    cnpj: activeOrg.cnpj,
+    logoHorizontalUrl: activeOrg.logoHorizontalUrl,
+    logoHorizontalBase64,
+    primaryColorHex: activeOrg.primaryColorHex || '#050E94',
+    accentColorHex: activeOrg.accentColorHex || '#FFAC00',
+  } : null
 
   const historyDeclarations = await getLegalDeclarationsHistory()
 
@@ -284,7 +304,7 @@ export default async function DeclarationsHubPage() {
       {/* =================================================================== */}
       {/* 2. TABELA HISTÓRICA DE DECLARAÇÕES EMITIDAS */}
       {/* =================================================================== */}
-      <LegalDeclarationsHistoryTable initialDeclarations={historyDeclarations} />
+      <LegalDeclarationsHistoryTable initialDeclarations={historyDeclarations} organization={organizationData} />
 
       {/* =================================================================== */}
       {/* 3. COMO FUNCIONA A ESTEIRA OPERACIONAL */}

@@ -1,4 +1,5 @@
 import { getUserContext } from '@/lib/auth'
+import prisma from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -49,10 +50,28 @@ const CREDIT_PROJECTS_WORKFLOW_STEPS = [
   },
 ]
 
-
 export default async function CreditProjectsHubPage() {
   const user = await getUserContext()
   if (!user) redirect('/login')
+
+  const activeOrgId = user.organizationId || user.organization?.id
+  const activeOrg = activeOrgId
+    ? (await prisma.organization.findUnique({ where: { id: activeOrgId } })) || user.organization
+    : user.organization
+
+  const { resolveOrganizationLogoBase64 } = await import('@/lib/pdf/resolve-branding')
+  const logoHorizontalBase64 = await resolveOrganizationLogoBase64(activeOrg?.logoHorizontalUrl)
+
+  const organizationData = activeOrg ? {
+    id: activeOrg.id,
+    name: activeOrg.name,
+    tradeName: activeOrg.tradeName,
+    cnpj: activeOrg.cnpj,
+    logoHorizontalUrl: activeOrg.logoHorizontalUrl,
+    logoHorizontalBase64,
+    primaryColorHex: activeOrg.primaryColorHex || '#050E94',
+    accentColorHex: activeOrg.accentColorHex || '#FFAC00',
+  } : null
 
   const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
   const isOrgFinancialEnabled = (user.organization?.modules || []).includes('FINANCIAL_SUMMARY')
@@ -255,7 +274,7 @@ export default async function CreditProjectsHubPage() {
       {/* =================================================================== */}
       {/* 3. TABELA HISTÓRICA DE PROJETOS ELABORADOS */}
       {/* =================================================================== */}
-      <CreditProjectsHistoryTable initialProjects={historyProjects} />
+      <CreditProjectsHistoryTable initialProjects={historyProjects} organization={organizationData} />
 
       {/* =================================================================== */}
       {/* 4. GUIA DIDÁTICO DA ESTEIRA */}

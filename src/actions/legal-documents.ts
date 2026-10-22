@@ -6,7 +6,9 @@ import { revalidatePath } from 'next/cache'
 import { formatCPF, formatCNPJ } from '@/lib/validations'
 import { denormalizeCategoryBB, denormalizePurposeBB } from '@/lib/validations/livestock-mapper'
 import { CREDIT_TEMPLATES_REGISTRY } from '@/lib/document-templates'
-import { convertRemoteUrlToBase64 } from '@/lib/pdf/resolve-branding'
+import { convertRemoteUrlToBase64, resolveOrganizationLogoBase64 } from '@/lib/pdf/resolve-branding'
+import { buildOfficialDocumentHeaderHtml } from '@/lib/pdf/build-document-header'
+import Handlebars from 'handlebars'
 
 export async function getMinutasRepository() {
   const user = await getUserContext()
@@ -238,26 +240,103 @@ export async function resolveDocumentData(producerId: string, propertyId: string
   resolvedVariables['PRODUCER_DOCUMENT_WITH_TYPE'] = `${producer.type === 'PJ' ? 'CNPJ' : 'CPF'}: ${formattedDoc}`
 
   // Injeção de Dados Institucionais da Empresa / Organização
-  const orgName = user.organization?.tradeName || user.organization?.name || 'LN Consultoria e Projetos Rurais'
-  const orgCnpj = user.organization?.cnpj ? formatCNPJ(user.organization.cnpj) : ''
-  let logoBase64 = ''
-  if (user.organization?.logoHorizontalUrl) {
-    logoBase64 = (await convertRemoteUrlToBase64(user.organization.logoHorizontalUrl)) || ''
+  let organizationId = user.organizationId
+  if (!organizationId && user.branchId) {
+    const branch = await prisma.branch.findUnique({
+      where: { id: user.branchId },
+      select: { organizationId: true }
+    })
+    organizationId = branch?.organizationId || null
+  }
+  if (!organizationId && producer.branchId) {
+    const branch = await prisma.branch.findUnique({
+      where: { id: producer.branchId },
+      select: { organizationId: true }
+    })
+    organizationId = branch?.organizationId || null
   }
 
-  resolvedVariables['NOME_EMPRESA'] = orgName
-  resolvedVariables['ORGANIZATION_NAME'] = orgName
-  resolvedVariables['RAZAO_SOCIAL'] = user.organization?.name || orgName
-  resolvedVariables['CNPJ_EMPRESA'] = orgCnpj
-  resolvedVariables['ORGANIZATION_CNPJ'] = orgCnpj
-  resolvedVariables['LOGO_EMPRESA_URL'] = logoBase64 || user.organization?.logoHorizontalUrl || ''
+  const org = organizationId
+    ? await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { name: true, tradeName: true, logoHorizontalUrl: true, primaryColorHex: true, cnpj: true }
+      })
+    : (user.organization || null)
+
+  const logoBase64 = await resolveOrganizationLogoBase64(org?.logoHorizontalUrl)
+  const companyName = org?.tradeName || org?.name || 'DevWorks'
+  const primaryColor = org?.primaryColorHex || '#050E94'
+  const companyCnpj = org?.cnpj ? formatCNPJ(org.cnpj) : ''
+
+  const headerOfficialHtml = buildOfficialDocumentHeaderHtml({
+    logoBase64,
+    companyName,
+    primaryColor,
+    documentTitle: template.title,
+    documentSubtitle: 'Declaração Legal • Banco do Brasil / Regulamentar'
+  })
+
+  resolvedVariables['HEADER_OFICIAL'] = headerOfficialHtml
   resolvedVariables['LOGO_BASE64'] = logoBase64 || ''
-  resolvedVariables['COR_PRIMARIA'] = user.organization?.primaryColorHex || '#1B4D3E'
+  resolvedVariables['LOGO_EMPRESA_URL'] = org?.logoHorizontalUrl || ''
+  resolvedVariables['NOME_EMPRESA'] = companyName
+  resolvedVariables['RAZAO_SOCIAL_EMPRESA'] = org?.name || companyName
+  resolvedVariables['ORGANIZATION_NAME'] = companyName
+  resolvedVariables['RAZAO_SOCIAL'] = org?.name || companyName
+  resolvedVariables['CNPJ_EMPRESA'] = companyCnpj
+  resolvedVariables['ORGANIZATION_CNPJ'] = companyCnpj
+  resolvedVariables['COR_PRIMARIA'] = primaryColor
+
+  // Sanitiza template.contentHtml: remove qualquer cabeçalho estático legado e prependa {{{HEADER_OFICIAL}}}
+  let contentHtml = template.contentHtml || ''
+  contentHtml = contentHtml.replace(/<h[12][^>]*>\s*\{\{\s*(EMPRESA_NOME|NOME_EMPRESA|ORGANIZATION_NAME|RAZAO_SOCIAL)\s*\}\}\s*<\/h[12]>/gi, '').trim()
+
+  if (!contentHtml.includes('{{{HEADER_OFICIAL}}}') && !contentHtml.includes('{{HEADER_OFICIAL}}')) {
+    const outerDivMatch = contentHtml.match(/^(\s*<div[^>]*>)/i)
+    if (outerDivMatch) {
+      contentHtml = contentHtml.slice(0, outerDivMatch[0].length) + '\n{{{HEADER_OFICIAL}}}\n' + contentHtml.slice(outerDivMatch[0].length)
+    } else {
+      contentHtml = '{{{HEADER_OFICIAL}}}\n' + contentHtml
+    }
+  }
+
+  const sanitizedTemplate = {
+    ...template,
+    contentHtml
+  }
 
   return {
-    template,
+    template: sanitizedTemplate,
     resolvedVariables,
     missingFields
+  }
+}
+
+export async function generateLegalDocumentHtml(
+  producerId: string,
+  propertyId: string | null,
+  templateCode: string,
+  extraPayload?: Record<string, any>
+): Promise<{
+  html: string
+  template: any
+  resolvedVariables: Record<string, any>
+  missingFields: any[]
+}> {
+  const result = await resolveDocumentData(producerId, propertyId, templateCode)
+  const templateData = {
+    ...result.resolvedVariables,
+    ...(extraPayload || {})
+  }
+
+  const compiled = Handlebars.compile(result.template.contentHtml)
+  const html = compiled(templateData)
+
+  return {
+    html,
+    template: result.template,
+    resolvedVariables: templateData,
+    missingFields: result.missingFields
   }
 }
 

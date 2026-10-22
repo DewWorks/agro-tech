@@ -31,9 +31,10 @@ import { toast } from 'sonner'
 
 interface LegalDeclarationsHistoryTableProps {
   initialDeclarations: LegalDeclarationHistoryItem[]
+  organization?: any
 }
 
-export function LegalDeclarationsHistoryTable({ initialDeclarations }: LegalDeclarationsHistoryTableProps) {
+export function LegalDeclarationsHistoryTable({ initialDeclarations, organization }: LegalDeclarationsHistoryTableProps) {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<'TODOS' | 'COMPLIANCE' | 'AMBIENTAL' | 'SOCIAL_GARANTIAS'>('TODOS')
   const [previewItem, setPreviewItem] = useState<LegalDeclarationHistoryItem | null>(null)
@@ -90,12 +91,14 @@ export function LegalDeclarationsHistoryTable({ initialDeclarations }: LegalDecl
         city: previewItem.propertyCity,
         state: previewItem.propertyState,
       },
-      organization: {
-        name: 'LN Consultoria & Gestão Rural',
+      organization: organization || {
+        name: 'DevWorks',
+        tradeName: 'DevWorks',
+        primaryColorHex: '#050E94',
       },
       options: previewItem.payloadSnapshot || {},
     }
-  }, [previewItem])
+  }, [previewItem, organization])
 
   const handleDownloadPdfModal = async () => {
     if (!contentRef.current || !previewDocData) {
@@ -110,9 +113,19 @@ export function LegalDeclarationsHistoryTable({ initialDeclarations }: LegalDecl
       if (typeof document !== 'undefined' && document.fonts) {
         await document.fonts.ready
       }
+      const element = contentRef.current
+
+      // Garante que todas as imagens estejam totalmente decodificadas
+      const imgs = Array.from(element.querySelectorAll('img'))
+      await Promise.all(
+        imgs.map((img) => {
+          if (img.complete) return Promise.resolve()
+          return img.decode().catch(() => {})
+        })
+      )
+
       const { jsPDF } = await import('jspdf')
       const html2canvas = (await import('html2canvas')).default
-      const element = contentRef.current
 
       const sanitizedTitle = (previewDocData.template.title || 'Declaracao_Legal').replace(/[^a-zA-Z0-9]/g, '_')
       const sanitizedName = (previewDocData.producer.name || 'Produtor').replace(/[^a-zA-Z0-9]/g, '_')

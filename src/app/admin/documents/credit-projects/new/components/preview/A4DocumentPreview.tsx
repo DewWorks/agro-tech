@@ -67,7 +67,12 @@ export const A4DocumentPreview = React.memo(({ documentData, data }: A4DocumentP
         organization={organization}
       />
       
-      <IdentificationBlock producer={producer} property={property} options={options} />
+      <IdentificationBlock 
+        producer={producer} 
+        property={property} 
+        options={options} 
+        primaryColor={organization?.primaryColorHex}
+      />
       
       {isLegalTemplate ? (
         <DeclarationContent 
@@ -75,6 +80,7 @@ export const A4DocumentPreview = React.memo(({ documentData, data }: A4DocumentP
           producer={producer} 
           property={property} 
           options={options} 
+          primaryColor={organization?.primaryColorHex}
         />
       ) : (
         <>

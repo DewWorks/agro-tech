@@ -48,6 +48,7 @@ interface AdminSidebarProps {
   organizationName?: string | null
   logoDarkUrl?: string | null
   logoHorizontalUrl?: string | null
+  logoIconUrl?: string | null
   user?: {
     fullName?: string | null
     email?: string | null
@@ -420,6 +421,7 @@ export default function AdminSidebar({
   organizationName,
   logoDarkUrl,
   logoHorizontalUrl,
+  logoIconUrl,
   user,
 }: AdminSidebarProps) {
   const pathname = usePathname()
@@ -474,18 +476,23 @@ export default function AdminSidebar({
       {/* 2.A & 2.B. Identidade Institucional Dinâmica com Fallback Tipográfico */}
       <div className="p-5 border-b border-white/10">
         <Link href="/admin" className="block group">
-          {logoDarkUrl || logoHorizontalUrl ? (
-            <div className="flex flex-col gap-1.5">
-              <div className="h-10 flex items-center justify-start overflow-hidden">
+          {logoIconUrl || logoDarkUrl || logoHorizontalUrl ? (
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 p-1.5 flex items-center justify-center shrink-0 shadow-sm backdrop-blur-xs group-hover:bg-white/15 group-hover:scale-105 transition-all">
                 <img
-                  src={(logoDarkUrl || logoHorizontalUrl) || undefined}
+                  src={(logoIconUrl || logoDarkUrl || logoHorizontalUrl) || undefined}
                   alt={orgSubtitle}
-                  className="max-h-9 max-w-[190px] object-contain object-left"
+                  className="w-full h-full object-contain drop-shadow-xs"
                 />
               </div>
-              <p className="text-[11px] text-white/70 font-medium tracking-normal truncate group-hover:text-white/90 transition-colors">
-                {orgSubtitle}
-              </p>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-base font-black text-white tracking-tight leading-snug truncate group-hover:text-emerald-200 transition-colors">
+                  {orgSubtitle}
+                </h2>
+                <p className="text-[10px] font-bold text-emerald-300/80 uppercase tracking-wider truncate mt-0.5">
+                  Gestão Agropecuária
+                </p>
+              </div>
             </div>
           ) : (
             <>

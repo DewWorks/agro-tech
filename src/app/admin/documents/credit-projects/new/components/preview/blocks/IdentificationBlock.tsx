@@ -5,9 +5,10 @@ interface IdentificationBlockProps {
   producer: any
   property: any
   options?: any
+  primaryColor?: string
 }
 
-export const IdentificationBlock = React.memo(({ producer, property, options }: IdentificationBlockProps) => {
+export const IdentificationBlock = React.memo(({ producer, property, options, primaryColor = '#050E94' }: IdentificationBlockProps) => {
   const { label: docLabel, formatted: docFormatted, isCnpj } = getDocumentTypeAndLabel(producer.document, producer.type)
   const spouseDocFormatted = producer.spouseCpf ? formatCPF(producer.spouseCpf) : ''
   const repCpf = options?.representativeCpf || producer.representativeCpf
@@ -15,8 +16,8 @@ export const IdentificationBlock = React.memo(({ producer, property, options }: 
   const repName = options?.representativeName || producer.representativeName || (isCnpj ? producer.name?.replace(/\s*\(PJ\)\s*/i, '').trim() : 'Administrador(a) / Titular')
 
   return (
-    <div style={{ border: '1px solid #d1d5db', borderRadius: '4px', marginBottom: '14px', overflow: 'hidden' }}>
-      <div style={{ background: '#f3f4f6', padding: '6px 14px', fontWeight: 'bold', color: '#111827', borderBottom: '1px solid #d1d5db', textTransform: 'uppercase' }}>
+    <div style={{ border: `1px solid ${primaryColor ? primaryColor + '40' : '#d1d5db'}`, borderRadius: '4px', marginBottom: '14px', overflow: 'hidden' }}>
+      <div style={{ background: primaryColor || '#050E94', padding: '6px 14px', fontWeight: 'bold', color: '#ffffff', borderBottom: `1px solid ${primaryColor || '#050E94'}`, textTransform: 'uppercase' }}>
         {isCnpj ? 'I - Identificação da Empresa Proponente & Representante Legal' : 'I - Identificação do Proponente e Cônjuge'}
       </div>
       <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '8px 16px', fontSize: '11px', lineHeight: 1.4 }}>

@@ -6,6 +6,8 @@ import { QuickActionsGrid } from '@/components/admin/home/QuickActionsGrid'
 import { DemandsOverviewColumn } from '@/components/admin/home/DemandsOverviewColumn'
 import { GedHealthColumn } from '@/components/admin/home/GedHealthColumn'
 import { PatrimonialSummaryFooter } from '@/components/admin/home/PatrimonialSummaryFooter'
+import { GedStorageDistributionChart } from '@/components/admin/home/GedStorageDistributionChart'
+import { HomeFinancialOverview } from '@/components/admin/home/HomeFinancialOverview'
 
 import { PageHeaderBanner } from '@/components/admin/PageHeaderBanner'
 import { Landmark } from 'lucide-react'
@@ -291,6 +293,114 @@ describe('Reformulação da Página Inicial (Diretriz 3)', () => {
     expect(screen.getByText('18')).toBeInTheDocument()
     expect(screen.getByText('Usuários no Sistema')).toBeInTheDocument()
     expect(screen.queryByText(/Utilizadores/)).not.toBeInTheDocument()
+  })
+
+  it('Seção 1: HomeHeader deve aplicar banner com logo e painel de fundo exclusivamente para o cliente LN Consultoria', () => {
+    const { rerender } = render(
+      <HomeHeader
+        userName="João Victor"
+        activeBranchName="Todas as Filiais (Consolidado)"
+        branches={[{ id: 'b1', name: 'Sede Principal' }]}
+        currentBranchId="b1"
+        isOwnerOrSuperAdmin={true}
+        isLNClient={true}
+        branding={{
+          tradeName: 'LN Consultoria e Projetos Rurais',
+          logoHorizontalUrl: '/extracted_branding/logo_horizontal.png',
+          primaryColorHex: '#05964F',
+          accentColorHex: '#FFAC00',
+        }}
+      />
+    )
+
+    // Deve conter o selo exclusivo do cliente LN Consultoria
+    expect(screen.getByText('LN Consultoria e Projetos Rurais')).toBeInTheDocument()
+    // Deve conter a imagem da logomarca oficial da LN
+    const logoImg = screen.getByAltText('LN Consultoria e Projetos Rurais')
+    expect(logoImg).toBeInTheDocument()
+    expect(logoImg).toHaveAttribute('src', '/extracted_branding/logo_horizontal.png')
+    expect(screen.getByText(/João/)).toBeInTheDocument()
+
+    // Quando NÃO for o cliente LN, deve manter o banner institucional padrão
+    rerender(
+      <HomeHeader
+        userName="João Victor"
+        activeBranchName="Todas as Filiais (Consolidado)"
+        branches={[{ id: 'b1', name: 'Sede Principal' }]}
+        currentBranchId="b1"
+        isOwnerOrSuperAdmin={true}
+        isLNClient={false}
+      />
+    )
+
+    expect(screen.queryByAltText('LN Consultoria e Projetos Rurais')).not.toBeInTheDocument()
+  })
+
+  it('Gráfico de Armazenamento: GedStorageDistributionChart deve exibir distribuição por categorias de documentos', () => {
+    render(
+      <GedStorageDistributionChart
+        totalBytes={10485760}
+        formattedUsed="10.0 MB"
+        limitFormatted="50 GB"
+        percentage={0.02}
+        storageBreakdown={[
+          {
+            name: 'MATRICULA',
+            label: 'Matrículas & Imóveis',
+            bytes: 5242880,
+            formattedBytes: '5.0 MB',
+            count: 12,
+            percentage: 50,
+            color: '#05964F',
+          },
+          {
+            name: 'CCIR',
+            label: 'CCIR (INCRA)',
+            bytes: 5242880,
+            formattedBytes: '5.0 MB',
+            count: 8,
+            percentage: 50,
+            color: '#FFAC00',
+          },
+        ]}
+      />
+    )
+
+    expect(screen.getByText('Distribuição por Categoria de Arquivo')).toBeInTheDocument()
+    expect(screen.getByText('Matrículas & Imóveis')).toBeInTheDocument()
+    expect(screen.getByText('CCIR (INCRA)')).toBeInTheDocument()
+    expect(screen.getAllByText('5.0 MB').length).toBe(2)
+  })
+
+  it('Gráfico Financeiro: HomeFinancialOverview deve exibir faturamento, saldo a receber e resultado operacional', () => {
+    render(
+      <HomeFinancialOverview
+        metrics={{
+          faturamentoRealizado: 125000,
+          saldoAReceberEmAberto: 45000,
+          resultadoOperacional: 80000,
+          titulosPendentesCount: 4,
+        }}
+        monthlyData={[
+          {
+            monthKey: '2026-10',
+            monthLabel: 'Out/26',
+            receitas: 50000,
+            despesas: 15000,
+            resultado: 35000,
+            saldoAcumulado: 35000,
+            metaReceita: 40000,
+          },
+        ]}
+      />
+    )
+
+    expect(screen.getByText('Desempenho Financeiro & Fluxo da Safra')).toBeInTheDocument()
+    expect(screen.getByText('Faturamento Realizado')).toBeInTheDocument()
+    expect(screen.getByText('Saldo a Receber')).toBeInTheDocument()
+    expect(screen.getByText('Resultado Operacional')).toBeInTheDocument()
+    expect(screen.getByText(/4 pendentes/)).toBeInTheDocument()
+    expect(screen.getByText('Abrir ERP Financeiro')).toBeInTheDocument()
   })
 })
 

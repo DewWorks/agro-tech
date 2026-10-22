@@ -40,6 +40,16 @@ export interface PriorityDocumentSummary {
   status: DocumentStatus
 }
 
+export interface StorageCategoryItem {
+  name: string
+  label: string
+  bytes: number
+  formattedBytes: string
+  count: number
+  percentage: number
+  color: string
+}
+
 export interface HomeDashboardData {
   branches: Array<{ id: string; name: string }>
   currentBranchId?: string
@@ -66,6 +76,7 @@ export interface HomeDashboardData {
     totalDocsCount: number
     emittedCount: number
     priorityDocuments: PriorityDocumentSummary[]
+    storageBreakdown?: StorageCategoryItem[]
   }
   summary: {
     totalProducers: number
@@ -142,6 +153,7 @@ export async function getHomeDashboardData(
     activeDemandsList,
     docStorageAggregate,
     emittedFormsCount,
+    storageGrouped,
     docsWithExpiration,
     priorityDocsList,
     producersCount,
@@ -210,6 +222,19 @@ export async function getHomeDashboardData(
         branch: { organizationId },
         ...(hasSpecificBranch ? { branchId } : {}),
       },
+    }),
+
+    // 5c. Agrupamento de armazenamento por tipo de documento para gráfico de distribuição
+    prisma.document.groupBy({
+      by: ['documentType'],
+      where: {
+        branch: { organizationId },
+        isArchived: false,
+        isSuperseded: false,
+        ...(hasSpecificBranch ? { branchId } : {}),
+      },
+      _sum: { fileSize: true },
+      _count: { id: true },
     }),
 
     // 6. Documentos para semáforo de validade
@@ -371,6 +396,41 @@ export async function getHomeDashboardData(
     maximumFractionDigits: 2,
   }).format(totalHectares)
 
+  // Processamento da distribuição de armazenamento por categoria
+  const storageCategoryColors: Record<string, string> = {
+    MATRICULA: '#05964F', // Spanish Green
+    CAR: '#10B981', // Emerald
+    CCIR: '#FFAC00', // Leticia Orange
+    ITR: '#1B4D3E', // Forest Green
+    CND_FEDERAL: '#3B82F6', // Blue
+    CND_IBAMA: '#06B6D4', // Cyan
+    LAUDO_TECNICO: '#8B5CF6', // Purple
+    CERTIDAO_INTEIRO_TEOR: '#F59E0B', // Amber
+    OUTROS: '#5F6873', // Petroleum Gray
+  }
+  const defaultPalette = ['#05964F', '#FFAC00', '#10B981', '#1B4D3E', '#3B82F6', '#8B5CF6', '#F59E0B', '#5F6873']
+
+  const storageBreakdown: StorageCategoryItem[] = (storageGrouped || [])
+    .map((g, idx) => {
+      const type = g.documentType || 'OUTROS'
+      const label = DOCUMENT_TYPE_LABELS[type] || type
+      const bytes = g._sum.fileSize || 0
+      const count = g._count.id || 0
+      const percentage = totalBytes > 0 ? Number(((bytes / totalBytes) * 100).toFixed(1)) : 0
+      const color = storageCategoryColors[type] || defaultPalette[idx % defaultPalette.length]
+
+      return {
+        name: type,
+        label,
+        bytes,
+        formattedBytes: formatBytes(bytes),
+        count,
+        percentage,
+        color,
+      }
+    })
+    .sort((a, b) => b.bytes - a.bytes)
+
   return {
     branches,
     currentBranchId: hasSpecificBranch ? branchId : undefined,
@@ -397,6 +457,7 @@ export async function getHomeDashboardData(
       totalDocsCount: docStorageAggregate._count.id || 0,
       emittedCount: emittedFormsCount || 0,
       priorityDocuments,
+      storageBreakdown,
     },
     summary: {
       totalProducers: producersCount,

@@ -53,9 +53,10 @@ import { formatCurrency, cn } from '@/lib/utils'
 
 interface CreditProjectsHistoryTableProps {
   initialProjects: CreditProjectHistoryItem[]
+  organization?: any
 }
 
-export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHistoryTableProps) {
+export function CreditProjectsHistoryTable({ initialProjects, organization }: CreditProjectsHistoryTableProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [axisFilter, setAxisFilter] = useState<'TODOS' | 'CUSTEIO' | 'INVESTIMENTO' | 'OUTROS'>('TODOS')
@@ -125,12 +126,14 @@ export function CreditProjectsHistoryTable({ initialProjects }: CreditProjectsHi
         totalAreaHa: (previewProject.payloadSnapshot as any)?.propertyTotalArea,
         explorationActivity: (previewProject.payloadSnapshot as any)?.propertyActivity,
       },
-      organization: {
-        name: 'Organização Ativa',
+      organization: organization || {
+        name: 'DevWorks',
+        tradeName: 'DevWorks',
+        primaryColorHex: '#050E94',
       },
       options: previewProject.payloadSnapshot || {},
     }
-  }, [previewProject])
+  }, [previewProject, organization])
 
   // Ação de Criar Demanda Técnica a partir do Projeto
   const handleCreateDemand = async (project: CreditProjectHistoryItem) => {
