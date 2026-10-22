@@ -14,9 +14,10 @@ import {
   User,
   Calendar,
 } from 'lucide-react'
-import { PriorityDocumentSummary } from '@/actions/home-dashboard'
+import { PriorityDocumentSummary, StorageCategoryItem } from '@/actions/home-dashboard'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
+import { GedStorageDistributionChart } from './GedStorageDistributionChart'
 
 interface GedHealthColumnProps {
   ged: {
@@ -30,6 +31,7 @@ interface GedHealthColumnProps {
     totalDocsCount?: number
     emittedCount?: number
     priorityDocuments: PriorityDocumentSummary[]
+    storageBreakdown?: StorageCategoryItem[]
   }
 }
 
@@ -101,6 +103,15 @@ export function GedHealthColumn({ ged }: GedHealthColumnProps) {
           </div>
         </div>
       </div>
+
+      {/* Gráfico Visual de Distribuição de Armazenamento por Categoria */}
+      <GedStorageDistributionChart
+        storageBreakdown={ged.storageBreakdown}
+        totalBytes={ged.totalBytes}
+        formattedUsed={ged.formattedUsed}
+        limitFormatted={ged.limitFormatted}
+        percentage={ged.percentage}
+      />
 
       {/* Semáforo de Validades em 3 Blocos Oficiais */}
       <div className="grid grid-cols-3 gap-2.5">
