@@ -132,11 +132,15 @@ export default async function NewPropertyPage(props: NewPropertyPageProps) {
     }
   }
 
-  // Super Admin sempre tem acesso ao módulo financeiro, mesmo que desativado no cliente.
+  // Super Admin sempre tem acesso aos módulos, mesmo que desativados no cliente.
   // Para os demais usuários, respeita estritamente a lista de módulos da organização.
   const isOrgFinancialEnabled = (effectiveUser.organization?.modules || []).includes('FINANCIAL_SUMMARY')
   const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
   const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
+
+  const isOrgCreditLimitEnabled = (effectiveUser.organization?.modules || []).includes('CREDIT_LIMIT')
+  const hasCreditLimitModule = isSuperAdmin || isOrgCreditLimitEnabled
+  const isCreditLimitModuleDisabledForOrg = isSuperAdmin && !isOrgCreditLimitEnabled
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -187,6 +191,8 @@ export default async function NewPropertyPage(props: NewPropertyPageProps) {
           initialBranchId={searchParams.branchId}
           hasFinancialModule={hasFinancialModule}
           isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+          hasCreditLimitModule={hasCreditLimitModule}
+          isCreditLimitModuleDisabledForOrg={isCreditLimitModuleDisabledForOrg}
         />
       </div>
     </div>

@@ -238,12 +238,12 @@ function getNavigationGroups(
     })
   }
 
-  const financialStatus = checkModule('FINANCIAL_SUMMARY')
-  if (financialStatus.show) {
+  const creditLimitStatus = checkModule('CREDIT_LIMIT')
+  if (creditLimitStatus.show) {
     docCreditItems.push({
       title: 'Limite de Crédito',
       icon: Landmark,
-      badge: financialStatus.badge,
+      badge: creditLimitStatus.badge,
       href: '/admin/credit-limit',
     })
   }

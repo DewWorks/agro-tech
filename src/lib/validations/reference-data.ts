@@ -258,6 +258,7 @@ export const BRAZILIAN_STATES = [
 ] as const
 
 export const MODULE_FINANCIAL_SUMMARY = 'FINANCIAL_SUMMARY' as const
+export const MODULE_CREDIT_LIMIT = 'CREDIT_LIMIT' as const
 
 export const CREDIT_BANKS = [
   { value: '001', label: '001 - Banco do Brasil' },

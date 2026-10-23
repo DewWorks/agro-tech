@@ -201,17 +201,17 @@ export async function getCreditLimitPortfolioData(
 
     const isSuperAdmin =
       dbUser.role === 'SUPER_ADMIN' || (dbUser as any).realRole === 'SUPER_ADMIN'
-    const isOrgFinancialEnabled = (dbUser.organization?.modules || []).includes(
-      'FINANCIAL_SUMMARY'
+    const isOrgCreditLimitEnabled = (dbUser.organization?.modules || []).includes(
+      'CREDIT_LIMIT'
     )
-    const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
-    const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
+    const hasCreditLimitModule = isSuperAdmin || isOrgCreditLimitEnabled
+    const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgCreditLimitEnabled
 
-    if (!hasFinancialModule) {
+    if (!hasCreditLimitModule) {
       return {
         success: false,
         error:
-          'Acesso negado: o módulo financeiro não está contratado para esta organização.',
+          'Acesso negado: o módulo de limite de crédito não está contratado para esta organização.',
         isFinancialModuleDisabledForOrg: false,
         kpis: {
           totalRequestedLimit: 0,
@@ -715,6 +715,18 @@ export async function saveCreditLimitSimulation(
   try {
     const dbUser = await getUserContext()
     if (!dbUser) return { success: false, error: 'Usuário não autenticado' }
+
+    const isSuperAdmin =
+      dbUser.role === 'SUPER_ADMIN' || (dbUser as any).realRole === 'SUPER_ADMIN'
+    const hasCreditLimitModule =
+      isSuperAdmin || (dbUser.organization?.modules || []).includes('CREDIT_LIMIT')
+    if (!hasCreditLimitModule) {
+      return {
+        success: false,
+        error:
+          'Acesso negado: o módulo de Limite de Crédito não está ativo para a sua organização.',
+      }
+    }
 
     const snapshot = await fetchPropertyFinancialSnapshot(propertyId)
     if (!snapshot) {

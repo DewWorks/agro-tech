@@ -24,6 +24,7 @@ export type { PurposeOption, BankOption }
 interface Step4FinancialSummaryProps {
   form?: UseFormReturn<any>
   isFinancialModuleDisabledForOrg?: boolean
+  hasCreditLimitModule?: boolean
   propertyId?: string
   producerId?: string
   onSaveAndSimulate?: () => void
@@ -32,6 +33,7 @@ interface Step4FinancialSummaryProps {
 export function Step4FinancialSummary({
   form,
   isFinancialModuleDisabledForOrg = false,
+  hasCreditLimitModule = false,
   propertyId,
   producerId,
   onSaveAndSimulate,
@@ -76,7 +78,7 @@ export function Step4FinancialSummary({
           </div>
           <div className="space-y-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-sm">Módulo "Resumo Financeiro & Limites" Desativado no Cliente</span>
+              <span className="font-bold text-sm">Módulo "Resumo Financeiro (CRM)" Desativado no Cliente</span>
               <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100 rounded-md border border-amber-300 dark:border-amber-700">
                 Desligado
               </span>
@@ -85,7 +87,7 @@ export function Step4FinancialSummary({
               </span>
             </div>
             <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-              Esta etapa e o dimensionamento de limites estão <strong>desativados na organização deste cliente</strong>. O formulário está acessível para você apenas devido ao seu privilégio de <strong>Super Admin</strong>.
+              Esta etapa de levantamento financeiro está <strong>desativada na organização deste cliente</strong>. O formulário está acessível para você apenas devido ao seu privilégio de <strong>Super Admin</strong>.
             </p>
           </div>
         </div>
@@ -150,6 +152,7 @@ export function Step4FinancialSummary({
         producerId={producerId}
         formatBRL={calculations.formatBRL}
         onSaveAndSimulate={onSaveAndSimulate}
+        hasCreditLimitModule={hasCreditLimitModule}
       />
     </div>
   )

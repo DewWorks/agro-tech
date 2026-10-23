@@ -36,13 +36,13 @@ export async function getCreditTemplatesList(): Promise<CreditTemplateMeta[]> {
   if (!user) throw new Error('Unauthorized')
 
   const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
-  const hasFinancial = isSuperAdmin || (user.organization?.modules || []).includes('FINANCIAL_SUMMARY')
+  const hasCreditLimit = isSuperAdmin || (user.organization?.modules || []).includes('CREDIT_LIMIT')
 
-  if (hasFinancial) {
+  if (hasCreditLimit) {
     return CREDIT_TEMPLATES_REGISTRY
   }
 
-  // Se o módulo financeiro estiver desativado para o cliente, oculta a Ficha de Limite de Crédito
+  // Se o módulo de limite de crédito estiver desativado para o cliente, oculta a Ficha de Limite de Crédito
   return CREDIT_TEMPLATES_REGISTRY.filter(t => t.code !== 'LIMITE_CREDITO_BB')
 }
 
@@ -271,10 +271,10 @@ export async function resolveCreditProjectDocument(
   if (!templateMeta) throw new Error('Modelo de crédito não encontrado.')
 
   const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
-  const hasFinancialModule = isSuperAdmin || (org?.modules || []).includes('FINANCIAL_SUMMARY')
+  const hasCreditLimitModule = isSuperAdmin || (org?.modules || []).includes('CREDIT_LIMIT')
 
-  if (templateCode === 'LIMITE_CREDITO_BB' && !hasFinancialModule) {
-    throw new Error('Acesso não autorizado: o módulo Resumo Financeiro & Limites não está ativo para a sua organização.')
+  if (templateCode === 'LIMITE_CREDITO_BB' && !hasCreditLimitModule) {
+    throw new Error('Acesso não autorizado: o módulo Limite de Crédito não está ativo para a sua organização.')
   }
 
   // Parse JSON fields
@@ -395,7 +395,7 @@ export async function resolveCreditProjectDocument(
       } : undefined,
       options: {
         ...options,
-        hasFinancialModule: hasFinancialModule,
+        hasCreditLimitModule: hasCreditLimitModule,
         responsibleName: options.responsibleName
           ? options.responsibleName
           : ownerName,

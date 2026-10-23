@@ -54,8 +54,14 @@ export async function ensureDefaultSystemModules() {
     },
     {
       code: 'FINANCIAL_SUMMARY',
-      name: 'Resumo Financeiro & Limites',
-      description: 'Análise de fluxo de caixa, capacidade de pagamento e limites de crédito no levantamento patrimonial.',
+      name: 'Resumo Financeiro (CRM)',
+      description: 'Análise de fluxo de caixa, receitas, despesas e capacidade de pagamento no levantamento patrimonial do CRM.',
+      isActive: true,
+    },
+    {
+      code: 'CREDIT_LIMIT',
+      name: 'Limite de Crédito',
+      description: 'Cálculo de limites de crédito rural, dimensionamento por capacidade de pagamento, simulações MCR e Ficha Cadastral BB.',
       isActive: true,
     },
     {
@@ -80,6 +86,14 @@ export async function ensureDefaultSystemModules() {
       if (!exists) {
         await prisma.systemModule.create({
           data: mod,
+        })
+      } else if (mod.code === 'FINANCIAL_SUMMARY' && exists.name.includes('Limites')) {
+        await prisma.systemModule.update({
+          where: { code: 'FINANCIAL_SUMMARY' },
+          data: {
+            name: mod.name,
+            description: mod.description,
+          },
         })
       }
     } catch (e) {

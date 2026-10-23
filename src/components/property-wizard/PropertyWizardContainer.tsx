@@ -42,6 +42,8 @@ interface PropertyWizardContainerProps {
   propertyId?: string
   hasFinancialModule?: boolean
   isFinancialModuleDisabledForOrg?: boolean
+  hasCreditLimitModule?: boolean
+  isCreditLimitModuleDisabledForOrg?: boolean
 }
 
 export function PropertyWizardContainer({
@@ -54,6 +56,8 @@ export function PropertyWizardContainer({
   propertyId,
   hasFinancialModule = false,
   isFinancialModuleDisabledForOrg = false,
+  hasCreditLimitModule = false,
+  isCreditLimitModuleDisabledForOrg = false,
 }: PropertyWizardContainerProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
@@ -544,6 +548,7 @@ export function PropertyWizardContainer({
             <Step4FinancialSummary
               form={form}
               isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+              hasCreditLimitModule={hasCreditLimitModule}
               propertyId={propertyId || (initialData?.id as string)}
               producerId={form.watch('producerId') || selectedProducer?.id || (initialData as any)?.producerId}
               onSaveAndSimulate={handleSaveAndGoToCreditLimit}

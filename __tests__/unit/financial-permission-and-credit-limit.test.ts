@@ -44,7 +44,7 @@ describe('Módulo Financeiro & Limite de Crédito — Regras de Permissão e Mod
       expect(hasLimiteCredito).toBe(true)
     })
 
-    it('Usuário comum (OWNER/ADMIN) sem FINANCIAL_SUMMARY NÃO deve ver LIMITE_CREDITO_BB', async () => {
+    it('Usuário comum (OWNER/ADMIN) sem CREDIT_LIMIT NÃO deve ver LIMITE_CREDITO_BB mesmo tendo FINANCIAL_SUMMARY', async () => {
       ;(getUserContext as jest.Mock).mockResolvedValue({
         id: 'user_owner',
         role: 'OWNER',
@@ -53,7 +53,7 @@ describe('Módulo Financeiro & Limite de Crédito — Regras de Permissão e Mod
         organization: {
           id: 'org_1',
           name: 'Fazenda Modelo',
-          modules: ['CRM', 'GED'], // NÃO possui FINANCIAL_SUMMARY
+          modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY'], // Possui FINANCIAL_SUMMARY mas NÃO possui CREDIT_LIMIT
         },
       })
 
@@ -65,7 +65,7 @@ describe('Módulo Financeiro & Limite de Crédito — Regras de Permissão e Mod
       expect(templates.some((t) => t.code === 'CHECKLIST_PROFISSIONAL')).toBe(true)
     })
 
-    it('Usuário comum (OWNER/ADMIN) com FINANCIAL_SUMMARY ativo DEVE ver LIMITE_CREDITO_BB', async () => {
+    it('Usuário comum (OWNER/ADMIN) com CREDIT_LIMIT ativo DEVE ver LIMITE_CREDITO_BB', async () => {
       ;(getUserContext as jest.Mock).mockResolvedValue({
         id: 'user_owner_financial',
         role: 'OWNER',
@@ -74,7 +74,7 @@ describe('Módulo Financeiro & Limite de Crédito — Regras de Permissão e Mod
         organization: {
           id: 'org_2',
           name: 'Agropecuária Top',
-          modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY'],
+          modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY', 'CREDIT_LIMIT'],
         },
       })
 
@@ -118,7 +118,7 @@ describe('Módulo Financeiro & Limite de Crédito — Regras de Permissão e Mod
 
       await expect(
         resolveCreditProjectDocument('prod_1', 'prop_1', 'LIMITE_CREDITO_BB', {})
-      ).rejects.toThrow('Acesso não autorizado: o módulo Resumo Financeiro & Limites não está ativo')
+      ).rejects.toThrow('Acesso não autorizado: o módulo Limite de Crédito não está ativo')
     })
   })
 

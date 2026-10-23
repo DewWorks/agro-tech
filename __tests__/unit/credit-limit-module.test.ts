@@ -25,8 +25,8 @@ describe('Módulo de Limite de Crédito — Permissões e Regras MCR', () => {
     jest.clearAllMocks()
   })
 
-  describe('1. Regras de Acesso e Permissão (FINANCIAL_SUMMARY)', () => {
-    it('bloqueia usuário comum (OWNER/ADMIN) se a organização não tiver o módulo FINANCIAL_SUMMARY', async () => {
+  describe('1. Regras de Acesso e Permissão (CREDIT_LIMIT)', () => {
+    it('bloqueia usuário comum (OWNER/ADMIN) se a organização não tiver o módulo CREDIT_LIMIT', async () => {
       ;(getUserContext as jest.Mock).mockResolvedValue({
         id: 'user_regular',
         role: 'OWNER',
@@ -34,19 +34,19 @@ describe('Módulo de Limite de Crédito — Permissões e Regras MCR', () => {
         organizationId: 'org_1',
         organization: {
           id: 'org_1',
-          name: 'Cliente Sem Módulo Financeiro',
-          modules: ['CRM', 'GED'],
+          name: 'Cliente Sem Módulo Limite de Crédito',
+          modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY'], // Tem resumo financeiro mas NÃO tem limite de crédito
         },
       })
 
       const res = await getCreditLimitPortfolioData()
 
       expect(res.success).toBe(false)
-      expect(res.error).toContain('o módulo financeiro não está contratado')
+      expect(res.error).toContain('o módulo de limite de crédito não está contratado')
       expect(res.properties).toEqual([])
     })
 
-    it('permite acesso ao SUPER_ADMIN mesmo com o módulo financeiro desligado no cliente', async () => {
+    it('permite acesso ao SUPER_ADMIN mesmo com o módulo de limite de crédito desligado no cliente', async () => {
       ;(getUserContext as jest.Mock).mockResolvedValue({
         id: 'user_super_admin',
         role: 'SUPER_ADMIN',
@@ -55,7 +55,7 @@ describe('Módulo de Limite de Crédito — Permissões e Regras MCR', () => {
         organization: {
           id: 'org_1',
           name: 'Cliente Sem Módulo',
-          modules: ['CRM', 'GED'], // Desligado
+          modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY'], // Limite desligado
         },
       })
 
@@ -71,7 +71,7 @@ describe('Módulo de Limite de Crédito — Permissões e Regras MCR', () => {
       expect(res.isFinancialModuleDisabledForOrg).toBe(true)
     })
 
-    it('permite acesso a usuário comum se a organização possuir o módulo FINANCIAL_SUMMARY contratado', async () => {
+    it('permite acesso a usuário comum se a organização possuir o módulo CREDIT_LIMIT contratado', async () => {
       ;(getUserContext as jest.Mock).mockResolvedValue({
         id: 'user_regular_licensed',
         role: 'OWNER',
@@ -79,8 +79,8 @@ describe('Módulo de Limite de Crédito — Permissões e Regras MCR', () => {
         organizationId: 'org_licensed',
         organization: {
           id: 'org_licensed',
-          name: 'Cliente com Financeiro Ativo',
-          modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY'],
+          name: 'Cliente com Limite de Crédito Ativo',
+          modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY', 'CREDIT_LIMIT'],
         },
       })
 
@@ -107,7 +107,7 @@ describe('Módulo de Limite de Crédito — Permissões e Regras MCR', () => {
         organization: {
           id: 'org_test',
           name: 'Org Teste',
-          modules: ['FINANCIAL_SUMMARY'],
+          modules: ['CREDIT_LIMIT'],
         },
       })
 

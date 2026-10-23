@@ -74,8 +74,8 @@ export default async function CreditProjectsHubPage() {
   } : null
 
   const isSuperAdmin = user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
-  const isOrgFinancialEnabled = (user.organization?.modules || []).includes('FINANCIAL_SUMMARY')
-  const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
+  const isOrgCreditLimitEnabled = (user.organization?.modules || []).includes('CREDIT_LIMIT')
+  const hasCreditLimitModule = isSuperAdmin || isOrgCreditLimitEnabled
 
   // Carregar histórico de projetos já emitidos/salvos no banco
   const historyProjects = await listCreditProjects()
@@ -246,7 +246,7 @@ export default async function CreditProjectsHubPage() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          {hasFinancialModule && (
+          {hasCreditLimitModule && (
             <Link href="/admin/documents/credit-projects/new?template=LIMITE_CREDITO_BB">
               <Button variant="outline" size="sm" className="text-xs h-8 bg-white border-slate-300 text-slate-800 hover:bg-slate-100">
                 <Landmark className="w-3.5 h-3.5 mr-1 text-[#1B4D3E]" />

@@ -34,6 +34,7 @@ interface QuickLimitSummaryProps {
   producerId?: string
   formatBRL: (val: number) => string
   onSaveAndSimulate?: () => void
+  hasCreditLimitModule?: boolean
 }
 
 export function QuickLimitSummary({
@@ -42,6 +43,7 @@ export function QuickLimitSummary({
   producerId,
   formatBRL,
   onSaveAndSimulate,
+  hasCreditLimitModule = false,
 }: QuickLimitSummaryProps) {
   const { watch, control } = activeForm
 
@@ -167,112 +169,117 @@ export function QuickLimitSummary({
         </Card>
       </div>
 
-      {/* SELETORES RÁPIDOS DE INTENÇÃO DE CRÉDITO */}
-      <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
-          <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
-            <Landmark className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-            Intenção de Financiamento Preferencial
-          </Label>
-          <span className="text-[11px] text-slate-400">Parâmetros preliminares</span>
-        </div>
+      {/* SEÇÃO CONDICIONAL DO MÓDULO DE LIMITE DE CRÉDITO */}
+      {hasCreditLimitModule && (
+        <>
+          {/* SELETORES RÁPIDOS DE INTENÇÃO DE CRÉDITO */}
+          <div className="p-4 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+              <Label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                <Landmark className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                Intenção de Financiamento Preferencial
+              </Label>
+              <span className="text-[11px] text-slate-400">Parâmetros preliminares</span>
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <FormField
-            control={control}
-            name="creditLimitPurpose"
-            render={({ field }) => {
-              const currentVal = field.value || 'CUSTEIO_AGRICOLA'
-              const selectedPurpose = PURPOSE_OPTIONS.find((opt) => opt.value === currentVal) || PURPOSE_OPTIONS[0]
-              const SelectedIcon = selectedPurpose.icon
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={control}
+                name="creditLimitPurpose"
+                render={({ field }) => {
+                  const currentVal = field.value || 'CUSTEIO_AGRICOLA'
+                  const selectedPurpose = PURPOSE_OPTIONS.find((opt) => opt.value === currentVal) || PURPOSE_OPTIONS[0]
+                  const SelectedIcon = selectedPurpose.icon
 
-              return (
-                <FormItem className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Finalidade do Crédito
-                  </Label>
-                  <Select value={currentVal} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="h-9 text-xs bg-slate-50/60 dark:bg-slate-800/60">
-                        <SelectValue placeholder="Selecione a finalidade">
-                          <span className="flex items-center gap-2 truncate">
-                            <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedPurpose.iconColor}`} />
-                            <span className="truncate">{selectedPurpose.label}</span>
-                          </span>
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {PURPOSE_OPTIONS.map((opt) => {
-                        const Icon = opt.icon
-                        return (
-                          <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                            <span className="flex items-center gap-2">
-                              <Icon className={`w-3.5 h-3.5 ${opt.iconColor}`} />
-                              <span>{opt.label}</span>
-                            </span>
-                          </SelectItem>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )
-            }}
+                  return (
+                    <FormItem className="space-y-1">
+                      <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        Finalidade do Crédito
+                      </Label>
+                      <Select value={currentVal} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="h-9 text-xs bg-slate-50/60 dark:bg-slate-800/60">
+                            <SelectValue placeholder="Selecione a finalidade">
+                              <span className="flex items-center gap-2 truncate">
+                                <SelectedIcon className={`w-3.5 h-3.5 shrink-0 ${selectedPurpose.iconColor}`} />
+                                <span className="truncate">{selectedPurpose.label}</span>
+                              </span>
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {PURPOSE_OPTIONS.map((opt) => {
+                            const Icon = opt.icon
+                            return (
+                              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                                <span className="flex items-center gap-2">
+                                  <Icon className={`w-3.5 h-3.5 ${opt.iconColor}`} />
+                                  <span>{opt.label}</span>
+                                </span>
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )
+                }}
+              />
+
+              <FormField
+                control={control}
+                name="creditLimitTargetBank"
+                render={({ field }) => {
+                  const currentVal = field.value || 'BANCO_DO_BRASIL'
+                  const selectedBank = BANK_OPTIONS.find((opt) => opt.value === currentVal) || BANK_OPTIONS[0]
+                  const SelectedBankIcon = selectedBank.icon
+
+                  return (
+                    <FormItem className="space-y-1">
+                      <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                        Instituição Financeira Proponente
+                      </Label>
+                      <Select value={currentVal} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="h-9 text-xs bg-slate-50/60 dark:bg-slate-800/60">
+                            <SelectValue placeholder="Selecione o banco">
+                              <span className="flex items-center gap-2 truncate">
+                                <SelectedBankIcon className="w-3.5 h-3.5 shrink-0 text-slate-500" />
+                                <span className="truncate">{selectedBank.label}</span>
+                              </span>
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {BANK_OPTIONS.map((opt) => {
+                            const Icon = opt.icon
+                            return (
+                              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                                <span className="flex items-center gap-2">
+                                  <Icon className="w-3.5 h-3.5 text-slate-500" />
+                                  <span>{opt.label}</span>
+                                </span>
+                              </SelectItem>
+                            )
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )
+                }}
+              />
+            </div>
+          </div>
+
+          {/* WIDGET OFICIAL DE LIMITES MCR DO PRODUTOR (INTERCONEXÃO DE ESTEIRA) */}
+          <ProducerCreditLimitSummaryCard
+            activeForm={activeForm}
+            producerId={producerId}
+            propertyId={propertyId}
+            onSaveAndSimulate={onSaveAndSimulate}
           />
-
-          <FormField
-            control={control}
-            name="creditLimitTargetBank"
-            render={({ field }) => {
-              const currentVal = field.value || 'BANCO_DO_BRASIL'
-              const selectedBank = BANK_OPTIONS.find((opt) => opt.value === currentVal) || BANK_OPTIONS[0]
-              const SelectedBankIcon = selectedBank.icon
-
-              return (
-                <FormItem className="space-y-1">
-                  <Label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Instituição Financeira Proponente
-                  </Label>
-                  <Select value={currentVal} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="h-9 text-xs bg-slate-50/60 dark:bg-slate-800/60">
-                        <SelectValue placeholder="Selecione o banco">
-                          <span className="flex items-center gap-2 truncate">
-                            <SelectedBankIcon className="w-3.5 h-3.5 shrink-0 text-slate-500" />
-                            <span className="truncate">{selectedBank.label}</span>
-                          </span>
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {BANK_OPTIONS.map((opt) => {
-                        const Icon = opt.icon
-                        return (
-                          <SelectItem key={opt.value} value={opt.value} className="text-xs">
-                            <span className="flex items-center gap-2">
-                              <Icon className="w-3.5 h-3.5 text-slate-500" />
-                              <span>{opt.label}</span>
-                            </span>
-                          </SelectItem>
-                        )
-                      })}
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )
-            }}
-          />
-        </div>
-      </div>
-
-      {/* WIDGET OFICIAL DE LIMITES MCR DO PRODUTOR (INTERCONEXÃO DE ESTEIRA) */}
-      <ProducerCreditLimitSummaryCard
-        activeForm={activeForm}
-        producerId={producerId}
-        propertyId={propertyId}
-        onSaveAndSimulate={onSaveAndSimulate}
-      />
+        </>
+      )}
     </div>
   )
 }

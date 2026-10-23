@@ -12,6 +12,8 @@ interface PropertyTabsViewProps {
   producers: any[]
   hasFinancialModule: boolean
   isFinancialModuleDisabledForOrg: boolean
+  hasCreditLimitModule?: boolean
+  isCreditLimitModuleDisabledForOrg?: boolean
   demands: any[]
   initialTab?: string
 }
@@ -22,6 +24,8 @@ export function PropertyTabsView({
   producers,
   hasFinancialModule,
   isFinancialModuleDisabledForOrg,
+  hasCreditLimitModule,
+  isCreditLimitModuleDisabledForOrg,
   demands,
   initialTab = 'CADASTRO',
 }: PropertyTabsViewProps) {
@@ -76,6 +80,8 @@ export function PropertyTabsView({
             producers={producers}
             hasFinancialModule={hasFinancialModule}
             isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+            hasCreditLimitModule={hasCreditLimitModule}
+            isCreditLimitModuleDisabledForOrg={isCreditLimitModuleDisabledForOrg}
           />
         ) : (
           <CrmDemandsList

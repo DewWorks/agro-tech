@@ -11,6 +11,8 @@ interface PropertyMultiStepFormProps {
   initialBranchId?: string
   hasFinancialModule?: boolean
   isFinancialModuleDisabledForOrg?: boolean
+  hasCreditLimitModule?: boolean
+  isCreditLimitModuleDisabledForOrg?: boolean
 }
 
 export default function PropertyMultiStepForm({
@@ -21,6 +23,8 @@ export default function PropertyMultiStepForm({
   initialBranchId,
   hasFinancialModule = false,
   isFinancialModuleDisabledForOrg = false,
+  hasCreditLimitModule = false,
+  isCreditLimitModuleDisabledForOrg = false,
 }: PropertyMultiStepFormProps) {
   return (
     <PropertyWizardContainer
@@ -33,6 +37,8 @@ export default function PropertyMultiStepForm({
       propertyId={initialData?.id}
       hasFinancialModule={hasFinancialModule}
       isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+      hasCreditLimitModule={hasCreditLimitModule}
+      isCreditLimitModuleDisabledForOrg={isCreditLimitModuleDisabledForOrg}
     />
   )
 }

@@ -188,12 +188,16 @@ export default async function EditPropertyPage({
     }
   }
 
-  // Super Admin sempre tem acesso ao módulo financeiro, mesmo que desativado no cliente.
+  // Super Admin sempre tem acesso aos módulos, mesmo que desativados no cliente.
   // Para os demais usuários, respeita estritamente a lista de módulos da organização.
   const targetOrg = property.branch?.organization || effectiveUser.organization
   const isOrgFinancialEnabled = (targetOrg?.modules || []).includes('FINANCIAL_SUMMARY')
   const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
   const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
+
+  const isOrgCreditLimitEnabled = (targetOrg?.modules || []).includes('CREDIT_LIMIT')
+  const hasCreditLimitModule = isSuperAdmin || isOrgCreditLimitEnabled
+  const isCreditLimitModuleDisabledForOrg = isSuperAdmin && !isOrgCreditLimitEnabled
 
   // Busca demandas vinculadas a esta propriedade rural
   const demandsRes = await getDemands({ propertyId: id, includeCancelled: true })
@@ -232,6 +236,8 @@ export default async function EditPropertyPage({
         producers={producers}
         hasFinancialModule={hasFinancialModule}
         isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+        hasCreditLimitModule={hasCreditLimitModule}
+        isCreditLimitModuleDisabledForOrg={isCreditLimitModuleDisabledForOrg}
         demands={demands}
         initialTab={resolvedSearchParams.tab === 'demands' ? 'DEMANDAS' : 'CADASTRO'}
       />

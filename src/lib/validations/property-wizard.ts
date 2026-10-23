@@ -11,6 +11,7 @@ import {
   MACHINERY_CATEGORIES,
   BRAZILIAN_STATES,
   MODULE_FINANCIAL_SUMMARY,
+  MODULE_CREDIT_LIMIT,
 } from './reference-data'
 
 export {
@@ -25,6 +26,7 @@ export {
   MACHINERY_CATEGORIES,
   BRAZILIAN_STATES,
   MODULE_FINANCIAL_SUMMARY,
+  MODULE_CREDIT_LIMIT,
 }
 
 // ============================================================================

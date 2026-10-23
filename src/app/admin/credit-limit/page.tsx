@@ -21,14 +21,14 @@ export default async function CreditLimitPage(props: {
 
   const isSuperAdmin =
     user.role === 'SUPER_ADMIN' || (user as any).realRole === 'SUPER_ADMIN'
-  const isOrgFinancialEnabled = (user.organization?.modules || []).includes(
-    'FINANCIAL_SUMMARY'
+  const isOrgCreditLimitEnabled = (user.organization?.modules || []).includes(
+    'CREDIT_LIMIT'
   )
-  const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
-  const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
+  const hasCreditLimitModule = isSuperAdmin || isOrgCreditLimitEnabled
+  const isCreditLimitModuleDisabledForOrg = isSuperAdmin && !isOrgCreditLimitEnabled
 
-  // Bloqueio rigoroso: se usuário comum não possui FINANCIAL_SUMMARY, redireciona
-  if (!hasFinancialModule) {
+  // Bloqueio rigoroso: se usuário comum não possui CREDIT_LIMIT, redireciona
+  if (!hasCreditLimitModule) {
     redirect('/admin')
   }
 
@@ -72,7 +72,7 @@ export default async function CreditLimitPage(props: {
       initialTargetBank={searchParams.bank || searchParams.targetBank}
       initialPropertiesList={selectProperties}
       initialSimulationData={initialSimulationBundle?.simulationData || null}
-      isFinancialModuleDisabledForOrg={isFinancialModuleDisabledForOrg}
+      isFinancialModuleDisabledForOrg={isCreditLimitModuleDisabledForOrg}
     />
   )
 }

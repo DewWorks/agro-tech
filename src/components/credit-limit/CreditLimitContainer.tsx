@@ -145,7 +145,7 @@ export function CreditLimitContainer({
               </Badge>
             </div>
             <p className="text-xs text-amber-800/90 dark:text-amber-300/90 leading-relaxed">
-              A organização ativa não possui o módulo <strong>Resumo Financeiro & Limites</strong> habilitado em seu plano comercial. Como Super Administrador, você possui permissão técnica para auditar e visualizar estes dados. Usuários comuns desta organização não têm acesso a esta tela nem aos atalhos de limite de crédito.
+              A organização ativa não possui o módulo <strong>Limite de Crédito</strong> habilitado em seu plano comercial. Como Super Administrador, você possui permissão técnica para auditar e visualizar estes dados. Usuários comuns desta organização não têm acesso a esta tela nem aos atalhos de limite de crédito.
             </p>
           </div>
         </div>
