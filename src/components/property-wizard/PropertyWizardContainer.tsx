@@ -278,6 +278,7 @@ export function PropertyWizardContainer({
 
       // Sincronização atômica da Análise de Crédito no Banco de Dados
       if (
+        hasCreditLimitModule &&
         values.producerId &&
         (Number(values.creditLimitRequested) > 0 ||
           Number(values.effectiveAgroRevenue) > 0 ||

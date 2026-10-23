@@ -188,15 +188,20 @@ export default async function EditPropertyPage({
     }
   }
 
-  // Super Admin sempre tem acesso aos módulos, mesmo que desativados no cliente.
-  // Para os demais usuários, respeita estritamente a lista de módulos da organização.
+  // Super Admin tem acesso ao resumo financeiro estrutural quando desativado,
+  // mas o card e botões de Limite de Crédito / Simulação MCR dentro do CRM são
+  // estritamente condicionados à contratação e ativação do módulo CREDIT_LIMIT pelo cliente.
   const targetOrg = property.branch?.organization || effectiveUser.organization
   const isOrgFinancialEnabled = (targetOrg?.modules || []).includes('FINANCIAL_SUMMARY')
   const hasFinancialModule = isSuperAdmin || isOrgFinancialEnabled
   const isFinancialModuleDisabledForOrg = isSuperAdmin && !isOrgFinancialEnabled
 
+  const globalCreditLimitMod = await prisma.systemModule.findUnique({
+    where: { code: 'CREDIT_LIMIT' },
+  })
+  const isGlobalCreditLimitActive = globalCreditLimitMod ? globalCreditLimitMod.isActive : true
   const isOrgCreditLimitEnabled = (targetOrg?.modules || []).includes('CREDIT_LIMIT')
-  const hasCreditLimitModule = isSuperAdmin || isOrgCreditLimitEnabled
+  const hasCreditLimitModule = isGlobalCreditLimitActive && isOrgCreditLimitEnabled
   const isCreditLimitModuleDisabledForOrg = isSuperAdmin && !isOrgCreditLimitEnabled
 
   // Busca demandas vinculadas a esta propriedade rural

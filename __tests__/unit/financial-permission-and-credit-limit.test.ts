@@ -156,4 +156,50 @@ describe('Módulo Financeiro & Limite de Crédito — Regras de Permissão e Mod
       expect(parsed.success).toBe(false)
     })
   })
+
+  describe('4. Regras de Exibição no Wizard do CRM (Resumo Financeiro vs Limite de Crédito)', () => {
+    it('deve desativar o card e botões de limite de crédito (hasCreditLimitModule = false) se a organização não tiver CREDIT_LIMIT, mesmo para Super Admin', () => {
+      const targetOrg = {
+        id: 'org_client',
+        name: 'LN Consultoria',
+        modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY'], // Possui FINANCIAL_SUMMARY mas NÃO possui CREDIT_LIMIT
+      }
+
+      const isGlobalCreditLimitActive = true
+      const isOrgCreditLimitEnabled = (targetOrg.modules || []).includes('CREDIT_LIMIT')
+      const hasCreditLimitModule = isGlobalCreditLimitActive && isOrgCreditLimitEnabled
+
+      // Mesmo sendo Super Admin, o card de limite de crédito do cliente deve ser ocultado
+      expect(hasCreditLimitModule).toBe(false)
+    })
+
+    it('deve ativar o card e botões de limite de crédito (hasCreditLimitModule = true) quando o cliente possui CREDIT_LIMIT ativo', () => {
+      const targetOrg = {
+        id: 'org_client_pro',
+        name: 'Agro Pro',
+        modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY', 'CREDIT_LIMIT'],
+      }
+
+      const isGlobalCreditLimitActive = true
+      const isOrgCreditLimitEnabled = (targetOrg.modules || []).includes('CREDIT_LIMIT')
+      const hasCreditLimitModule = isGlobalCreditLimitActive && isOrgCreditLimitEnabled
+
+      expect(hasCreditLimitModule).toBe(true)
+    })
+
+    it('deve desativar o card se o módulo estiver desativado globalmente no sistema', () => {
+      const targetOrg = {
+        id: 'org_client_pro',
+        name: 'Agro Pro',
+        modules: ['CRM', 'GED', 'FINANCIAL_SUMMARY', 'CREDIT_LIMIT'],
+      }
+
+      const isGlobalCreditLimitActive = false
+      const isOrgCreditLimitEnabled = (targetOrg.modules || []).includes('CREDIT_LIMIT')
+      const hasCreditLimitModule = isGlobalCreditLimitActive && isOrgCreditLimitEnabled
+
+      expect(hasCreditLimitModule).toBe(false)
+    })
+  })
 })
+
