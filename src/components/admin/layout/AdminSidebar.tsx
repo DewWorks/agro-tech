@@ -19,12 +19,16 @@ import {
   ChevronDown,
   ChevronRight,
   LogOut,
+  User,
+  Palette,
+  CreditCard,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface SubItem {
   title: string
   href: string
+  icon?: React.ElementType
 }
 
 interface MenuItem {
@@ -134,7 +138,10 @@ function getNavigationGroups(
             title: 'Configurações',
             icon: Settings,
             subItems: [
-              { title: 'Meu Perfil', href: '/admin/settings/profile' },
+              { title: 'Meu Perfil', href: '/admin/settings/profile', icon: User },
+              { title: 'Minha Empresa', href: '/admin/settings/organization', icon: Building2 },
+              { title: 'Identidade Visual', href: '/admin/settings/branding', icon: Palette },
+              { title: 'Assinatura & Faturamento', href: '/admin/settings/billing', icon: CreditCard },
             ],
           },
         ],
@@ -295,10 +302,10 @@ function getNavigationGroups(
       title: 'Configurações',
       icon: Settings,
       subItems: [
-        { title: 'Meu Perfil', href: '/admin/settings/profile' },
-        ...(role === 'OWNER'
-          ? [{ title: 'Minha Empresa', href: '/admin/settings/organization' }]
-          : []),
+        { title: 'Meu Perfil', href: '/admin/settings/profile', icon: User },
+        { title: 'Minha Empresa', href: '/admin/settings/organization', icon: Building2 },
+        { title: 'Identidade Visual', href: '/admin/settings/branding', icon: Palette },
+        { title: 'Assinatura & Faturamento', href: '/admin/settings/billing', icon: CreditCard },
       ],
     },
   ]
@@ -434,7 +441,7 @@ export default function AdminSidebar({
     'CRM de Produtores': isCrmGroupActive(pathname),
     'Gestão de Documentos': isGedGroupActive(pathname),
     'GED Enterprise': isGedGroupActive(pathname),
-    Configurações: isSettingsGroupActive(pathname),
+    'Configurações': isSettingsGroupActive(pathname),
   })
 
   // Sincronização da rota ativa ao navegar
@@ -443,7 +450,7 @@ export default function AdminSidebar({
       'CRM de Produtores': isCrmGroupActive(pathname),
       'Gestão de Documentos': isGedGroupActive(pathname),
       'GED Enterprise': isGedGroupActive(pathname),
-      Configurações: isSettingsGroupActive(pathname),
+      'Configurações': isSettingsGroupActive(pathname),
     })
   }, [pathname])
 
@@ -576,19 +583,28 @@ export default function AdminSidebar({
                             <div className="ml-4 pl-3 border-l border-white/20 space-y-0.5 mt-1 mb-1.5">
                               {item.subItems.map((sub) => {
                                 const isSubActive = isRouteActive(sub.href, pathname)
+                                const SubIcon = sub.icon
                                 return (
                                   <Link
                                     key={sub.title}
                                     href={sub.href}
                                     prefetch={true}
                                     className={cn(
-                                      'block px-3 py-1.5 rounded-lg transition-colors text-xs',
+                                      'flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors text-xs',
                                       isSubActive
                                         ? 'text-white bg-white/20 font-semibold shadow-xs border-l-2 border-emerald-400 pl-2.5'
                                         : 'text-white/70 hover:text-white hover:bg-white/10'
                                     )}
                                   >
-                                    {sub.title}
+                                    {SubIcon && (
+                                      <SubIcon
+                                        className={cn(
+                                          'w-3.5 h-3.5 shrink-0 transition-colors',
+                                          isSubActive ? 'text-emerald-300' : 'text-white/60'
+                                        )}
+                                      />
+                                    )}
+                                    <span className="truncate">{sub.title}</span>
                                   </Link>
                                 )
                               })}

@@ -183,6 +183,27 @@ describe('Refatoração da Sidebar e Identidade Visual (Diretriz 2)', () => {
     const producersLink = screen.getByText('Produtores Rurais').closest('a')
     expect(producersLink).not.toHaveClass('border-emerald-400')
   })
+
+  it('deve exibir os 4 subitens de configurações (Meu Perfil, Minha Empresa, Identidade Visual, Assinatura & Faturamento) ao acessar configurações', () => {
+    mockCurrentPathname = '/admin/settings/profile'
+
+    render(
+      <AdminSidebar
+        role="OWNER"
+        modules={['CRM', 'GED', 'DEMANDS', 'FINANCIAL_SUMMARY']}
+        user={{
+          fullName: 'Carlos Eduardo Silva',
+          email: 'carlos@agrotech.com.br',
+          role: 'OWNER',
+        }}
+      />
+    )
+
+    expect(screen.getByText('Meu Perfil')).toBeInTheDocument()
+    expect(screen.getByText('Minha Empresa')).toBeInTheDocument()
+    expect(screen.getByText('Identidade Visual')).toBeInTheDocument()
+    expect(screen.getByText('Assinatura & Faturamento')).toBeInTheDocument()
+  })
 })
 
 describe('Reformulação da Página Inicial (Diretriz 3)', () => {
